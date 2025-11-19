@@ -252,17 +252,113 @@ class HybridChatbotService:
             return True, None
         
         if input_type == "choice" or input_type == "yes_no":
-            # Check if message matches any option
+            # Special handling for the main menu "start" step:
+            # auto-detect case type from natural language like "car accident"
+            if step_id == "start":
+                # PERSONAL INJURY
+                if any(
+                    kw in msg_lower
+                    for kw in [
+                        "car accident",
+                        "accident",
+                        "crash",
+                        "collision",
+                        "rear-ended",
+                        "rear ended",
+                        "hit by a car",
+                        "injured in a car",
+                        "truck accident",
+                        "motorcycle accident",
+                        "slip and fall",
+                        "slipped and fell",
+                        "fell at",
+                        "hurt at work",
+                        "workplace injury",
+                        "injured at work",
+                    ]
+                ):
+                    return True, "personal_injury"
+
+                # FAMILY LAW
+                if any(
+                    kw in msg_lower
+                    for kw in [
+                        "divorce",
+                        "custody",
+                        "child support",
+                        "alimony",
+                        "separation",
+                        "family court",
+                    ]
+                ):
+                    return True, "family_law"
+
+                # IMMIGRATION
+                if any(
+                    kw in msg_lower
+                    for kw in [
+                        "visa",
+                        "green card",
+                        "citizenship",
+                        "deportation",
+                        "immigration",
+                    ]
+                ):
+                    return True, "immigration"
+
+                # CRIMINAL DEFENSE
+                if any(
+                    kw in msg_lower
+                    for kw in [
+                        "arrested",
+                        "charged",
+                        "dui",
+                        "dwi",
+                        "criminal charge",
+                        "felony",
+                        "misdemeanor",
+                    ]
+                ):
+                    return True, "criminal_defense"
+
+                # BUSINESS LAW
+                if any(
+                    kw in msg_lower
+                    for kw in [
+                        "contract dispute",
+                        "business dispute",
+                        "partnership dispute",
+                        "breach of contract",
+                        "business lawyer",
+                    ]
+                ):
+                    return True, "business_law"
+
+                # ESTATE PLANNING
+                if any(
+                    kw in msg_lower
+                    for kw in [
+                        "will",
+                        "trust",
+                        "estate plan",
+                        "power of attorney",
+                        "inheritance",
+                    ]
+                ):
+                    return True, "estate_planning"
+
+                # If none matched, fall through to normal option matching
+
+            # Normal option/yes-no handling
             for option in step_data.get("options", []):
                 label = option["label"].lower()
                 value = option["value"].lower()
-                
+
                 if label in msg_lower or value in msg_lower:
                     return True, option["value"]
-            
+
             # Special handling for pi_intro (date/time question)
             if step_id == "pi_intro":
-                # Check for date/time patterns
                 if any(pattern in msg_lower for pattern in [
                     "today", "yesterday", "last week", "last month", "ago",
                     "monday", "tuesday", "wednesday", "thursday", "friday",
@@ -270,8 +366,9 @@ class HybridChatbotService:
                     "july", "august", "september", "october", "november", "december"
                 ]) or "/" in message or ":" in message:
                     return True, message
-            
+
             return False, None
+
         
         if input_type == "text":
             # Must be at least 3 words for meaningful answer
