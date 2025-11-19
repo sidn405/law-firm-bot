@@ -524,7 +524,15 @@ class ChatbotService:
 
         return "\n".join(lines)
 
-    async def chat(self, message: str, conversation_history: List[Dict], knowledge_base: str = "", current_step_id: str | None = None, current_step_prompt: str | None = None,) -> str:
+    async def chat(
+        self,
+        message: str,
+        conversation_history: list,
+        knowledge_base: str = "",
+        current_step_id: str = None,
+        current_step_prompt: str = None,
+    ):
+
         """Generate chatbot response using OpenAI"""
 
         if not openai_client:
@@ -532,6 +540,25 @@ class ChatbotService:
 
         # Build conversation summary for context (your existing logic)
         summary = self._build_conversation_summary(conversation_history)
+        
+        if current_step_prompt:
+            messages.append({
+                "role": "system",
+                "content": f"""
+        CURRENT INTAKE STEP: {current_step_id}
+
+        THE PROMPT YOU MUST ASK NEXT (EXACTLY AS WRITTEN):
+
+        {current_step_prompt}
+
+        - You MUST ask this question next.
+        - You may NOT ask any previous questions.
+        - You may NOT improvise or change the wording.
+
+        If the user answers, move to next step.
+        If the user goes off-topic, answer briefly then repeat EXACTLY this prompt.
+        """
+            })
 
         messages = [
             {"role": "system", "content": self.system_prompt}
