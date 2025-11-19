@@ -65,6 +65,16 @@ twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
+# Load law firm flow
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FLOW_PATH = os.path.join(BASE_DIR, "law_firm", "law_firm.json")  # or just "law_firm.json" if it’s in root
+
+with open(FLOW_PATH, "r", encoding="utf-8") as f:
+    LAW_FIRM_FLOW = json.load(f)
+
+flow_manager = FlowStateManager(LAW_FIRM_FLOW)
+
+
 # ============================================
 # DATABASE SETUP
 # ============================================
@@ -260,6 +270,129 @@ class WebScraperService:
 # Initialize scraper (update with actual law firm URL)
 scraper = WebScraperService(base_url="https://yourlawfirm.com")
 
+class FlowStateManager:
+    """
+    Tracks the current flow step for each session and advances using law_firm.json.
+    """
+
+    def __init__(self, flow_json: dict):
+        self.flow = flow_json
+        self.step_index = self._index_steps()
+        # in-memory store: session_id -> {"current_step": str, "answers": dict}
+        self.sessions: dict[str, dict] = {}
+
+    def _index_steps(self) -> dict:
+        index = {}
+        for flow in self.flow["flows"]:
+            for step in flow["steps"]:
+                index[step["id"]] = step
+        return index
+
+    # -------- session helpers --------
+    def ensure_session(self, session_id: str):
+        if session_id not in self.sessions:
+            # default entry point for now – matches "start" in main_menu
+            self.sessions[session_id] = {
+                "current_step": "start",
+                "answers": {}
+            }
+
+    def get_current_step(self, session_id: str) -> str:
+        self.ensure_session(session_id)
+        return self.sessions[session_id]["current_step"]
+
+    def set_current_step(self, session_id: str, step_id: str):
+        self.ensure_session(session_id)
+        self.sessions[session_id]["current_step"] = step_id
+
+    def get_step(self, step_id: str) -> dict:
+        return self.step_index[step_id]
+
+    def get_prompt(self, step_id: str) -> str:
+        return self.step_index[step_id]["prompt"]
+
+    # -------- answer detection --------
+    def did_user_answer_step(self, step_id: str, user_message: str) -> bool:
+        """
+        Very simple heuristics – enough to stop the 'date' question repeating.
+        You can refine per step over time.
+        """
+        step = self.get_step(step_id)
+        msg = (user_message or "").strip().lower()
+
+        itype = step.get("input_type")
+
+        if itype == "none":
+            return True
+
+        if itype == "text":
+            # any non-empty text counts as an answer
+            return len(msg) > 0
+
+        if itype == "choice" or itype == "yes_no":
+            # PI intro is special: user may give real date/time, not button values
+            if step_id == "pi_intro":
+                # crude date/time pattern – catches things like '7:23 am', '11/12/2025', 'nov 12'
+                if any(c in msg for c in ["/", "-", ":"]) or any(
+                    m in msg for m in
+                    ["yesterday", "today", "ago", "last week", "last month",
+                     "january", "february", "march", "april", "may", "june",
+                     "july", "august", "september", "october", "november", "december"]
+                ):
+                    return True
+
+            # normal choice / yes_no – match label or value text
+            for opt in step.get("options", []):
+                if opt["label"].lower() in msg or opt["value"].lower() in msg:
+                    return True
+
+        # file upload etc – you can handle later
+        return False
+
+    # -------- next step logic --------
+    def determine_next_step(self, current_step_id: str, user_message: str) -> str | None:
+        step = self.get_step(current_step_id)
+        msg = (user_message or "").lower()
+
+        # Personal-injury special case from your JSON:
+        # pi_injury_type -> either pi_injury_details (if "other") or pi_medical_treatment
+        if current_step_id == "pi_injury_type":
+            for opt in step.get("options", []):
+                if opt["label"].lower() in msg or opt["value"].lower() in msg:
+                    return opt["next_step"]
+            # fallback: if they described it in text, treat as pi_injury_details answered
+            if len(msg.split()) > 3:
+                return "pi_medical_treatment"
+
+        # pi_injury_details should ALWAYS go to pi_medical_treatment
+        if current_step_id == "pi_injury_details":
+            return step.get("next_step", "pi_medical_treatment")
+
+        # generic path – follow JSON
+        if "options" in step:
+            for opt in step["options"]:
+                if opt["label"].lower() in msg or opt["value"].lower() in msg:
+                    return opt.get("next_step")
+
+        return step.get("next_step")
+
+    def advance_if_answered(self, session_id: str, user_message: str):
+        """
+        If user answered the current step, move to the next one.
+        Otherwise leave current_step alone (off-topic or incomplete).
+        """
+        self.ensure_session(session_id)
+        current = self.sessions[session_id]["current_step"]
+
+        if not self.did_user_answer_step(current, user_message):
+            return current  # stay on same step
+
+        nxt = self.determine_next_step(current, user_message)
+        if nxt:
+            self.sessions[session_id]["current_step"] = nxt
+        return self.sessions[session_id]["current_step"]
+
+
 # ============================================
 # OPENAI CHATBOT SERVICE
 # ============================================
@@ -269,11 +402,6 @@ class ChatbotService:
     """Handles OpenAI conversations with dynamic knowledge"""
     
     def __init__(self):
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        script_path = os.path.join(base_dir, "law_firm", "law_firm.json")
-
-        with open(script_path, "r", encoding="utf-8") as f:
-            self.flow = json.load(f)
             
         self.flow_manager = FlowStateManager(self.flow)
 
@@ -387,7 +515,7 @@ class ChatbotService:
 
         return "\n".join(lines)
 
-    async def chat(self, message: str, conversation_history: List[Dict], knowledge_base: str = "") -> str:
+    async def chat(self, message: str, conversation_history: List[Dict], knowledge_base: str = "", current_step_id: str | None = None, current_step_prompt: str | None = None,) -> str:
         """Generate chatbot response using OpenAI"""
 
         if not openai_client:
@@ -423,6 +551,23 @@ class ChatbotService:
             "role": "system",
             "content": f"LAW FIRM INTAKE FLOW STRUCTURE:\n\n{json.dumps(self.flow, indent=2)}"
         })
+        
+        messages = [
+            {"role": "system", "content": self.system_prompt}
+        ]
+
+        if current_step_id and current_step_prompt:
+            messages.append({
+                "role": "system",
+                "content": (
+                    f"CURRENT INTAKE STEP ID: {current_step_id}\n"
+                    f"CURRENT INTAKE PROMPT (must be the question you ask next):\n"
+                    f"{current_step_prompt}\n\n"
+                    "Do NOT re-ask any earlier questions. Do NOT change this prompt. "
+                    "If the user goes off-topic, answer briefly and then repeat THIS prompt."
+                )
+            })
+
 
         # Add recent conversation history (unchanged)
         messages.extend(conversation_history[-10:] if len(conversation_history) > 10 else conversation_history)
@@ -438,7 +583,7 @@ class ChatbotService:
                 max_tokens=500,
                 temperature=0.7
             )
-
+            
             return response.choices[0].message.content
         except Exception as e:
             print(f"OpenAI error: {e}")
@@ -622,6 +767,23 @@ async def chat_endpoint(chat: ChatMessage, db: Session = Depends(get_db)):
     
     # Get knowledge base from website
     knowledge_base = await scraper.get_knowledge_base()
+    
+    # --- NEW: flow state update based on this user turn ---
+    flow_manager.ensure_session(session_id)
+    # treat the incoming user message as answering the *previous* step
+    current_before = flow_manager.get_current_step(session_id)
+    current_after = flow_manager.advance_if_answered(session_id, chat.message)
+    current_step_id = current_after
+    current_step_prompt = flow_manager.get_prompt(current_step_id)
+
+    # Generate response with awareness of the current step
+    response_text = await chatbot.chat(
+        message=chat.message,
+        conversation_history=conversation.messages,
+        knowledge_base=knowledge_base,
+        current_step_id=current_step_id,
+        current_step_prompt=current_step_prompt,
+    )
     
     # Generate response
     response_text = await chatbot.chat(
