@@ -10,6 +10,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict, Any
 import re
 import asyncio
+
 import os
 import uuid
 import json
@@ -36,6 +37,7 @@ from sqlalchemy.pool import StaticPool
 
 # Web scraping
 from bs4 import BeautifulSoup
+from flow_state_manager import FlowStateManager
 
 # ============================================
 # CONFIGURATION
@@ -397,12 +399,19 @@ class FlowStateManager:
 # OPENAI CHATBOT SERVICE
 # ============================================
 from flow_state_manager import FlowStateManager
-
 class ChatbotService:
     """Handles OpenAI conversations with dynamic knowledge"""
     
     def __init__(self):
             
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        script_path = os.path.join(base_dir, "law_firm", "law_firm.json")
+
+        print("Loading flow script:", script_path)
+
+        with open(script_path, "r", encoding="utf-8") as f:
+            self.flow = json.load(f)
+
         self.flow_manager = FlowStateManager(self.flow)
 
         # Build a dictionary of step_id → step
