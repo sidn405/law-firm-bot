@@ -256,7 +256,7 @@ class WebScraperService:
         return "\n".join(contents)
 
 # Initialize scraper (update with actual law firm URL)
-scraper = WebScraperService(base_url="https://yourlawfirm.com")
+scraper = WebScraperService(base_url="https://palazzolaw.com")
 
 # ============================================
 # OPENAI CHATBOT SERVICE
