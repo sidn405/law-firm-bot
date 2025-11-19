@@ -321,16 +321,13 @@ class HybridChatbotService:
         # CRITICAL: Always append the next scripted question
         return f"{acknowledgment}\n\n{next_question}"
     
-    async def _generate_brief_ack(
-        self,
-        user_message: str,
-        current_step: dict
-    ) -> str:
+    async def _generate_brief_ack(self, user_message: str, current_step: dict) -> str:
         """Generate a 1-sentence acknowledgment"""
         
+        # Use the instance's OpenAI client
         if not self.openai_client:
-            return "Got it."
-        
+            return "Thank you."
+
         try:
             response = await asyncio.to_thread(
                 self.openai_client.chat.completions.create,
@@ -339,86 +336,74 @@ class HybridChatbotService:
                     {
                         "role": "system",
                         "content": (
-                            "You're a legal intake assistant. Generate a brief "
-                            "1-sentence acknowledgment (under 10 words). "
+                            "You're a legal intake assistant. "
+                            "Generate a brief 1-sentence acknowledgment (under 10 words). "
                             "Be empathetic but concise."
                         ),
                     },
                     {
                         "role": "user",
-                        "content": (
-                            f"User answered: '{user_message}'\n\n"
-                            "Generate brief acknowledgment:"
-                        ),
+                        "content": f"User answered: '{user_message}'\n\nGenerate brief acknowledgment:",
                     },
                 ],
                 max_tokens=30,
                 temperature=0.5,
             )
+
             return response.choices[0].message.content.strip()
         except Exception:
             return "Thank you."
+
 
     
     async def _handle_off_topic(
         self,
         user_message: str,
         current_step_id: str,
-        session_data: dict
+        session_data: dict,
     ) -> str:
         """
-        User didn't answer - either off-topic or unclear
-        Answer briefly, then re-ask the scripted question
+        User didn't answer - either off-topic or unclear.
+        Answer briefly, then re-ask the scripted question.
         """
-        
         current_step = self.step_index[current_step_id]
         scripted_question = current_step.get("prompt", "")
-        
-        # Generate brief response to their off-topic question
-        async def _handle_off_topic(
-            self,
-            user_message: str,
-            current_step_id: str,
-            session_data: dict,
-        ) -> str:
-            """
-            User didn't answer - either off-topic or unclear
-            Answer briefly, then re-ask the scripted question
-            """
-            current_step = self.step_index[current_step_id]
-            scripted_question = current_step.get("prompt", "")
-            
-            # Generate brief response to their off-topic question
-            if self.openai_client:
-                try:
-                    response = await asyncio.to_thread(
-                        self.openai_client.chat.completions.create,
-                        model="gpt-4o-mini",
-                        messages=[
-                            {
-                                "role": "system",
-                                "content": (
-                                    "You're a legal intake assistant. Answer this "
-                                    "question in 1 sentence (under 20 words), then stop. "
-                                    "If you don't know, say 'I don't have that information.'"
-                                ),
-                            },
-                            {
-                                "role": "user",
-                                "content": user_message,
-                            },
-                        ],
-                        max_tokens=50,
-                        temperature=0.5,
-                    )
-                    brief_answer = response.choices[0].message.content.strip()
-                    return f"{brief_answer}\n\n{scripted_question}"
-                except Exception:
-                    # fall through to plain re-ask
-                    pass
 
-            # Fallback: just re-ask the question
-            return f"Let me ask you this: {scripted_question}"
+        # Generate brief response to their off-topic question
+        if self.openai_client:
+            try:
+                response = await asyncio.to_thread(
+                    self.openai_client.chat.completions.create,
+                    model="gpt-4o-mini",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": (
+                                "You're a legal intake assistant. "
+                                "Answer this question in 1 sentence (under 20 words), then stop. "
+                                "If you don't know, say 'I don't have that information.'"
+                            ),
+                        },
+                        {
+                            "role": "user",
+                            "content": user_message,
+                        },
+                    ],
+                    max_tokens=50,
+                    temperature=0.5,
+                )
+
+                brief_answer = response.choices[0].message.content.strip()
+
+                # Always re-ask the scripted question
+                return f"{brief_answer}\n\n{scripted_question}"
+            except Exception:
+                # If the LLM call fails, fall through to the fallback below
+                pass
+
+        # Fallback: just re-ask the question
+        return f"Let me ask you this: {scripted_question}"
+
 
     
     def _determine_next_step(self, current_step_id: str, user_value: any) -> str:
