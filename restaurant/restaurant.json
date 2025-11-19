@@ -1,0 +1,211 @@
+{
+  "bot_type": "restaurant",
+  "description": "Reservations, online ordering, menu browsing, catering requests, and feedback.",
+  "flows": [
+    {
+      "id": "main_menu",
+      "name": "Main Menu",
+      "steps": [
+        {
+          "id": "start",
+          "prompt": "Welcome to {{restaurant_name}}! What would you like to do?",
+          "input_type": "choice",
+          "options": [
+            { "value": "view_menu", "label": "View the menu", "next_step": "menu_category" },
+            { "value": "place_order", "label": "Place an order", "next_step": "order_type" },
+            { "value": "reservation", "label": "Make a reservation", "next_step": "res_date" },
+            { "value": "waitlist", "label": "Join the waitlist", "next_step": "wl_party" },
+            { "value": "catering", "label": "Catering / event request", "next_step": "cat_intro" },
+            { "value": "hours_info", "label": "Hours, location, & FAQs", "next_step": "info" },
+            { "value": "feedback", "label": "Leave feedback", "next_step": "fb_rating" }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "menu_flow",
+      "name": "Menu Browsing",
+      "steps": [
+        {
+          "id": "menu_category",
+          "prompt": "Which part of the menu would you like to see?",
+          "input_type": "choice",
+          "options": [
+            { "value": "appetizers", "label": "Appetizers", "next_step": "menu_items" },
+            { "value": "entrees", "label": "Entrees", "next_step": "menu_items" },
+            { "value": "desserts", "label": "Desserts", "next_step": "menu_items" },
+            { "value": "drinks", "label": "Drinks", "next_step": "menu_items" },
+            { "value": "vegan", "label": "Vegan options", "next_step": "menu_items" },
+            { "value": "gluten_free", "label": "Gluten-free", "next_step": "menu_items" }
+          ]
+        },
+        {
+          "id": "menu_items",
+          "prompt": "Here are our {{selected_category}}. You can ask for details about any dish or type 'order' to start an order.",
+          "input_type": "text",
+          "next_step": "start"
+        }
+      ]
+    },
+
+    {
+      "id": "ordering_flow",
+      "name": "Online Ordering",
+      "steps": [
+        {
+          "id": "order_type",
+          "prompt": "Is this order for pickup or delivery?",
+          "input_type": "choice",
+          "options": [
+            { "value": "pickup", "label": "Pickup", "next_step": "order_items" },
+            { "value": "delivery", "label": "Delivery", "next_step": "delivery_address" }
+          ]
+        },
+        {
+          "id": "delivery_address",
+          "prompt": "Please enter your delivery address.",
+          "input_type": "text",
+          "next_step": "order_items"
+        },
+        {
+          "id": "order_items",
+          "prompt": "Tell me what you’d like to order. You can specify quantity and any special requests (e.g., '2 shrimp tacos, no cheese').",
+          "input_type": "text",
+          "next_step": "order_confirm"
+        },
+        {
+          "id": "order_confirm",
+          "prompt": "Here’s what I have for your order:\n{{order_summary}}\n\nDoes everything look correct?",
+          "input_type": "choice",
+          "options": [
+            { "value": "yes", "label": "Yes, it’s correct", "next_step": "order_payment" },
+            { "value": "no", "label": "No, I need to change it", "next_step": "order_items" }
+          ]
+        },
+        {
+          "id": "order_payment",
+          "prompt": "Great! Your total is {{order_total}}. You can pay securely online now.",
+          "input_type": "choice",
+          "options": [
+            { "value": "pay_now", "label": "Pay now (Stripe checkout)", "next_step": "order_paid" },
+            { "value": "pay_at_store", "label": "Pay at pickup/delivery", "next_step": "order_end" }
+          ]
+        },
+        {
+          "id": "order_paid",
+          "prompt": "Payment received ✅ Your order is confirmed. We’ll send updates when it’s being prepared and when it’s ready.",
+          "input_type": "none",
+          "next_step": "order_end"
+        },
+        {
+          "id": "order_end",
+          "prompt": "Thank you for ordering from {{restaurant_name}}!",
+          "input_type": "none"
+        }
+      ]
+    },
+
+    {
+      "id": "reservation_flow",
+      "name": "Reservation",
+      "steps": [
+        {
+          "id": "res_date",
+          "prompt": "What date would you like to reserve a table?",
+          "input_type": "date",
+          "next_step": "res_time"
+        },
+        {
+          "id": "res_time",
+          "prompt": "What time and how many people will be in your party?",
+          "input_type": "text",
+          "next_step": "res_contact"
+        },
+        {
+          "id": "res_contact",
+          "prompt": "Please share your name and mobile number so we can confirm your reservation.",
+          "input_type": "text",
+          "next_step": "res_end"
+        },
+        {
+          "id": "res_end",
+          "prompt": "You’re all set! We’ll send a confirmation text shortly. We look forward to serving you.",
+          "input_type": "none"
+        }
+      ]
+    },
+
+    {
+      "id": "catering_flow",
+      "name": "Catering & Events",
+      "steps": [
+        {
+          "id": "cat_intro",
+          "prompt": "Great! Let’s get some details about your event.\n\nWhat type of event is it? (e.g., wedding, office party, birthday)",
+          "input_type": "text",
+          "next_step": "cat_guests"
+        },
+        {
+          "id": "cat_guests",
+          "prompt": "How many guests are you expecting?",
+          "input_type": "text",
+          "next_step": "cat_date"
+        },
+        {
+          "id": "cat_date",
+          "prompt": "What is the event date and approximate time?",
+          "input_type": "text",
+          "next_step": "cat_budget"
+        },
+        {
+          "id": "cat_budget",
+          "prompt": "Do you have a budget range in mind?",
+          "input_type": "text",
+          "next_step": "cat_menu"
+        },
+        {
+          "id": "cat_menu",
+          "prompt": "Any specific dishes or dietary needs we should know about?",
+          "input_type": "text",
+          "next_step": "cat_contact"
+        },
+        {
+          "id": "cat_contact",
+          "prompt": "Finally, please share your name, email, and phone number so our catering manager can contact you with a quote.",
+          "input_type": "text",
+          "next_step": "cat_end"
+        },
+        {
+          "id": "cat_end",
+          "prompt": "Thank you! Your catering request has been sent to our team. We’ll reach out soon with options and pricing.",
+          "input_type": "none"
+        }
+      ]
+    },
+
+    {
+      "id": "feedback_flow",
+      "name": "Feedback",
+      "steps": [
+        {
+          "id": "fb_rating",
+          "prompt": "We’d love your feedback. How would you rate your experience from 1–5 stars?",
+          "input_type": "text",
+          "next_step": "fb_comments"
+        },
+        {
+          "id": "fb_comments",
+          "prompt": "Thank you! Please share any comments or suggestions (optional).",
+          "input_type": "text",
+          "next_step": "fb_end"
+        },
+        {
+          "id": "fb_end",
+          "prompt": "We appreciate your feedback and hope to see you again soon.",
+          "input_type": "none"
+        }
+      ]
+    }
+  ]
+}

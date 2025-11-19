@@ -1,0 +1,146 @@
+{
+  "bot_type": "law_firm",
+  "description": "24/7 legal intake, case-type qualification, and consultation scheduling.",
+  "flows": [
+    {
+      "id": "main_menu",
+      "name": "Main Menu",
+      "steps": [
+        {
+          "id": "start",
+          "prompt": "Hello and welcome to {{law_firm_name}}. I can help you with a free case evaluation, scheduling, or questions about our services.\n\nWhat type of legal issue do you need help with?",
+          "input_type": "choice",
+          "options": [
+            { "value": "personal_injury", "label": "Personal Injury", "next_step": "pi_intro" },
+            { "value": "family_law", "label": "Family Law", "next_step": "family_intro" },
+            { "value": "immigration", "label": "Immigration", "next_step": "imm_intro" },
+            { "value": "criminal_defense", "label": "Criminal Defense", "next_step": "crim_intro" },
+            { "value": "workers_comp", "label": "Workers’ Compensation", "next_step": "wc_intro" },
+            { "value": "business_law", "label": "Business / Contract", "next_step": "biz_intro" },
+            { "value": "estate_planning", "label": "Estate Planning / Wills", "next_step": "estate_intro" },
+            { "value": "other", "label": "Something else", "next_step": "other_intro" }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "personal_injury_intake",
+      "name": "Personal Injury Intake",
+      "steps": [
+        {
+          "id": "pi_intro",
+          "prompt": "I’m sorry you’re going through this. I’ll ask a few quick questions so our team can review your situation.\n\nWhen did the incident occur?",
+          "input_type": "choice",
+          "options": [
+            { "value": "today", "label": "Today", "next_step": "pi_injury_type" },
+            { "value": "30_days", "label": "Within the last 30 days", "next_step": "pi_injury_type" },
+            { "value": "6_months", "label": "1–6 months ago", "next_step": "pi_injury_type" },
+            { "value": "over_6_months", "label": "Over 6 months ago", "next_step": "pi_injury_type" }
+          ]
+        },
+        {
+          "id": "pi_injury_type",
+          "prompt": "How were you injured?",
+          "input_type": "choice",
+          "options": [
+            { "value": "car_accident", "label": "Car accident", "next_step": "pi_medical_treatment" },
+            { "value": "slip_fall", "label": "Slip and fall", "next_step": "pi_medical_treatment" },
+            { "value": "work_injury", "label": "Workplace injury", "next_step": "pi_medical_treatment" },
+            { "value": "med_mal", "label": "Medical malpractice", "next_step": "pi_medical_treatment" },
+            { "value": "other", "label": "Other (explain)", "next_step": "pi_injury_details" }
+          ]
+        },
+        {
+          "id": "pi_injury_details",
+          "prompt": "Please briefly describe what happened.",
+          "input_type": "text",
+          "next_step": "pi_medical_treatment"
+        },
+        {
+          "id": "pi_medical_treatment",
+          "prompt": "Have you received any medical treatment for this injury?",
+          "input_type": "yes_no",
+          "next_step": "pi_has_attorney"
+        },
+        {
+          "id": "pi_has_attorney",
+          "prompt": "Do you already have an attorney for this matter?",
+          "input_type": "choice",
+          "options": [
+            { "value": "no", "label": "No", "next_step": "pi_contact_info" },
+            { "value": "yes", "label": "Yes", "next_step": "pi_existing_attorney" }
+          ]
+        },
+        {
+          "id": "pi_existing_attorney",
+          "prompt": "Thanks for letting us know. Because you’re already represented, we may not be able to take your case, but you’re welcome to contact our office for general questions.",
+          "input_type": "none",
+          "next_step": "end"
+        },
+        {
+          "id": "pi_contact_info",
+          "prompt": "Please share your contact details so our team can review your case and reach out.\n\n1) Full name\n2) Phone number\n3) Email address",
+          "input_type": "text",
+          "next_step": "pi_docs"
+        },
+        {
+          "id": "pi_docs",
+          "prompt": "If you have photos, police reports, or medical documents, you can upload them here (optional).",
+          "input_type": "file",
+          "next_step": "pi_consult"
+        },
+        {
+          "id": "pi_consult",
+          "prompt": "Would you like to schedule a free consultation now?",
+          "input_type": "choice",
+          "options": [
+            { "value": "yes", "label": "Yes, schedule a consultation", "next_step": "pi_schedule" },
+            { "value": "no", "label": "No, just have someone call me", "next_step": "pi_followup" }
+          ]
+        },
+        {
+          "id": "pi_schedule",
+          "prompt": "Great. Please choose a date and time that works best, and we’ll confirm by SMS/email.",
+          "input_type": "date",
+          "next_step": "pi_end"
+        },
+        {
+          "id": "pi_followup",
+          "prompt": "Thanks. Our team will review your information and contact you as soon as possible.",
+          "input_type": "none",
+          "next_step": "pi_end"
+        },
+        {
+          "id": "pi_end",
+          "prompt": "Your intake has been submitted. You’ll receive a confirmation shortly. If this is urgent, please call our office at {{office_phone}}.",
+          "input_type": "none"
+        }
+      ]
+    },
+
+    {
+      "id": "generic_contact_flow",
+      "name": "Generic Contact / Other Issues",
+      "steps": [
+        {
+          "id": "other_intro",
+          "prompt": "Please briefly describe the legal issue you’re dealing with.",
+          "input_type": "text",
+          "next_step": "other_contact_info"
+        },
+        {
+          "id": "other_contact_info",
+          "prompt": "Thank you. Please provide your name, phone number, and email so our team can follow up.",
+          "input_type": "text",
+          "next_step": "other_end"
+        },
+        {
+          "id": "other_end",
+          "prompt": "Thanks, {{first_name}}. Your message has been sent to our intake team. Expect a response within one business day.",
+          "input_type": "none"
+        }
+      ]
+    }
+  ]
+}

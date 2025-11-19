@@ -1,0 +1,20 @@
+# Railway Configuration for Law Firm Chatbot
+
+# Build settings
+[build]
+builder = "nixpacks"
+
+# Start command
+[deploy]
+startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+# Environment variables (set these in Railway dashboard)
+[env]
+# These should be set in Railway dashboard, not here
+# OPENAI_API_KEY = ""
+# STRIPE_SECRET_KEY = ""
+# etc.

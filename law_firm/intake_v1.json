@@ -1,0 +1,20 @@
+{
+  "bot_type": "law_firm",
+  "template_version": "1.0.0",
+  "description": "24/7 legal intake, case-type qualification.",
+  "flows": [
+    {
+      "id": "main_menu",
+      "steps": [
+        {
+          "id": "start",
+          "prompt": "Hello and welcome to {{business_name}}. I can help with a free case evaluation or consultation.",
+          "input_type": "choice",
+          "options": [
+            { "value": "personal_injury", "label": "Personal Injury", "next_step": "pi_intro" }
+          ]
+        }
+      ]
+    }
+  ]
+}

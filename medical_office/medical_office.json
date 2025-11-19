@@ -1,0 +1,191 @@
+{
+  "bot_type": "medical_office",
+  "description": "New patient intake, appointment booking, insurance pre-check, and basic triage.",
+  "flows": [
+    {
+      "id": "main_menu",
+      "name": "Main Menu",
+      "steps": [
+        {
+          "id": "start",
+          "prompt": "Welcome to {{clinic_name}}. How can I help you today?",
+          "input_type": "choice",
+          "options": [
+            { "value": "new_patient", "label": "New patient registration", "next_step": "np_intro" },
+            { "value": "book_visit", "label": "Book an appointment", "next_step": "appt_reason" },
+            { "value": "insurance_check", "label": "Check my insurance", "next_step": "ins_intro" },
+            { "value": "symptoms", "label": "Get help categorizing my symptoms", "next_step": "sym_intro" },
+            { "value": "procedure_info", "label": "Procedure / prep instructions", "next_step": "proc_intro" },
+            { "value": "refill", "label": "Prescription refill request", "next_step": "refill_intro" },
+            { "value": "message_office", "label": "Send a message to the office", "next_step": "msg_intro" }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "new_patient_flow",
+      "name": "New Patient Registration",
+      "steps": [
+        {
+          "id": "np_intro",
+          "prompt": "I’ll help you register as a new patient. This information is sent securely to our staff.\n\nFirst, what is your full name?",
+          "input_type": "text",
+          "next_step": "np_dob"
+        },
+        {
+          "id": "np_dob",
+          "prompt": "What is your date of birth?",
+          "input_type": "date",
+          "next_step": "np_contact"
+        },
+        {
+          "id": "np_contact",
+          "prompt": "Please share your phone number and email address.",
+          "input_type": "text",
+          "next_step": "np_reason"
+        },
+        {
+          "id": "np_reason",
+          "prompt": "What is the main reason for your visit? (Example: annual checkup, ongoing condition, new symptoms, etc.)",
+          "input_type": "text",
+          "next_step": "np_provider"
+        },
+        {
+          "id": "np_provider",
+          "prompt": "Do you have a preferred provider or doctor?",
+          "input_type": "text",
+          "next_step": "np_insurance"
+        },
+        {
+          "id": "np_insurance",
+          "prompt": "Do you have health insurance you’d like us to use?",
+          "input_type": "choice",
+          "options": [
+            { "value": "yes", "label": "Yes", "next_step": "np_ins_details" },
+            { "value": "no", "label": "No", "next_step": "np_history" }
+          ]
+        },
+        {
+          "id": "np_ins_details",
+          "prompt": "Please enter your insurance company and member ID. You can also upload photos of your insurance card (front and back).",
+          "input_type": "file",
+          "next_step": "np_history"
+        },
+        {
+          "id": "np_history",
+          "prompt": "Briefly list any important medical conditions, allergies, or medications (or type 'none').",
+          "input_type": "text",
+          "next_step": "np_submit"
+        },
+        {
+          "id": "np_submit",
+          "prompt": "Thank you. Your registration has been sent to our team. Would you like to schedule your first appointment now?",
+          "input_type": "choice",
+          "options": [
+            { "value": "yes", "label": "Yes, schedule an appointment", "next_step": "appt_reason" },
+            { "value": "no", "label": "Not right now", "next_step": "np_end" }
+          ]
+        },
+        {
+          "id": "np_end",
+          "prompt": "You’re all set! We’ll contact you to finalize your registration if anything else is needed.",
+          "input_type": "none"
+        }
+      ]
+    },
+
+    {
+      "id": "appointment_flow",
+      "name": "Appointment Booking",
+      "steps": [
+        {
+          "id": "appt_reason",
+          "prompt": "What type of appointment do you need?",
+          "input_type": "choice",
+          "options": [
+            { "value": "routine", "label": "Routine checkup", "next_step": "appt_mode" },
+            { "value": "followup", "label": "Follow-up visit", "next_step": "appt_mode" },
+            { "value": "new_issue", "label": "New issue / symptoms", "next_step": "appt_mode" },
+            { "value": "lab", "label": "Lab work / testing", "next_step": "appt_mode" },
+            { "value": "vaccine", "label": "Vaccination", "next_step": "appt_mode" }
+          ]
+        },
+        {
+          "id": "appt_mode",
+          "prompt": "Do you prefer an in-person visit or telehealth (video)?",
+          "input_type": "choice",
+          "options": [
+            { "value": "in_person", "label": "In-person", "next_step": "appt_date" },
+            { "value": "telehealth", "label": "Telehealth / video", "next_step": "appt_date" }
+          ]
+        },
+        {
+          "id": "appt_date",
+          "prompt": "Please choose your preferred date and time. We’ll confirm if it’s available.",
+          "input_type": "date",
+          "next_step": "appt_end"
+        },
+        {
+          "id": "appt_end",
+          "prompt": "Got it! We’ll send a confirmation or alternate options shortly. If this is a medical emergency, please call 911.",
+          "input_type": "none"
+        }
+      ]
+    },
+
+    {
+      "id": "symptom_flow",
+      "name": "Symptom Categorization (Non-emergency)",
+      "steps": [
+        {
+          "id": "sym_intro",
+          "prompt": "I can help categorize your symptoms so our team knows how to help. This is not medical advice and doesn’t replace emergency care.\n\nWhich area is affected?",
+          "input_type": "choice",
+          "options": [
+            { "value": "head", "label": "Head / neck", "next_step": "sym_symptoms" },
+            { "value": "chest", "label": "Chest", "next_step": "sym_symptoms" },
+            { "value": "stomach", "label": "Stomach / abdomen", "next_step": "sym_symptoms" },
+            { "value": "skin", "label": "Skin", "next_step": "sym_symptoms" },
+            { "value": "other", "label": "Other", "next_step": "sym_symptoms" }
+          ]
+        },
+        {
+          "id": "sym_symptoms",
+          "prompt": "Please list your main symptoms and how long you’ve had them.",
+          "input_type": "text",
+          "next_step": "sym_severity"
+        },
+        {
+          "id": "sym_severity",
+          "prompt": "How severe are your symptoms?",
+          "input_type": "choice",
+          "options": [
+            { "value": "mild", "label": "Mild", "next_step": "sym_end" },
+            { "value": "moderate", "label": "Moderate", "next_step": "sym_end" },
+            {
+              "value": "severe",
+              "label": "Severe (e.g. difficulty breathing, chest pain, loss of consciousness)",
+              "next_step": "sym_emergency"
+            }
+          ]
+        },
+        {
+          "id": "sym_emergency",
+          "prompt": "These symptoms may require urgent care. If you believe this is an emergency, please call 911 or go to the nearest emergency room immediately.",
+          "input_type": "none",
+          "next_step": "sym_end"
+        },
+        {
+          "id": "sym_end",
+          "prompt": "Thank you. I’ve shared your symptom details with our care team. Would you like to request an appointment now?",
+          "input_type": "choice",
+          "options": [
+            { "value": "yes", "label": "Yes, request an appointment", "next_step": "appt_reason" },
+            { "value": "no", "label": "No, not right now", "next_step": "np_end" }
+          ]
+        }
+      ]
+    }
+  ]
+}
