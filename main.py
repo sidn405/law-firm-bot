@@ -269,7 +269,10 @@ class ChatbotService:
     """Handles OpenAI conversations with dynamic knowledge"""
     
     def __init__(self):
-        with open("law_firm.json", "r", encoding="utf-8") as f:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        script_path = os.path.join(base_dir, "law_firm", "law_firm.json")
+
+        with open(script_path, "r", encoding="utf-8") as f:
             self.flow = json.load(f)
             
         self.flow_manager = FlowStateManager(self.flow)
