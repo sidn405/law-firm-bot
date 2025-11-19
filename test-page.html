@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>4D Gaming - Test Dynamic Chatbot</title>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 3rem;
+      max-width: 800px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
+    h1 {
+      color: #667eea;
+      margin-bottom: 1rem;
+      font-size: 2.5rem;
+    }
+    
+    .subtitle {
+      color: #6b7280;
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+    }
+    
+    .section {
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: #f9fafb;
+      border-radius: 12px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .section h2 {
+      color: #374151;
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+    
+    .section p {
+      color: #6b7280;
+      line-height: 1.6;
+      margin-bottom: 0.5rem;
+    }
+    
+    .services-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .service-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .service-card h3 {
+      color: #667eea;
+      margin-bottom: 0.5rem;
+      font-size: 1.1rem;
+    }
+    
+    .service-card .price {
+      color: #374151;
+      font-weight: 600;
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .service-card .timeline {
+      color: #9ca3af;
+      font-size: 0.9rem;
+    }
+    
+    .cta-button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+      margin-top: 1rem;
+    }
+    
+    .cta-button:hover {
+      transform: translateY(-2px);
+    }
+    
+    .test-note {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 2rem;
+    }
+    
+    .test-note strong {
+      color: #92400e;
+    }
+    
+    .test-note p {
+      color: #78350f;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>4D Gaming</h1>
+    <p class="subtitle">Premium Development Services</p>
+    
+    <div class="section">
+      <h2>Our Services</h2>
+      <p>We specialize in cutting-edge development solutions for modern businesses:</p>
+      
+      <div class="services-list">
+        <div class="service-card">
+          <h3>AI Chatbot Development</h3>
+          <p class="price">$2,500</p>
+          <p>Custom AI chatbots with natural language processing</p>
+          <p class="timeline">Timeline: 3-4 weeks</p>
+        </div>
+        
+        <div class="service-card">
+          <h3>Mobile App Development</h3>
+          <p class="price">$5,000</p>
+          <p>Cross-platform mobile apps using Flutter</p>
+          <p class="timeline">Timeline: 6-8 weeks</p>
+        </div>
+        
+        <div class="service-card">
+          <h3>Game Development</h3>
+          <p class="price">$3,000</p>
+          <p>Unity game development and app reskinning</p>
+          <p class="timeline">Timeline: 4-6 weeks</p>
+        </div>
+        
+        <div class="service-card">
+          <h3>Web3 & Blockchain</h3>
+          <p class="price">$4,000</p>
+          <p>Smart contracts, DApps, and blockchain integration</p>
+          <p class="timeline">Timeline: 5-7 weeks</p>
+        </div>
+        
+        <div class="service-card">
+          <h3>Web Scraping</h3>
+          <p class="price">$2,000</p>
+          <p>Automated data extraction and lead generation</p>
+          <p class="timeline">Timeline: 2-3 weeks</p>
+        </div>
+        
+        <div class="service-card">
+          <h3>Trading Bot Development</h3>
+          <p class="price">$4,500</p>
+          <p>Automated trading bots for crypto and stocks</p>
+          <p class="timeline">Timeline: 5-6 weeks</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2>Our Process</h2>
+      <p><strong>Milestone 1 (30%):</strong> Discovery & Consultation - We discuss your project requirements, goals, and timeline</p>
+      <p><strong>Milestone 2 (50%):</strong> Development & Integration - Building your project with regular updates</p>
+      <p><strong>Milestone 3 (20%):</strong> Testing, Revisions & Launch - Final testing and deployment</p>
+    </div>
+    
+    <div class="section">
+      <h2>Why Choose 4D Gaming?</h2>
+      <p>✅ 10+ years of development experience</p>
+      <p>✅ 8+ published apps on Google Play & Amazon</p>
+      <p>✅ Transparent 3-milestone payment system</p>
+      <p>✅ Full source code & documentation provided</p>
+      <p>✅ Ongoing support available</p>
+    </div>
+    
+    <button class="cta-button" onclick="alert('This is a demo page. The chatbot will answer questions based on this page content!')">
+      Start Your Project
+    </button>
+    
+    <div class="test-note">
+      <strong>🧪 Testing the Dynamic Chatbot</strong>
+      <p>Click the purple chat icon in the bottom-right corner and try these questions:</p>
+      <p>• "What services do you offer?"</p>
+      <p>• "How much does a mobile app cost?"</p>
+      <p>• "What's your payment process?"</p>
+      <p>• "Tell me about game development"</p>
+      <p><br><strong>The bot will scrape THIS page and answer based on the content above!</strong></p>
+    </div>
+  </div>
+  
+  <!-- Dynamic Chatbot Script -->
+  <script src="/chat_widget.html" defer></script>
+</body>
+</html>
