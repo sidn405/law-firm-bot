@@ -8,16 +8,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict, Any
+import re
+import asyncio
 import os
 import uuid
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 import aiohttp
 from pathlib import Path
 
 # External services
-import openai
+from openai import OpenAI
 import stripe
 import smtplib
 from email.mime.text import MIMEText
@@ -55,7 +57,7 @@ LAW_FIRM_EMAIL = os.getenv("LAW_FIRM_EMAIL", "info@lawfirm.com")
 LAW_FIRM_PHONE = os.getenv("LAW_FIRM_PHONE", "+1234567890")
 
 # Initialize services
-openai.api_key = OPENAI_API_KEY
+openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 stripe.api_key = STRIPE_SECRET_KEY
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_SID else None
 
@@ -83,7 +85,7 @@ class Client(Base):
     name = Column(String, nullable=False)
     email = Column(String, nullable=False, unique=True)
     phone = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     case_type = Column(String)
     status = Column(String, default="new")  # new, contacted, active, closed
     
@@ -95,7 +97,7 @@ class Case(Base):
     case_type = Column(String, nullable=False)
     description = Column(Text)
     status = Column(String, default="pending")  # pending, reviewing, accepted, rejected
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     incident_date = Column(String)
     medical_treatment = Column(Boolean)
     has_attorney = Column(Boolean)
@@ -108,8 +110,8 @@ class Conversation(Base):
     client_id = Column(String)
     session_id = Column(String, nullable=False)
     messages = Column(JSON, default=list)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     channel = Column(String, default="web")  # web, phone, sms
     
 class Payment(Base):
@@ -121,8 +123,8 @@ class Payment(Base):
     status = Column(String, default="pending")  # pending, completed, failed, refunded
     provider = Column(String)  # stripe, paypal
     transaction_id = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    payment_metadata = Column(JSON)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    payment_metadata = Column(JSON)  # Renamed from 'metadata' to avoid SQLAlchemy conflict
 
 class Document(Base):
     __tablename__ = "documents"
@@ -133,7 +135,7 @@ class Document(Base):
     filename = Column(String, nullable=False)
     file_path = Column(String, nullable=False)
     file_type = Column(String)
-    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    uploaded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     file_size = Column(Integer)
 
 Base.metadata.create_all(bind=engine)
@@ -212,7 +214,7 @@ class WebScraperService:
         # Check cache
         if cache_key in self.cache:
             cached_time, content = self.cache[cache_key]
-            if (datetime.utcnow() - cached_time).seconds < self.cache_duration:
+            if (datetime.now(timezone.utc) - cached_time).seconds < self.cache_duration:
                 return content
         
         try:
@@ -235,7 +237,7 @@ class WebScraperService:
                         text = '\n'.join(chunk for chunk in chunks if chunk)
                         
                         # Cache
-                        self.cache[cache_key] = (datetime.utcnow(), text)
+                        self.cache[cache_key] = (datetime.now(timezone.utc), text)
                         return text
         except Exception as e:
             print(f"Error scraping {url}: {e}")
@@ -256,67 +258,248 @@ class WebScraperService:
         return "\n".join(contents)
 
 # Initialize scraper (update with actual law firm URL)
-scraper = WebScraperService(base_url="https://palazzolaw.com")
+scraper = WebScraperService(base_url="https://yourlawfirm.com")
 
 # ============================================
 # OPENAI CHATBOT SERVICE
 # ============================================
+from flow_state_manager import FlowStateManager
 
 class ChatbotService:
     """Handles OpenAI conversations with dynamic knowledge"""
     
     def __init__(self):
-        self.system_prompt = """You are an AI assistant for a law firm. Your role is to:
+        with open("law_firm.json", "r", encoding="utf-8") as f:
+            self.flow = json.load(f)
+            
+        self.flow_manager = FlowStateManager(self.flow)
 
-1. **Intake & Qualification**: Ask questions to understand the client's legal issue
-2. **Information Provider**: Share information about the firm's services, attorneys, and practice areas
-3. **Appointment Scheduler**: Help clients schedule consultations
-4. **Document Collection**: Guide clients on what documents to provide
-5. **Professional & Empathetic**: Be compassionate while maintaining professionalism
+        # Build a dictionary of step_id → step
+        self.step_index = {}
+        for flow in self.flow["flows"]:
+            for step in flow["steps"]:
+                self.step_index[step["id"]] = step
 
-GUIDELINES:
-- Always be empathetic and understanding
-- Never provide specific legal advice (you're not a licensed attorney)
-- Encourage clients to schedule consultations for detailed advice
-- Collect key information: case type, incident date, contact details
-- If unsure, say you'll have an attorney review and contact them
-- Keep responses concise (under 200 words)
+        self.system_prompt = f"""
+        You are an AI legal intake assistant for a law firm. 
+        Your behavior is controlled by the following structured flow:
 
-The law firm's website content will be provided for reference."""
+        {json.dumps(self.flow, indent=2)}
+
+        CRITICAL RULES:
+
+        1. Follow the flow EXACTLY as shown above.
+        2. Ask ONLY the prompt for the CURRENT step.
+        3. Do NOT skip ahead unless the user answers a step fully.
+        4. If the user goes off-topic:
+        - First answer their question *accurately* using ONLY website content.
+        - If the website does not contain the answer: say:
+            "I don’t have that information in my records. Would you like me to connect you with a representative?"
+        - Then IMMEDIATELY re-ask the pending step’s prompt EXACTLY as written in the JSON.
+        5. NEVER invent or approximate legal information or prices.
+        6. NEVER generalize (e.g., “usually,” “typically,” “average fee”). 
+        7. All firm-specific facts MUST come ONLY from:
+        - the provided website content, or
+        - the JSON flow script, or
+        - the user's previous messages.
+
+        Your job:
+        - Identify the current step.
+        - Determine whether the user's message answers that step.
+        - If yes → move to the next step.
+        - If no → answer the side question accurately and then re-ask the current step.
+
+        ALWAYS respond in less than 40 words.
+        """
+
+
+    def get_current_step(self, history):
+        """
+        Determine which intake step the bot is currently waiting for.
+        Looks at the last bot message and matches it to step prompts.
+        """
+        for msg in reversed(history):
+            if msg["role"] == "assistant":
+                bot_text = msg["content"].strip().lower()
+                for step_id, step in self.step_index.items():
+                    if step["prompt"].split("\n")[0].lower() in bot_text:
+                        return step_id
+                break
+
+        # Default start if nothing matches
+        return "start"
+    
+    def get_next_step(self, current_step_id, user_message):
+        step = self.step_index[current_step_id]
+
+        # Handle options (choice / yes_no)
+        if "options" in step:
+            for opt in step["options"]:
+                if opt["label"].lower() in user_message.lower() or opt["value"].lower() in user_message.lower():
+                    return opt["next_step"]
+
+        # Text fields have fixed next_step
+        if "next_step" in step:
+            return step["next_step"]
+
+        return None
+
+    def _load_script(self, script_path: str) -> dict:
+        """Load the law_firm.json flow script from disk."""
+        try:
+            if not os.path.exists(script_path):
+                print(f"[WARN] Script file {script_path} not found. Running without script.")
+                return {}
+
+            with open(script_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data
+        except Exception as e:
+            print(f"[ERROR] Failed to load script {script_path}: {e}")
+            return {}
+
+    def _format_flow(self, script: dict) -> str:
+        """
+        Turn the JSON script into a human-readable list for the model.
+        Assumptions:
+          law_firm.json has either:
+            { "steps": [ { "id": "...", "question": "..." }, ... ] }
+          or is simply a list of steps itself.
+        """
+        if not script:
+            return "No scripted flow loaded. You must still perform a logical intake sequence."
+
+        steps = script.get("steps")
+        if not steps and isinstance(script, list):
+            steps = script
+
+        if not steps:
+            return "No 'steps' key found in law_firm.json. Use your best judgment for intake."
+
+        lines = []
+        for idx, step in enumerate(steps, start=1):
+            step_id = step.get("id", f"step_{idx}")
+            question = step.get("question") or step.get("prompt") or ""
+            lines.append(f"{idx}. [{step_id}] QUESTION: {question}")
+
+        return "\n".join(lines)
 
     async def chat(self, message: str, conversation_history: List[Dict], knowledge_base: str = "") -> str:
         """Generate chatbot response using OpenAI"""
-        
+
+        if not openai_client:
+            return "I apologize, but the AI service is not configured. Please contact our office directly."
+
+        # Build conversation summary for context (your existing logic)
+        summary = self._build_conversation_summary(conversation_history)
+
         messages = [
             {"role": "system", "content": self.system_prompt}
         ]
-        
+
+        # Add conversation summary
+        if summary:
+            messages.append({
+                "role": "system",
+                "content": (
+                    "📊 INFORMATION COLLECTED SO FAR (from user messages):\n"
+                    f"{summary}\n\n"
+                    "⚠️ Do NOT ask again about anything listed above. "
+                    "Use this to decide which script step is currently active."
+                )
+            })
+
         # Add knowledge base if available
         if knowledge_base:
             messages.append({
                 "role": "system",
                 "content": f"Law Firm Website Content:\n\n{knowledge_base}"
             })
-        
-        # Add conversation history
-        messages.extend(conversation_history)
-        
+            
+        messages.insert(1, {
+            "role": "system",
+            "content": f"LAW FIRM INTAKE FLOW STRUCTURE:\n\n{json.dumps(self.flow, indent=2)}"
+        })
+
+        # Add recent conversation history (unchanged)
+        messages.extend(conversation_history[-10:] if len(conversation_history) > 10 else conversation_history)
+
         # Add current message
         messages.append({"role": "user", "content": message})
-        
+
         try:
             response = await asyncio.to_thread(
-                openai.ChatCompletion.create,
+                openai_client.chat.completions.create,
                 model="gpt-4o-mini",
                 messages=messages,
                 max_tokens=500,
                 temperature=0.7
             )
-            
+
             return response.choices[0].message.content
         except Exception as e:
             print(f"OpenAI error: {e}")
             return "I apologize, but I'm having trouble processing your request right now. Please call our office or email us directly."
+
+    def _build_conversation_summary(self, conversation_history: List[Dict]) -> str:
+        # (keep your existing implementation here)
+        if not conversation_history:
+            return ""
+
+        collected = []
+        full_text = " ".join(
+            [msg.get("content", "") for msg in conversation_history if msg.get("role") == "user"]
+        ).lower()
+        
+        # Detect case type
+        if any(keyword in full_text for keyword in ["accident", "crash", "hit", "injured", "hurt", "collision", "rear-end", "slip", "fall", "medical malpractice"]):
+            collected.append("✅ Case type: PERSONAL INJURY")
+        elif any(keyword in full_text for keyword in ["divorce", "custody", "child support", "separation", "alimony", "visitation"]):
+            collected.append("✅ Case type: FAMILY LAW")
+        elif any(keyword in full_text for keyword in ["visa", "green card", "citizenship", "immigration", "deportation", "asylum"]):
+            collected.append("✅ Case type: IMMIGRATION")
+        elif any(keyword in full_text for keyword in ["arrested", "charged", "dui", "dwi", "criminal", "police"]):
+            collected.append("✅ Case type: CRIMINAL DEFENSE")
+        elif any(keyword in full_text for keyword in ["contract", "business", "partnership", "llc", "corporation"]):
+            collected.append("✅ Case type: BUSINESS LAW")
+        elif any(keyword in full_text for keyword in ["will", "estate", "trust", "inheritance", "probate"]):
+            collected.append("✅ Case type: ESTATE PLANNING")
+        
+        # Check for incident description
+        if len(full_text.split()) > 10 and any(keyword in full_text for keyword in ["happened", "accident", "incident", "was", "were"]):
+            collected.append("✅ Incident described")
+        
+        # Check for date/timing
+        if any(keyword in full_text for keyword in ["yesterday", "today", "last week", "last month", "ago", "/202", "/2025", "november", "october", "january"]):
+            collected.append("✅ Date/timing mentioned")
+        
+        # Check for medical treatment
+        if any(keyword in full_text for keyword in ["hospital", "doctor", "treatment", "medical", "emergency room", "er", "ambulance", "clinic", "physician"]):
+            collected.append("✅ Medical treatment discussed")
+        
+        # Check for attorney status
+        if any(keyword in full_text for keyword in ["attorney", "lawyer", "no attorney", "don't have", "haven't hired"]):
+            collected.append("✅ Attorney status mentioned")
+        
+        # Check for contact info (phone)
+        if any(char.isdigit() for char in full_text) and len([c for c in full_text if c.isdigit()]) >= 10:
+            collected.append("✅ Phone number provided")
+        
+        # Check for email
+        if "@" in full_text and "." in full_text:
+            collected.append("✅ Email provided")
+        
+        # Check for name
+        user_messages = [msg.get("content", "") for msg in conversation_history if msg.get("role") == "user"]
+        for msg in user_messages:
+            words = msg.split()
+            # Look for capitalized words that might be names (not at start of sentence)
+            for i, word in enumerate(words):
+                if i > 0 and word and word[0].isupper() and len(word) > 2:
+                    collected.append("✅ Name mentioned")
+                    break
+        
+        return "\n".join(collected) if collected else ""
 
 chatbot = ChatbotService()
 
@@ -447,14 +630,14 @@ async def chat_endpoint(chat: ChatMessage, db: Session = Depends(get_db)):
     # Update conversation
     conversation.messages.append({"role": "user", "content": chat.message})
     conversation.messages.append({"role": "assistant", "content": response_text})
-    conversation.updated_at = datetime.utcnow()
+    conversation.updated_at = datetime.now(timezone.utc)
     
     db.commit()
     
     return {
         "response": response_text,
         "session_id": session_id,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 # ============================================
@@ -839,7 +1022,7 @@ async def send_email_endpoint(email: EmailRequest):
 async def health_check():
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "services": {
             "openai": bool(OPENAI_API_KEY),
             "stripe": bool(STRIPE_SECRET_KEY),

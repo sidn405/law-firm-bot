@@ -181,6 +181,31 @@ class HybridChatbot:
         self.flow_manager = flow_manager
         self.openai_chatbot = openai_chatbot
         
+        state = self.flow_manager.get_state(session_id)
+
+        if not state:
+            session_id = self.flow_manager.start_session()
+            state = self.flow_manager.get_state(session_id)
+
+        current_step = self.flow_manager.get_current_step(session_id)
+        flow_step = self.flow_manager.get_step(current_step)
+        current_prompt = flow_step["prompt"]
+
+    def answer_side_question_accurately(self, user_message, knowledge_base):
+        """
+        Extract factual answers ONLY using the website content (knowledge_base).
+        If not found, we respond safely.
+        """
+
+        lower = knowledge_base.lower()
+
+        # Very simple pattern matching—upgrade later if needed
+        if "consult" in user_message.lower() and "consult" in lower:
+            # Extract the relevant line
+            for line in knowledge_base.split("\n"):
+                if "consult" in line.lower():
+                    return line.strip()
+   
     async def process_message(self, session_id: str, message: str, conversation_history: List[Dict], knowledge_base: str = "") -> Dict:
         """
         Process message using either structured flow or OpenAI conversation
@@ -269,7 +294,7 @@ class HybridChatbot:
             'input_type': flow_response['input_type'],
             'options': flow_response.get('options', [])
         }
-
+        
 
 # Example usage in main.py:
 """
