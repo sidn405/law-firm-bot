@@ -2,10 +2,12 @@
 LAW FIRM CHATBOT - JSON FLOW INTEGRATION
 Integrates structured intake flows from law_firm.json with OpenAI conversations
 """
-
+import os
 import json
 from typing import Dict, List, Optional, Any
 from pathlib import Path
+from flow_state_manager import FlowStateManager
+import asyncio
 
 class FlowManager:
     """Manages structured conversation flows from JSON"""
@@ -171,168 +173,264 @@ class FlowManager:
 
 
 # Integration with OpenAI chatbot
-class HybridChatbot:
+class HybridChatbotService:
     """
-    Combines OpenAI conversational AI with structured JSON flows
-    Uses OpenAI for natural conversation, JSON flows for intake
+    Hybrid approach: Rules control flow, LLM only generates responses
     """
     
-    def __init__(self, flow_manager: FlowManager, openai_chatbot):
-        self.flow_manager = flow_manager
-        self.openai_chatbot = openai_chatbot
+    def __init__(self, openai_client=None):
+        self.openai_client = openai_client
         
-        state = self.flow_manager.get_state(session_id)
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        script_path = os.path.join(base_dir, "law_firm", "law_firm.json")
 
-        if not state:
-            session_id = self.flow_manager.start_session()
-            state = self.flow_manager.get_state(session_id)
+        with open(script_path, "r", encoding="utf-8") as f:
+            self.flow = json.load(f)
 
-        current_step = self.flow_manager.get_current_step(session_id)
-        flow_step = self.flow_manager.get_step(current_step)
-        current_prompt = flow_step["prompt"]
+        self.flow_manager = FlowStateManager(self.flow)
 
-    def answer_side_question_accurately(self, user_message, knowledge_base):
+        # Build step index
+        self.step_index = {}
+        for flow in self.flow["flows"]:
+            for step in flow["steps"]:
+                self.step_index[step["id"]] = step
+
+    async def chat(
+        self,
+        message: str,
+        conversation_history: list,
+        current_step_id: str,
+        session_data: dict
+    ):
         """
-        Extract factual answers ONLY using the website content (knowledge_base).
-        If not found, we respond safely.
-        """
-
-        lower = knowledge_base.lower()
-
-        # Very simple pattern matching—upgrade later if needed
-        if "consult" in user_message.lower() and "consult" in lower:
-            # Extract the relevant line
-            for line in knowledge_base.split("\n"):
-                if "consult" in line.lower():
-                    return line.strip()
-   
-    async def process_message(self, session_id: str, message: str, conversation_history: List[Dict], knowledge_base: str = "") -> Dict:
-        """
-        Process message using either structured flow or OpenAI conversation
+        Main chat method - decides whether user answered the question
         """
         
-        # Check if user is in a structured flow
-        if self.flow_manager.is_in_flow(session_id):
-            return self.handle_flow_message(session_id, message)
+        step_data = self.step_index.get(current_step_id, {})
         
-        # Check if message should trigger a flow
-        flow_triggers = {
-            'personal injury': 'personal_injury_intake',
-            'car accident': 'personal_injury_intake',
-            'slip and fall': 'personal_injury_intake',
-            'family law': 'family_law_intake',
-            'immigration': 'immigration_intake',
-            'schedule': 'scheduling_flow',
-            'consultation': 'scheduling_flow',
-        }
+        # STEP 1: Did user answer the current question?
+        answered, extracted_value = self._check_if_answered(message, step_data, session_data)
         
-        message_lower = message.lower()
-        for trigger, flow_id in flow_triggers.items():
-            if trigger in message_lower:
-                # Start structured flow
-                flow_response = self.flow_manager.start_flow(session_id, flow_id)
-                return {
-                    'response': flow_response['prompt'],
-                    'flow_active': True,
-                    'input_type': flow_response['input_type'],
-                    'options': flow_response.get('options', [])
-                }
-        
-        # Use OpenAI for general conversation
-        response = await self.openai_chatbot.chat(
-            message=message,
-            conversation_history=conversation_history,
-            knowledge_base=knowledge_base
-        )
-        
-        return {
-            'response': response,
-            'flow_active': False
-        }
-    
-    def handle_flow_message(self, session_id: str, message: str) -> Dict:
-        """Handle message during active flow"""
-        
-        current_step = self.flow_manager.get_current_step(session_id)
-        
-        # Process based on input type
-        if current_step['input_type'] == 'choice':
-            # User should select an option
-            # Try to match message to option value or label
-            for option in current_step.get('options', []):
-                if message.lower() in [option['value'].lower(), option['label'].lower()]:
-                    flow_response = self.flow_manager.process_response(
-                        session_id, 
-                        message, 
-                        selected_option=option['value']
-                    )
-                    break
-            else:
-                # No match, ask again
-                return {
-                    'response': f"{current_step['prompt']}\n\nPlease select one of the options:",
-                    'flow_active': True,
-                    'input_type': current_step['input_type'],
-                    'options': current_step['options']
-                }
+        # STEP 2: Generate appropriate response
+        if answered:
+            # User answered - acknowledge and ask next question
+            response = await self._generate_acknowledgment_and_next(
+                user_message=message,
+                current_step_id=current_step_id,
+                extracted_value=extracted_value,
+                session_data=session_data
+            )
+            should_advance = True
         else:
-            # Text, yes_no, or other input
-            flow_response = self.flow_manager.process_response(session_id, message)
-        
-        # Check if flow is complete
-        if flow_response.get('completed'):
-            return {
-                'response': flow_response['message'],
-                'flow_active': False,
-                'flow_complete': True,
-                'collected_data': flow_response['data']
-            }
+            # User didn't answer - handle off-topic or clarify
+            response = await self._handle_off_topic(
+                user_message=message,
+                current_step_id=current_step_id,
+                session_data=session_data
+            )
+            should_advance = False
         
         return {
-            'response': flow_response['prompt'],
-            'flow_active': True,
-            'input_type': flow_response['input_type'],
-            'options': flow_response.get('options', [])
+            "response": response,
+            "should_advance": should_advance,
+            "extracted_value": extracted_value
         }
+    
+    def _check_if_answered(self, message: str, step_data: dict, session_data: dict) -> tuple[bool, any]:
+        """
+        Rule-based checking if user answered the question
+        Returns: (answered: bool, extracted_value: any)
+        """
         
+        msg_lower = message.lower().strip()
+        input_type = step_data.get("input_type", "text")
+        step_id = step_data.get("id")
+        
+        # Handle different input types
+        
+        if input_type == "none":
+            return True, None
+        
+        if input_type == "choice" or input_type == "yes_no":
+            # Check if message matches any option
+            for option in step_data.get("options", []):
+                label = option["label"].lower()
+                value = option["value"].lower()
+                
+                if label in msg_lower or value in msg_lower:
+                    return True, option["value"]
+            
+            # Special handling for pi_intro (date/time question)
+            if step_id == "pi_intro":
+                # Check for date/time patterns
+                if any(pattern in msg_lower for pattern in [
+                    "today", "yesterday", "last week", "last month", "ago",
+                    "monday", "tuesday", "wednesday", "thursday", "friday",
+                    "january", "february", "march", "april", "may", "june",
+                    "july", "august", "september", "october", "november", "december"
+                ]) or "/" in message or ":" in message:
+                    return True, message
+            
+            return False, None
+        
+        if input_type == "text":
+            # Must be at least 3 words for meaningful answer
+            if len(msg_lower.split()) >= 3:
+                return True, message
+            return False, None
+        
+        if input_type == "date":
+            # Check for date patterns
+            if "/" in message or "-" in message or any(
+                month in msg_lower for month in [
+                    "january", "february", "march", "april", "may", "june",
+                    "july", "august", "september", "october", "november", "december"
+                ]
+            ):
+                return True, message
+            return False, None
+        
+        # Default: any non-empty response counts
+        return len(msg_lower) > 0, message
+    
+    async def _generate_acknowledgment_and_next(
+        self,
+        user_message: str,
+        current_step_id: str,
+        extracted_value: any,
+        session_data: dict
+    ) -> str:
+        """
+        User answered - acknowledge briefly and ask next question
+        LLM only generates the acknowledgment, we append the next question
+        """
+        
+        current_step = self.step_index[current_step_id]
+        next_step_id = self._determine_next_step(current_step_id, extracted_value)
+        
+        if not next_step_id or next_step_id == "end":
+            # Flow complete
+            return current_step.get("prompt", "Thank you for providing that information.")
+        
+        next_step = self.step_index[next_step_id]
+        next_question = next_step.get("prompt", "")
+        
+        # Generate brief acknowledgment with LLM
+        acknowledgment = await self._generate_brief_ack(user_message, current_step)
+        
+        # CRITICAL: Always append the next scripted question
+        return f"{acknowledgment}\n\n{next_question}"
+    
+    async def _generate_brief_ack(
+        self,
+        user_message: str,
+        current_step: dict
+    ) -> str:
+        """Generate a 1-sentence acknowledgment"""
+        
+        if not self.openai_client:
+            return "Got it."
+        
+        try:
+            response = await asyncio.to_thread(
+                self.openai_client.chat.completions.create,
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You're a legal intake assistant. Generate a brief "
+                            "1-sentence acknowledgment (under 10 words). "
+                            "Be empathetic but concise."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": (
+                            f"User answered: '{user_message}'\n\n"
+                            "Generate brief acknowledgment:"
+                        ),
+                    },
+                ],
+                max_tokens=30,
+                temperature=0.5,
+            )
+            return response.choices[0].message.content.strip()
+        except Exception:
+            return "Thank you."
 
-# Example usage in main.py:
-"""
-# Initialize flow manager
-flow_manager = FlowManager("law_firm.json")
+    
+    async def _handle_off_topic(
+        self,
+        user_message: str,
+        current_step_id: str,
+        session_data: dict
+    ) -> str:
+        """
+        User didn't answer - either off-topic or unclear
+        Answer briefly, then re-ask the scripted question
+        """
+        
+        current_step = self.step_index[current_step_id]
+        scripted_question = current_step.get("prompt", "")
+        
+        # Generate brief response to their off-topic question
+        async def _handle_off_topic(
+            self,
+            user_message: str,
+            current_step_id: str,
+            session_data: dict,
+        ) -> str:
+            """
+            User didn't answer - either off-topic or unclear
+            Answer briefly, then re-ask the scripted question
+            """
+            current_step = self.step_index[current_step_id]
+            scripted_question = current_step.get("prompt", "")
+            
+            # Generate brief response to their off-topic question
+            if self.openai_client:
+                try:
+                    response = await asyncio.to_thread(
+                        self.openai_client.chat.completions.create,
+                        model="gpt-4o-mini",
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": (
+                                    "You're a legal intake assistant. Answer this "
+                                    "question in 1 sentence (under 20 words), then stop. "
+                                    "If you don't know, say 'I don't have that information.'"
+                                ),
+                            },
+                            {
+                                "role": "user",
+                                "content": user_message,
+                            },
+                        ],
+                        max_tokens=50,
+                        temperature=0.5,
+                    )
+                    brief_answer = response.choices[0].message.content.strip()
+                    return f"{brief_answer}\n\n{scripted_question}"
+                except Exception:
+                    # fall through to plain re-ask
+                    pass
 
-# Create hybrid chatbot
-hybrid_bot = HybridChatbot(flow_manager, chatbot)
+            # Fallback: just re-ask the question
+            return f"Let me ask you this: {scripted_question}"
 
-# In chat endpoint:
-@app.post("/api/chat")
-async def chat_endpoint(chat: ChatMessage, db: Session = Depends(get_db)):
-    # Get conversation history
-    conversation = db.query(Conversation).filter(
-        Conversation.session_id == session_id
-    ).first()
     
-    # Get knowledge base
-    knowledge_base = await scraper.get_knowledge_base()
-    
-    # Process with hybrid bot
-    response_data = await hybrid_bot.process_message(
-        session_id=session_id,
-        message=chat.message,
-        conversation_history=conversation.messages if conversation else [],
-        knowledge_base=knowledge_base
-    )
-    
-    # If flow is complete, save collected data to case
-    if response_data.get('flow_complete'):
-        # Create case with collected data
-        case = Case(
-            client_id=chat.client_id,
-            case_type=response_data['collected_data'].get('pi_injury_type', 'unknown'),
-            intake_data=response_data['collected_data']
-        )
-        db.add(case)
-        db.commit()
-    
-    return response_data
-"""
+    def _determine_next_step(self, current_step_id: str, user_value: any) -> str:
+        """Determine next step based on rules in JSON"""
+        
+        step = self.step_index[current_step_id]
+        
+        # Check if there are conditional options
+        if "options" in step:
+            for option in step["options"]:
+                if option.get("value") == user_value:
+                    return option.get("next_step")
+        
+        # Otherwise use default next_step
+        return step.get("next_step")
