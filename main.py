@@ -400,10 +400,10 @@ class FlowStateManager:
 # ============================================
 from flow_state_manager import FlowStateManager
 class ChatbotService:
-    """Handles OpenAI conversations with dynamic knowledge"""
+    """Handles OpenAI conversations with dynamic knowledge and flow management"""
     
     def __init__(self):
-            
+        # Load the flow script
         base_dir = os.path.dirname(os.path.abspath(__file__))
         script_path = os.path.join(base_dir, "law_firm", "law_firm.json")
 
@@ -420,109 +420,27 @@ class ChatbotService:
             for step in flow["steps"]:
                 self.step_index[step["id"]] = step
 
-        self.system_prompt = f"""
-        You are an AI legal intake assistant for a law firm. 
-        Your behavior is controlled by the following structured flow:
+        # System prompt with flow awareness
+        self.system_prompt = """You are an AI legal intake assistant for a law firm. 
 
-        {json.dumps(self.flow, indent=2)}
+CRITICAL RULES:
 
-        CRITICAL RULES:
+1. Follow the intake flow EXACTLY as structured in the JSON provided.
+2. Ask ONLY the prompt for the CURRENT step (provided separately).
+3. Do NOT skip ahead unless the user fully answers the current step.
+4. If the user goes off-topic:
+   - Answer their question BRIEFLY using ONLY the provided website content.
+   - If the website doesn't contain the answer, say: "I don't have that information. Would you like me to connect you with a representative?"
+   - Then IMMEDIATELY re-ask the current step's prompt EXACTLY as written.
+5. NEVER invent legal information, prices, or firm-specific details.
+6. All firm facts MUST come from: website content, JSON flow, or user's previous messages.
+7. ALWAYS respond in less than 40 words unless providing legally required disclaimers.
 
-        1. Follow the flow EXACTLY as shown above.
-        2. Ask ONLY the prompt for the CURRENT step.
-        3. Do NOT skip ahead unless the user answers a step fully.
-        4. If the user goes off-topic:
-        - First answer their question *accurately* using ONLY website content.
-        - If the website does not contain the answer: say:
-            "I don’t have that information in my records. Would you like me to connect you with a representative?"
-        - Then IMMEDIATELY re-ask the pending step’s prompt EXACTLY as written in the JSON.
-        5. NEVER invent or approximate legal information or prices.
-        6. NEVER generalize (e.g., “usually,” “typically,” “average fee”). 
-        7. All firm-specific facts MUST come ONLY from:
-        - the provided website content, or
-        - the JSON flow script, or
-        - the user's previous messages.
-
-        Your job:
-        - Identify the current step.
-        - Determine whether the user's message answers that step.
-        - If yes → move to the next step.
-        - If no → answer the side question accurately and then re-ask the current step.
-
-        ALWAYS respond in less than 40 words.
-        """
-
-
-    def get_current_step(self, history):
-        """
-        Determine which intake step the bot is currently waiting for.
-        Looks at the last bot message and matches it to step prompts.
-        """
-        for msg in reversed(history):
-            if msg["role"] == "assistant":
-                bot_text = msg["content"].strip().lower()
-                for step_id, step in self.step_index.items():
-                    if step["prompt"].split("\n")[0].lower() in bot_text:
-                        return step_id
-                break
-
-        # Default start if nothing matches
-        return "start"
-    
-    def get_next_step(self, current_step_id, user_message):
-        step = self.step_index[current_step_id]
-
-        # Handle options (choice / yes_no)
-        if "options" in step:
-            for opt in step["options"]:
-                if opt["label"].lower() in user_message.lower() or opt["value"].lower() in user_message.lower():
-                    return opt["next_step"]
-
-        # Text fields have fixed next_step
-        if "next_step" in step:
-            return step["next_step"]
-
-        return None
-
-    def _load_script(self, script_path: str) -> dict:
-        """Load the law_firm.json flow script from disk."""
-        try:
-            if not os.path.exists(script_path):
-                print(f"[WARN] Script file {script_path} not found. Running without script.")
-                return {}
-
-            with open(script_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return data
-        except Exception as e:
-            print(f"[ERROR] Failed to load script {script_path}: {e}")
-            return {}
-
-    def _format_flow(self, script: dict) -> str:
-        """
-        Turn the JSON script into a human-readable list for the model.
-        Assumptions:
-          law_firm.json has either:
-            { "steps": [ { "id": "...", "question": "..." }, ... ] }
-          or is simply a list of steps itself.
-        """
-        if not script:
-            return "No scripted flow loaded. You must still perform a logical intake sequence."
-
-        steps = script.get("steps")
-        if not steps and isinstance(script, list):
-            steps = script
-
-        if not steps:
-            return "No 'steps' key found in law_firm.json. Use your best judgment for intake."
-
-        lines = []
-        for idx, step in enumerate(steps, start=1):
-            step_id = step.get("id", f"step_{idx}")
-            question = step.get("question") or step.get("prompt") or ""
-            lines.append(f"{idx}. [{step_id}] QUESTION: {question}")
-
-        return "\n".join(lines)
+Your job:
+- Determine if the user's message answers the current step.
+- If YES → acknowledge and move to next step (the system will provide the new prompt).
+- If NO → answer their question briefly, then re-ask the current step prompt EXACTLY.
+"""
 
     async def chat(
         self,
@@ -532,85 +450,62 @@ class ChatbotService:
         current_step_id: str = None,
         current_step_prompt: str = None,
     ):
-
-        """Generate chatbot response using OpenAI"""
+        """Generate chatbot response using OpenAI with flow awareness"""
 
         if not openai_client:
             return "I apologize, but the AI service is not configured. Please contact our office directly."
 
-        # Build conversation summary for context (your existing logic)
+        # Build conversation summary
         summary = self._build_conversation_summary(conversation_history)
         
-        if current_step_prompt:
-            messages.append({
-                "role": "system",
-                "content": f"""
-        CURRENT INTAKE STEP: {current_step_id}
-
-        THE PROMPT YOU MUST ASK NEXT (EXACTLY AS WRITTEN):
-
-        {current_step_prompt}
-
-        - You MUST ask this question next.
-        - You may NOT ask any previous questions.
-        - You may NOT improvise or change the wording.
-
-        If the user answers, move to next step.
-        If the user goes off-topic, answer briefly then repeat EXACTLY this prompt.
-        """
-            })
-
+        # Build messages array
         messages = [
             {"role": "system", "content": self.system_prompt}
         ]
-
-        # Add conversation summary
-        if summary:
-            messages.append({
-                "role": "system",
-                "content": (
-                    "📊 INFORMATION COLLECTED SO FAR (from user messages):\n"
-                    f"{summary}\n\n"
-                    "⚠️ Do NOT ask again about anything listed above. "
-                    "Use this to decide which script step is currently active."
-                )
-            })
-
-        # Add knowledge base if available
-        if knowledge_base:
-            messages.append({
-                "role": "system",
-                "content": f"Law Firm Website Content:\n\n{knowledge_base}"
-            })
-            
-        messages.insert(1, {
-            "role": "system",
-            "content": f"LAW FIRM INTAKE FLOW STRUCTURE:\n\n{json.dumps(self.flow, indent=2)}"
-        })
         
-        messages = [
-            {"role": "system", "content": self.system_prompt}
-        ]
-
+        # Add current step context (most important!)
         if current_step_id and current_step_prompt:
             messages.append({
                 "role": "system",
                 "content": (
-                    f"CURRENT INTAKE STEP ID: {current_step_id}\n"
-                    f"CURRENT INTAKE PROMPT (must be the question you ask next):\n"
-                    f"{current_step_prompt}\n\n"
-                    "Do NOT re-ask any earlier questions. Do NOT change this prompt. "
-                    "If the user goes off-topic, answer briefly and then repeat THIS prompt."
+                    f"🎯 CURRENT INTAKE STEP: {current_step_id}\n\n"
+                    f"THE EXACT QUESTION YOU MUST ASK:\n"
+                    f'"{current_step_prompt}"\n\n'
+                    "INSTRUCTIONS:\n"
+                    "- This is the ONLY question you should be asking right now.\n"
+                    "- Do NOT ask any previous questions.\n"
+                    "- Do NOT paraphrase - use the EXACT wording above.\n"
+                    "- If user answers → acknowledge briefly.\n"
+                    "- If user goes off-topic → answer briefly, then repeat this EXACT question.\n"
+                )
+            })
+        
+        # Add what's been collected so far
+        if summary:
+            messages.append({
+                "role": "system",
+                "content": (
+                    "📊 INFORMATION ALREADY COLLECTED:\n"
+                    f"{summary}\n\n"
+                    "⚠️ DO NOT ask about anything listed above!"
                 )
             })
 
+        # Add website knowledge
+        if knowledge_base:
+            messages.append({
+                "role": "system",
+                "content": f"📚 LAW FIRM WEBSITE CONTENT (for answering questions):\n\n{knowledge_base[:3000]}"  # Limit to avoid token overflow
+            })
 
-        # Add recent conversation history (unchanged)
-        messages.extend(conversation_history[-10:] if len(conversation_history) > 10 else conversation_history)
+        # Add recent conversation history (last 10 messages)
+        recent_history = conversation_history[-10:] if len(conversation_history) > 10 else conversation_history
+        messages.extend(recent_history)
 
-        # Add current message
+        # Add current user message
         messages.append({"role": "user", "content": message})
 
+        # Call OpenAI
         try:
             response = await asyncio.to_thread(
                 openai_client.chat.completions.create,
@@ -621,12 +516,14 @@ class ChatbotService:
             )
             
             return response.choices[0].message.content
+            
         except Exception as e:
             print(f"OpenAI error: {e}")
             return "I apologize, but I'm having trouble processing your request right now. Please call our office or email us directly."
 
-    def _build_conversation_summary(self, conversation_history: List[Dict]) -> str:
-        # (keep your existing implementation here)
+    def _build_conversation_summary(self, conversation_history: list) -> str:
+        """Build summary of what information has been collected from conversation"""
+        
         if not conversation_history:
             return ""
 
@@ -654,7 +551,7 @@ class ChatbotService:
             collected.append("✅ Incident described")
         
         # Check for date/timing
-        if any(keyword in full_text for keyword in ["yesterday", "today", "last week", "last month", "ago", "/202", "/2025", "november", "october", "january"]):
+        if any(keyword in full_text for keyword in ["yesterday", "today", "last week", "last month", "ago", "/202", "/2025", "november", "october", "january", ":", "am", "pm"]):
             collected.append("✅ Date/timing mentioned")
         
         # Check for medical treatment
@@ -677,11 +574,13 @@ class ChatbotService:
         user_messages = [msg.get("content", "") for msg in conversation_history if msg.get("role") == "user"]
         for msg in user_messages:
             words = msg.split()
-            # Look for capitalized words that might be names (not at start of sentence)
+            # Look for capitalized words that might be names
             for i, word in enumerate(words):
-                if i > 0 and word and word[0].isupper() and len(word) > 2:
+                if i > 0 and word and len(word) > 2 and word[0].isupper():
                     collected.append("✅ Name mentioned")
                     break
+            if "✅ Name mentioned" in collected:
+                break
         
         return "\n".join(collected) if collected else ""
 
@@ -804,28 +703,24 @@ async def chat_endpoint(chat: ChatMessage, db: Session = Depends(get_db)):
     # Get knowledge base from website
     knowledge_base = await scraper.get_knowledge_base()
     
-    # --- NEW: flow state update based on this user turn ---
+    # Flow state management
     flow_manager.ensure_session(session_id)
-    # treat the incoming user message as answering the *previous* step
+    
+    # Advance flow if user answered the previous step
     current_before = flow_manager.get_current_step(session_id)
     current_after = flow_manager.advance_if_answered(session_id, chat.message)
+    
+    # Get current step details
     current_step_id = current_after
     current_step_prompt = flow_manager.get_prompt(current_step_id)
-
-    # Generate response with awareness of the current step
+    
+    # Generate response with flow context (SINGLE CALL)
     response_text = await chatbot.chat(
         message=chat.message,
         conversation_history=conversation.messages,
         knowledge_base=knowledge_base,
         current_step_id=current_step_id,
         current_step_prompt=current_step_prompt,
-    )
-    
-    # Generate response
-    response_text = await chatbot.chat(
-        message=chat.message,
-        conversation_history=conversation.messages,
-        knowledge_base=knowledge_base
     )
     
     # Update conversation
@@ -838,6 +733,7 @@ async def chat_endpoint(chat: ChatMessage, db: Session = Depends(get_db)):
     return {
         "response": response_text,
         "session_id": session_id,
+        "current_step": current_step_id,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
