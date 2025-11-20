@@ -854,40 +854,49 @@ async def create_paypal_payment_endpoint(payment: PaymentCreate, db: Session = D
 @app.post("/api/upload")
 async def upload_file(
     file: UploadFile = File(...),
-    case_id: str = Form(...),
-    client_id: str = Form(...),
+    session_id: str = Form(...),
+    case_id: str = Form(default="temp"),
+    client_id: str = Form(default="guest"),
     db: Session = Depends(get_db)
 ):
     """Upload document"""
     
-    # Generate unique filename
-    file_id = str(uuid.uuid4())
-    file_ext = Path(file.filename).suffix
-    new_filename = f"{file_id}{file_ext}"
-    file_path = UPLOAD_DIR / new_filename
-    
-    # Save file
-    with open(file_path, "wb") as f:
+    try:
+        # Validate file size (10MB max)
         content = await file.read()
-        f.write(content)
-    
-    # Save to database
-    document = Document(
-        case_id=case_id,
-        client_id=client_id,
-        filename=file.filename,
-        file_path=str(file_path),
-        file_type=file.content_type,
-        file_size=len(content)
-    )
-    db.add(document)
-    db.commit()
-    
-    return {
-        "success": True,
-        "document_id": document.id,
-        "filename": file.filename
-    }
+        if len(content) > 10 * 1024 * 1024:
+            return {"success": False, "error": "File too large. Maximum size is 10MB."}
+        
+        # Generate unique filename
+        file_id = str(uuid.uuid4())
+        file_ext = Path(file.filename).suffix
+        new_filename = f"{file_id}{file_ext}"
+        file_path = UPLOAD_DIR / new_filename
+        
+        # Save file
+        with open(file_path, "wb") as f:
+            f.write(content)
+        
+        # Save to database
+        document = Document(
+            case_id=case_id,
+            client_id=client_id,
+            filename=file.filename,
+            file_path=str(file_path),
+            file_type=file.content_type,
+            file_size=len(content)
+        )
+        db.add(document)
+        db.commit()
+        
+        return {
+            "success": True,
+            "document_id": document.id,
+            "filename": file.filename
+        }
+    except Exception as e:
+        print(f"Upload error: {e}")
+        return {"success": False, "error": str(e)}
 
 @app.get("/api/download/{document_id}")
 async def download_file(document_id: str, db: Session = Depends(get_db)):
