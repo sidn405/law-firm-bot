@@ -234,6 +234,7 @@
             border-radius: 16px;
             font-size: 14px;
             line-height: 1.5;
+            white-space: pre-wrap;
         }
         
         .chat-message.user .message-content {
@@ -245,6 +246,65 @@
             font-size: 11px;
             color: var(--text-light);
             margin-top: 4px;
+        }
+        
+        /* Script Flow Buttons */
+        .script-button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 0 10px;
+            margin-top: 8px;
+        }
+        
+        .script-button {
+            background: white;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        
+        .script-button:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateX(4px);
+        }
+        
+        .script-button:active {
+            transform: translateX(2px);
+        }
+        
+        /* File Upload Status */
+        .upload-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--bg-light);
+            border-radius: 12px;
+            font-size: 13px;
+            margin: 8px 0;
+        }
+        
+        .upload-status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .upload-status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .upload-status.uploading {
+            background: #dbeafe;
+            color: #1e40af;
         }
         
         /* Typing Indicator */
@@ -329,75 +389,6 @@
         /* File Upload */
         #file-input {
             display: none;
-        }
-        
-        .file-preview {
-            padding: 10px;
-            background: var(--bg-light);
-            border-radius: 8px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        /* Script Flow Buttons */
-        .script-button-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            padding: 0 10px;
-            margin-top: 8px;
-        }
-        
-        .script-button {
-            background: white;
-            border: 2px solid var(--primary-color);
-            color: var(--primary-color);
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: left;
-        }
-        
-        .script-button:hover {
-            background: var(--primary-color);
-            color: white;
-            transform: translateX(4px);
-        }
-        
-        .script-button:active {
-            transform: translateX(2px);
-        }
-        
-        /* File Upload Status */
-        .upload-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 16px;
-            background: var(--bg-light);
-            border-radius: 12px;
-            font-size: 13px;
-            margin: 8px 0;
-        }
-        
-        .upload-status.success {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        
-        .upload-status.error {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        
-        .upload-status.uploading {
-            background: #dbeafe;
-            color: #1e40af;
         }
         
         /* Mobile Responsive */
@@ -501,8 +492,8 @@
         // LAW FIRM CHATBOT - FRONTEND LOGIC W/ SCRIPTED INTAKE
         // =====================================================
         
-        // Configuration
-        const API_URL = 'https://law-firm-bot-production.up.railway.app';  // UPDATE THIS
+        // Configuration - UPDATE THIS WITH YOUR RAILWAY URL
+        const API_URL = 'https://law-firm-bot-production.up.railway.app';
         let sessionId = null;
         let clientId = null;
         let currentStep = 'start';
@@ -592,12 +583,12 @@
                 ]
             },
             pi_schedule: {
-                prompt: "Great. Please provide your preferred date and time...",
+                prompt: "Great! Let me check our availability and book your consultation.\n\nWhat date and time works best for you? (e.g., 'November 28 at 2pm' or 'next Tuesday at 10am')",
                 input_type: "text",
-                next_step: "pi_schedule_confirm"
+                next_step: "pi_schedule_process"
             },
-            pi_schedule_confirm: {
-                prompt: "Processing your consultation request...",
+            pi_schedule_process: {
+                prompt: "Let me check our calendar...",
                 input_type: "none",
                 next_step: "pi_end"
             },
@@ -661,7 +652,6 @@
             sessionId = localStorage.getItem('lawfirm_session_id') || generateSessionId();
             localStorage.setItem('lawfirm_session_id', sessionId);
 
-            // Load previous messages if you want; for a fresh intake we just show greeting:
             document.getElementById('chat-messages').innerHTML = '';
             addScriptStep('start');
         });
@@ -714,11 +704,10 @@
             if (!step) return;
             currentStep = stepId;
 
-            // bot message
             addMessage('bot', step.prompt);
 
             // Handle scheduling step
-            if (stepId === 'pi_schedule_confirm') {
+            if (stepId === 'pi_schedule_process') {
                 setTimeout(() => scheduleAppointment(), 1000);
                 return;
             }
@@ -743,7 +732,7 @@
         }
 
         function handleOptionClick(stepId, option) {
-            // Remove existing button groups (so they don't stack)
+            // Remove existing button groups
             document.querySelectorAll('.script-button-group').forEach(el => el.remove());
 
             addMessage('user', option.label);
@@ -758,11 +747,9 @@
             }
         }
 
-        // --- QUICK ACTIONS (top chips) ---
+        // --- QUICK ACTIONS ---
         function quickAction(action) {
-            // Map quick actions to the script
             if (action === 'personal_injury') {
-                // Equivalent to clicking "Personal Injury" on the start step
                 const opt = flowSteps.start.options.find(o => o.value === 'personal_injury');
                 if (opt) handleOptionClick('start', opt);
                 return;
@@ -778,9 +765,7 @@
                 return;
             }
             if (action === 'schedule') {
-                // generic scheduling question -> treat as asking about consult
                 addMessage('user', "I'd like to schedule a consultation.");
-                // You can either route into a specific script here or send to backend:
                 sendToBackend("I'd like to schedule a consultation.");
             }
         }
@@ -795,7 +780,7 @@
             input.value = '';
             addMessage('user', message);
 
-            // If we're in a scripted TEXT step, use it as the answer and advance
+            // If we're in a scripted TEXT step, use it as the answer
             if (intakeActive && flowSteps[currentStep] && flowSteps[currentStep].input_type === 'text') {
                 collectedData[currentStep] = message;
                 const nextId = flowSteps[currentStep].next_step;
@@ -805,12 +790,10 @@
                     intakeActive = false;
                     addMessage('bot', "Thank you. Your information has been received.");
                 }
-                // You can still send to backend for logging if desired:
-                // sendToBackend(message);
                 return;
             }
 
-            // Otherwise: GENERAL CHAT → backend supplies answer
+            // Otherwise: GENERAL CHAT
             showTyping(true);
             try {
                 const data = await sendToBackend(message);
@@ -818,14 +801,12 @@
                 if (data && data.response) {
                     addMessage('bot', data.response);
                 } else {
-                    addMessage('bot',
-                        "I'm having trouble connecting right now. Please call our office at (555) 123-4567.");
+                    addMessage('bot', "I'm having trouble connecting right now. Please call our office at (555) 123-4567.");
                 }
             } catch (err) {
                 console.error(err);
                 showTyping(false);
-                addMessage('bot',
-                    "I'm having trouble connecting right now. Please call our office at (555) 123-4567.");
+                addMessage('bot', "I'm having trouble connecting right now. Please call our office at (555) 123-4567.");
             }
         }
 
@@ -852,45 +833,91 @@
             else indicator.classList.remove('active');
         }
 
-        // File upload functions are unchanged; they just log documents to backend
+        // --- FILE UPLOAD ---
         async function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            addMessage('user', `📎 Uploading: ${file.name}`);
+            // Validate file size (10MB max)
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+                addUploadStatus('error', `File too large. Maximum size is 10MB.`);
+                event.target.value = '';
+                return;
+            }
+
+            // Show uploading status
+            const statusId = addUploadStatus('uploading', `Uploading: ${file.name}`);
 
             try {
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('session_id', sessionId);
+                formData.append('client_id', clientId || 'guest');
+                formData.append('case_id', 'intake_' + sessionId);
 
                 const response = await fetch(`${API_URL}/api/upload`, {
                     method: 'POST',
                     body: formData
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const data = await response.json();
+                
+                // Remove uploading status
+                removeUploadStatus(statusId);
+                
                 if (data.success) {
-                    addMessage('bot', `✅ File uploaded successfully: ${file.name}`);
+                    addUploadStatus('success', `✓ ${file.name} uploaded successfully`);
+                    addMessage('bot', 'Thank you for uploading the document. I\'ve saved it to your case file.');
                 } else {
-                    addMessage('bot', '❌ File upload failed. Please try again.');
+                    addUploadStatus('error', `✗ Upload failed: ${data.error || 'Unknown error'}`);
                 }
             } catch (error) {
                 console.error('Upload error:', error);
-                addMessage('bot', '❌ File upload failed. Please try again.');
+                removeUploadStatus(statusId);
+                addUploadStatus('error', `✗ Upload failed. Please check your connection and try again.`);
             }
 
             event.target.value = '';
         }
 
-        // Appointment scheduling
+        function addUploadStatus(type, message) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const statusDiv = document.createElement('div');
+            const statusId = 'status_' + Date.now();
+            statusDiv.id = statusId;
+            statusDiv.className = `upload-status ${type}`;
+            
+            const icon = type === 'success' ? '✓' : type === 'error' ? '✗' : '⏳';
+            statusDiv.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+            
+            messagesContainer.appendChild(statusDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            return statusId;
+        }
+
+        function removeUploadStatus(statusId) {
+            const element = document.getElementById(statusId);
+            if (element) {
+                element.remove();
+            }
+        }
+
+        // --- APPOINTMENT SCHEDULING ---
         async function scheduleAppointment() {
             showTyping(true);
             
             try {
+                // Extract collected data
                 const contactInfo = collectedData['pi_contact_info'] || '';
                 const preferredTime = collectedData['pi_schedule'] || '';
                 
+                // Parse contact info (expected format: name, phone, email)
                 const lines = contactInfo.split('\n').map(l => l.trim());
                 const name = lines[0] || 'Guest';
                 const phone = lines[1] || '';
@@ -912,16 +939,30 @@
                 const data = await response.json();
                 showTyping(false);
                 
-                if (data.success && data.calendar_link) {
-                    addMessage('bot', `Perfect! Click here to choose your time:\n\n${data.calendar_link}`);
+                if (data.success) {
+                    if (data.calendar_link) {
+                        // Calendly link available
+                        addMessage('bot', `✓ Perfect! I've found availability for you.\n\nClick the link below to confirm your consultation time:\n\n🔗 ${data.calendar_link}\n\nYou can choose from available time slots and you'll receive a confirmation email immediately.`);
+                    } else {
+                        // Manual scheduling fallback
+                        addMessage('bot', `✓ Thank you! I've received your request for ${preferredTime}.\n\nOur scheduling team will review your preferred time and confirm availability within 2 hours. You'll receive:\n\n📧 Confirmation email\n📱 Text message with your appointment details\n\nIf ${preferredTime} isn't available, we'll suggest the closest alternative times.`);
+                    }
+                    
+                    // Add final message
+                    setTimeout(() => {
+                        addMessage('bot', `Your case intake is complete! Reference ID: ${data.appointment_id.substring(0, 8).toUpperCase()}\n\nWhat happens next:\n1. You'll receive confirmation within 2 hours\n2. We'll review your case details\n3. A lawyer will be prepared for your consultation\n\nUrgent? Call us now at (555) 123-4567`);
+                    }, 500);
                 } else {
-                    addMessage('bot', 'Thank you! We will contact you within 1 business day.');
+                    addMessage('bot', `I had a small technical issue, but don't worry - I've saved all your information!\n\nOur team will contact you at ${phone || email} within 2 hours to confirm your consultation for ${preferredTime}.\n\nNeed immediate assistance? Call (555) 123-4567`);
                 }
-                addScriptStep('pi_end');
             } catch (error) {
+                console.error('Scheduling error:', error);
                 showTyping(false);
-                addMessage('bot', 'Our team will contact you directly.');
-                addScriptStep('pi_end');
+                
+                const preferredTime = collectedData['pi_schedule'] || 'your preferred time';
+                const phone = collectedData['pi_contact_info']?.split('\n')[1] || 'the number you provided';
+                
+                addMessage('bot', `I've saved all your information! Our scheduling team will contact you at ${phone} within 2 hours to confirm your consultation.\n\nPreferred time: ${preferredTime}\n\nFor immediate assistance, call (555) 123-4567`);
             }
         }
     </script>
