@@ -179,16 +179,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/", StaticFiles(directory=".", html=True), name="static")
-
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-app.mount(
-    "/static",
-    StaticFiles(directory=BASE_DIR, html=True),
-    name="static",
-)
 
 # ============================================
 # PYDANTIC MODELS
@@ -1087,3 +1077,6 @@ async def health_check():
             "email": bool(SMTP_USER)
         }
     }
+    
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app.mount("/", StaticFiles(directory=BASE_DIR, html=True), name="static")
