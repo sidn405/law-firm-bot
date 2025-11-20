@@ -59,6 +59,10 @@ SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 LAW_FIRM_EMAIL = os.getenv("LAW_FIRM_EMAIL", "info@lawfirm.com")
 LAW_FIRM_PHONE = os.getenv("LAW_FIRM_PHONE", "+1234567890")
+CALENDLY_API_KEY = os.getenv("CALENDLY_API_KEY", "")
+CALENDLY_EVENT_TYPE = os.getenv("CALENDLY_EVENT_TYPE", "")
+GOOGLE_CALENDAR_CREDENTIALS = os.getenv("GOOGLE_CALENDAR_CREDENTIALS", "")
+CALENDAR_PROVIDER = os.getenv("CALENDAR_PROVIDER", "calendly")
 
 # Initialize services
 openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
@@ -163,6 +167,24 @@ def get_db():
         yield db
     finally:
         db.close()
+        
+class Appointment(Base):
+    __tablename__ = "appointments"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    client_id = Column(String, nullable=False)
+    case_id = Column(String)
+    client_name = Column(String, nullable=False)
+    client_email = Column(String, nullable=False)
+    client_phone = Column(String)
+    scheduled_date = Column(DateTime)
+    case_type = Column(String)
+    status = Column(String, default="pending")
+    calendar_event_id = Column(String)
+    calendar_link = Column(String)
+    notes = Column(Text)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 # ============================================
 # FASTAPI APP
@@ -210,10 +232,105 @@ class EmailRequest(BaseModel):
     subject: str
     body: str
     html: Optional[str] = None
+    
+class AppointmentRequest(BaseModel):
+    client_name: str
+    client_email: EmailStr
+    client_phone: Optional[str] = None
+    preferred_date: Optional[str] = None
+    preferred_time: Optional[str] = None
+    case_type: Optional[str] = None
+    notes: Optional[str] = None
 
 # ============================================
 # WEB SCRAPING SERVICE
 # ============================================
+
+class CalendarService:
+    """Manages calendar integrations for appointment scheduling"""
+    
+    @staticmethod
+    async def create_calendly_invitation(appointment_data: dict) -> Dict:
+        """Create Calendly scheduling link"""
+        if not CALENDLY_API_KEY or not CALENDLY_EVENT_TYPE:
+            return {"success": False, "error": "Calendly not configured"}
+        
+        try:
+            headers = {
+                "Authorization": f"Bearer {CALENDLY_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            
+            user_response = requests.get(
+                "https://api.calendly.com/users/me",
+                headers=headers
+            )
+            user_data = user_response.json()
+            
+            payload = {
+                "max_event_count": 1,
+                "owner": user_data["resource"]["uri"],
+                "owner_type": "EventType"
+            }
+            
+            response = requests.post(
+                "https://api.calendly.com/scheduling_links",
+                headers=headers,
+                json=payload
+            )
+            
+            if response.status_code == 201:
+                data = response.json()
+                return {
+                    "success": True,
+                    "booking_url": data["resource"]["booking_url"],
+                    "event_id": None
+                }
+            else:
+                return {"success": False, "error": response.text}
+                
+        except Exception as e:
+            print(f"Calendly error: {e}")
+            return {"success": False, "error": str(e)}
+    
+    @staticmethod
+    async def get_available_slots(date: str = None) -> Dict:
+        """Get available appointment slots"""
+        if CALENDAR_PROVIDER == "calendly" and CALENDLY_API_KEY:
+            try:
+                headers = {
+                    "Authorization": f"Bearer {CALENDLY_API_KEY}",
+                    "Content-Type": "application/json"
+                }
+                
+                user_response = requests.get(
+                    "https://api.calendly.com/users/me",
+                    headers=headers
+                )
+                user_data = user_response.json()
+                user_uri = user_data["resource"]["uri"]
+                
+                params = {"user": user_uri, "count": 10}
+                if date:
+                    params["min_start_time"] = date
+                
+                response = requests.get(
+                    "https://api.calendly.com/event_type_available_times",
+                    headers=headers,
+                    params=params
+                )
+                
+                if response.status_code == 200:
+                    return {"success": True, "slots": response.json()}
+                else:
+                    return {"success": False, "error": "Could not fetch availability"}
+                    
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+        
+        return {"success": False, "error": "Calendar not configured"}
+
+calendar_service = CalendarService()
 
 class WebScraperService:
     """Scrapes law firm website for dynamic content"""
@@ -1059,6 +1176,101 @@ async def send_email_endpoint(email: EmailRequest):
         return {"success": True}
     else:
         raise HTTPException(status_code=500, detail="Failed to send email")
+    
+# ============================================
+# CALENDAR SCHEDULER
+# ============================================   
+    
+@app.post("/api/appointments/schedule")
+async def schedule_appointment(appointment: AppointmentRequest, db: Session = Depends(get_db)):
+    """Schedule a consultation appointment"""
+    
+    try:
+        client = db.query(Client).filter(Client.email == appointment.client_email).first()
+        if not client:
+            client = Client(
+                name=appointment.client_name,
+                email=appointment.client_email,
+                phone=appointment.client_phone,
+                case_type=appointment.case_type
+            )
+            db.add(client)
+            db.commit()
+            db.refresh(client)
+        
+        calendar_result = None
+        if CALENDAR_PROVIDER == "calendly":
+            calendar_result = await calendar_service.create_calendly_invitation({
+                "name": appointment.client_name,
+                "email": appointment.client_email,
+                "phone": appointment.client_phone,
+                "notes": appointment.notes
+            })
+        
+        new_appointment = Appointment(
+            client_id=client.id,
+            client_name=appointment.client_name,
+            client_email=appointment.client_email,
+            client_phone=appointment.client_phone,
+            case_type=appointment.case_type,
+            notes=appointment.notes,
+            status="pending",
+            calendar_event_id=calendar_result.get("event_id") if calendar_result else None,
+            calendar_link=calendar_result.get("booking_url") if calendar_result else None
+        )
+        
+        db.add(new_appointment)
+        db.commit()
+        db.refresh(new_appointment)
+        
+        if calendar_result and calendar_result.get("success"):
+            email_body = f"""Dear {appointment.client_name},
+
+Thank you for scheduling a consultation with our law firm.
+
+Please use the link below to choose your preferred time:
+{calendar_result.get('booking_url')}
+
+Case Type: {appointment.case_type or 'General Consultation'}
+
+Best regards,
+The Legal Team"""
+            
+            await send_email(
+                to=appointment.client_email,
+                subject="Schedule Your Consultation - Action Required",
+                body=email_body
+            )
+        else:
+            await send_email(
+                to=LAW_FIRM_EMAIL,
+                subject=f"New Consultation Request - {appointment.client_name}",
+                body=f"""New consultation request:
+Name: {appointment.client_name}
+Email: {appointment.client_email}
+Phone: {appointment.client_phone or 'Not provided'}
+Please contact to schedule."""
+            )
+        
+        return {
+            "success": True,
+            "appointment_id": new_appointment.id,
+            "calendar_link": calendar_result.get("booking_url") if calendar_result else None,
+            "message": "Consultation scheduled successfully" if calendar_result and calendar_result.get("success") else "Request received"
+        }
+        
+    except Exception as e:
+        print(f"Appointment error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/appointments/availability")
+async def get_availability(date: Optional[str] = None):
+    """Get available slots"""
+    result = await calendar_service.get_available_slots(date)
+    if result["success"]:
+        return result
+    else:
+        raise HTTPException(status_code=400, detail=result["error"])
 
 # ============================================
 # HEALTH CHECK

@@ -592,8 +592,13 @@
                 ]
             },
             pi_schedule: {
-                prompt: "Great. Please provide your preferred date and time (e.g., 'November 25 at 2pm'), and we'll confirm by SMS/email.",
+                prompt: "Great. Please provide your preferred date and time...",
                 input_type: "text",
+                next_step: "pi_schedule_confirm"
+            },
+            pi_schedule_confirm: {
+                prompt: "Processing your consultation request...",
+                input_type: "none",
                 next_step: "pi_end"
             },
             pi_followup: {
@@ -711,6 +716,12 @@
 
             // bot message
             addMessage('bot', step.prompt);
+
+            // Handle scheduling step
+            if (stepId === 'pi_schedule_confirm') {
+                setTimeout(() => scheduleAppointment(), 1000);
+                return;
+            }
 
             // add buttons (if any)
             if (step.options && step.options.length) {
@@ -870,6 +881,48 @@
             }
 
             event.target.value = '';
+        }
+
+        // Appointment scheduling
+        async function scheduleAppointment() {
+            showTyping(true);
+            
+            try {
+                const contactInfo = collectedData['pi_contact_info'] || '';
+                const preferredTime = collectedData['pi_schedule'] || '';
+                
+                const lines = contactInfo.split('\n').map(l => l.trim());
+                const name = lines[0] || 'Guest';
+                const phone = lines[1] || '';
+                const email = lines[2] || '';
+                
+                const response = await fetch(`${API_URL}/api/appointments/schedule`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        client_name: name,
+                        client_email: email,
+                        client_phone: phone,
+                        preferred_date: preferredTime,
+                        case_type: collectedData['start'] || 'Personal Injury',
+                        notes: JSON.stringify(collectedData)
+                    })
+                });
+                
+                const data = await response.json();
+                showTyping(false);
+                
+                if (data.success && data.calendar_link) {
+                    addMessage('bot', `Perfect! Click here to choose your time:\n\n${data.calendar_link}`);
+                } else {
+                    addMessage('bot', 'Thank you! We will contact you within 1 business day.');
+                }
+                addScriptStep('pi_end');
+            } catch (error) {
+                showTyping(false);
+                addMessage('bot', 'Our team will contact you directly.');
+                addScriptStep('pi_end');
+            }
         }
     </script>
 </body>

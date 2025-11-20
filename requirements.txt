@@ -39,3 +39,6 @@ python-jose[cryptography]==3.3.0
 pytest==7.4.3
 pytest-asyncio==0.21.1
 httpx==0.25.2
+
+# Calendar
+requests==2.31.0
