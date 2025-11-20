@@ -38,7 +38,7 @@ from sqlalchemy.pool import StaticPool
 # Web scraping
 from bs4 import BeautifulSoup
 from flow_state_manager import FlowStateManager
-from flow_integration import HybridChatbotService
+# from flow_integration import HybridChatbotService
 
 # ============================================
 # CONFIGURATION
@@ -526,7 +526,7 @@ Input type: {input_type}
 
         return "\n".join(collected) if collected else ""
 
-chatbot = HybridChatbotService(openai_client=openai_client)
+chatbot = ChatbotService()
 
 # ============================================
 # EMAIL SERVICE
@@ -623,65 +623,55 @@ async def root():
 
 @app.post("/api/chat")
 async def chat_endpoint(chat: ChatMessage, db: Session = Depends(get_db)):
-    """Main chat endpoint - hybrid rule-based + LLM"""
-    
+    """Main chat endpoint - PURE script-driven flow (no LLM for now)"""
+
     # Get or create session
     session_id = chat.session_id or str(uuid.uuid4())
-    
+
     # Get conversation
     conversation = db.query(Conversation).filter(
         Conversation.session_id == session_id
     ).first()
-    
+
     if not conversation:
         conversation = Conversation(
             session_id=session_id,
             client_id=chat.client_id,
             messages=[],
-            channel="web"
+            channel="web",
         )
         db.add(conversation)
-    
-    # Initialize flow
+
+    # Ensure flow session exists
     flow_manager.ensure_session(session_id)
+
+    # Previous step (before this message)
+    prev_step_id = flow_manager.get_current_step(session_id)
+
+    # Treat this message as the answer to the CURRENT step
+    new_step_id = flow_manager.advance_if_answered(session_id, chat.message)
+
+    # Current step AFTER processing the answer
     current_step_id = flow_manager.get_current_step(session_id)
-    
-    # Get session data (collected answers)
-    session_data = flow_manager.sessions[session_id].get("answers", {})
-    
-    # Generate response using hybrid system
-    result = await chatbot.chat(
-        message=chat.message,
-        conversation_history=conversation.messages,
-        current_step_id=current_step_id,
-        session_data=session_data
-    )
-    
-    # Update conversation
+
+    # Get the prompt for the current step (what we should ask next)
+    response_text = flow_manager.get_prompt(current_step_id)
+
+    # Update conversation history
     conversation.messages.append({"role": "user", "content": chat.message})
-    conversation.messages.append({"role": "assistant", "content": result["response"]})
+    conversation.messages.append({"role": "assistant", "content": response_text})
     conversation.updated_at = datetime.now(timezone.utc)
-    
-    # Advance flow if user answered
-    if result["should_advance"]:
-        # Save the answer
-        flow_manager.sessions[session_id]["answers"][current_step_id] = result["extracted_value"]
-        
-        # Advance to next step
-        next_step_id = chatbot._determine_next_step(current_step_id, result["extracted_value"])
-        if next_step_id:
-            flow_manager.set_current_step(session_id, next_step_id)
-            current_step_id = next_step_id
-    
+
     db.commit()
-    
+
     return {
-        "response": result["response"],
+        "response": response_text,
         "session_id": session_id,
         "current_step": current_step_id,
-        "answered": result["should_advance"],
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "answered": current_step_id != prev_step_id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
 
 # ============================================
 # CLIENT MANAGEMENT

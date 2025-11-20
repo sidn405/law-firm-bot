@@ -59,30 +59,87 @@ class FlowStateManager:
             return len(msg) > 0
 
         if itype in ("choice", "yes_no"):
-            # Special handling: date/time-like answers for pi_intro
-            if step_id == "pi_intro":
-                if any(c in msg for c in ["/", "-", ":"]) or any(
-                    m in msg for m in [
-                        "yesterday", "today", "ago", "last week", "last month",
-                        "january", "february", "march", "april", "may", "june",
-                        "july", "august", "september", "october", "november", "december"
+            # Special handling: main menu natural language ("I was in a car accident")
+            if step_id == "start":
+                # Personal Injury keywords
+                if any(
+                    kw in msg
+                    for kw in [
+                        "accident",
+                        "car accident",
+                        "crash",
+                        "collision",
+                        "rear-ended",
+                        "rear ended",
+                        "hit by a car",
+                        "truck accident",
+                        "motorcycle accident",
                     ]
                 ):
                     return True
 
+                # (You can add other case types later if you want.)
+
+            # Special handling: date/time-like answers for pi_intro
+            if step_id == "pi_intro":
+                if any(c in msg for c in ["/", "-", ":"]) or any(
+                    m in msg
+                    for m in [
+                        "yesterday",
+                        "today",
+                        "ago",
+                        "last week",
+                        "last month",
+                        "january",
+                        "february",
+                        "march",
+                        "april",
+                        "may",
+                        "june",
+                        "july",
+                        "august",
+                        "september",
+                        "october",
+                        "november",
+                        "december",
+                    ]
+                ):
+                    return True
+
+            # Normal choice / yes_no handling
             for opt in step.get("options", []):
                 if opt["label"].lower() in msg or opt["value"].lower() in msg:
                     return True
 
-        # file / other types can be added later
-        return False
 
     # -------- next step logic --------
     def determine_next_step(self, current_step_id: str, user_message: str) -> str | None:
         step = self.get_step(current_step_id)
         msg = (user_message or "").lower()
 
-        # personal-injury “other” routing
+        # --- main menu natural language routing ---
+        if current_step_id == "start":
+            # Personal Injury
+            if any(
+                kw in msg
+                for kw in [
+                    "accident",
+                    "car accident",
+                    "crash",
+                    "collision",
+                    "rear-ended",
+                    "rear ended",
+                    "hit by a car",
+                    "truck accident",
+                    "motorcycle accident",
+                ]
+            ):
+                # Same as choosing the "personal_injury" option
+                return "pi_intro"
+
+            # (Other case types can be added later.)
+
+        # --- personal-injury “other” routing ---
         if current_step_id == "pi_injury_type":
             for opt in step.get("options", []):
                 if opt["label"].lower() in msg or opt["value"].lower() in msg:
@@ -91,16 +148,24 @@ class FlowStateManager:
             if len(msg.split()) > 3:
                 return "pi_medical_treatment"
 
-        # pi_injury_details always moves to pi_medical_treatment
+        # --- pi_intro always moves to pi_injury_type once answered ---
+        if current_step_id == "pi_intro":
+            # All options in JSON point to pi_injury_type anyway
+            return "pi_injury_type"
+
+        # --- pi_injury_details always moves to pi_medical_treatment ---
         if current_step_id == "pi_injury_details":
             return step.get("next_step", "pi_medical_treatment")
 
+        # Generic: look up options by label/value
         if "options" in step:
             for opt in step["options"]:
                 if opt["label"].lower() in msg or opt["value"].lower() in msg:
                     return opt.get("next_step")
 
+        # Otherwise use default next_step if present
         return step.get("next_step")
+
 
     def advance_if_answered(self, session_id: str, user_message: str) -> str:
         """
