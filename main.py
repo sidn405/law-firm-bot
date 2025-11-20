@@ -1364,6 +1364,13 @@ async def update_appointment_status(
 # HEALTH CHECK
 # ============================================
 
+@app.post("/api/admin/recreate-db")
+async def recreate_database():
+    """Temporary endpoint to recreate database tables"""
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    return {"success": True, "message": "Database tables recreated"}
+
 @app.get("/health")
 async def health_check():
     return {
