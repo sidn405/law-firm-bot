@@ -203,7 +203,11 @@ class HybridChatbotService:
         session_data: dict
     ):
         """
-        Main chat method - decides whether user answered the question
+        PURE SCRIPT MODE:
+        - Decide if the user answered the current question.
+        - If answered: move to next step and return ONLY the next step's prompt.
+        - If not answered: repeat the current step's prompt.
+        No LLM, no off-topic handling.
         """
         
         step_data = self.step_index.get(current_step_id, {})
@@ -211,30 +215,36 @@ class HybridChatbotService:
         # STEP 1: Did user answer the current question?
         answered, extracted_value = self._check_if_answered(message, step_data, session_data)
         
-        # STEP 2: Generate appropriate response
+        # Default to current step's prompt
+        current_step = self.step_index[current_step_id]
+        
         if answered:
-            # User answered - acknowledge and ask next question
-            response = await self._generate_acknowledgment_and_next(
-                user_message=message,
-                current_step_id=current_step_id,
-                extracted_value=extracted_value,
-                session_data=session_data
-            )
-            should_advance = True
+            # Determine next step from the script
+            next_step_id = self._determine_next_step(current_step_id, extracted_value)
+            
+            if not next_step_id or next_step_id == "end":
+                # Flow complete or no next step – just echo the current prompt as a closing
+                response = current_step.get(
+                    "prompt",
+                    "Thank you for providing that information. Our team will review your case."
+                )
+                should_advance = True
+            else:
+                next_step = self.step_index[next_step_id]
+                response = next_step.get("prompt", "")
+                should_advance = True
         else:
-            # User didn't answer - handle off-topic or clarify
-            response = await self._handle_off_topic(
-                user_message=message,
-                current_step_id=current_step_id,
-                session_data=session_data
-            )
+            # User did NOT answer → just repeat the current scripted question
+            response = current_step.get("prompt", "")
+            next_step_id = current_step_id
             should_advance = False
         
         return {
             "response": response,
             "should_advance": should_advance,
-            "extracted_value": extracted_value
+            "extracted_value": extracted_value,
         }
+
     
     def _check_if_answered(self, message: str, step_data: dict, session_data: dict) -> tuple[bool, any]:
         """
@@ -250,6 +260,15 @@ class HybridChatbotService:
         
         if input_type == "none":
             return True, None
+        
+        # SPECIAL CASE: main menu "start"
+        # e.g. user says "I was in a car accident" -> treat as Personal Injury
+        if step_id == "start":
+            # you can expand these keywords later
+            if "accident" in msg_lower or "injury" in msg_lower or "injured" in msg_lower:
+                return True, "personal_injury"
+            # not enough to route yet
+            return False, None
         
         if input_type == "choice" or input_type == "yes_no":
             # Special handling for the main menu "start" step:
@@ -505,14 +524,18 @@ class HybridChatbotService:
     
     def _determine_next_step(self, current_step_id: str, user_value: any) -> str:
         """Determine next step based on rules in JSON"""
-        
+
         step = self.step_index[current_step_id]
-        
+
+        # Special routing for pi_intro: once they give a date, always go to pi_injury_type
+        if current_step_id == "pi_intro":
+            return "pi_injury_type"
+
         # Check if there are conditional options
         if "options" in step:
             for option in step["options"]:
                 if option.get("value") == user_value:
                     return option.get("next_step")
-        
-        # Otherwise use default next_step
+
+        # Otherwise use default next_step from JSON
         return step.get("next_step")
