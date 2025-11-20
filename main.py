@@ -1223,54 +1223,142 @@ async def schedule_appointment(appointment: AppointmentRequest, db: Session = De
         db.commit()
         db.refresh(new_appointment)
         
+        # Send confirmation email
         if calendar_result and calendar_result.get("success"):
             email_body = f"""Dear {appointment.client_name},
 
-Thank you for scheduling a consultation with our law firm.
+Thank you for choosing our law firm for your {appointment.case_type or 'legal'} consultation.
 
-Please use the link below to choose your preferred time:
+NEXT STEP: Please click the link below to select your preferred appointment time:
 {calendar_result.get('booking_url')}
 
-Case Type: {appointment.case_type or 'General Consultation'}
+Your requested time: {appointment.preferred_date or 'Not specified'}
+
+Once you complete your booking, you'll receive:
+- Instant calendar confirmation
+- Email reminder 24 hours before
+- Text message reminder (if you provided your phone)
+
+Questions? Call us at {LAW_FIRM_PHONE} or reply to this email.
 
 Best regards,
 The Legal Team"""
             
             await send_email(
                 to=appointment.client_email,
-                subject="Schedule Your Consultation - Action Required",
+                subject="📅 Complete Your Consultation Booking - Action Required",
                 body=email_body
             )
+            
+            return {
+                "success": True,
+                "appointment_id": new_appointment.id,
+                "calendar_link": calendar_result.get("booking_url"),
+                "message": "Please use the calendar link to confirm your appointment time"
+            }
         else:
+            # Fallback: send email to law firm for manual scheduling
+            email_body = f"""New Consultation Request - ACTION REQUIRED
+
+Client Details:
+- Name: {appointment.client_name}
+- Email: {appointment.client_email}
+- Phone: {appointment.client_phone or 'Not provided'}
+- Case Type: {appointment.case_type or 'Not specified'}
+- Requested Time: {appointment.preferred_date or 'Not specified'}
+
+Additional Notes:
+{appointment.notes or 'None'}
+
+Appointment ID: {new_appointment.id}
+
+ACTION: Please contact this client within 2 hours to confirm appointment availability."""
+            
             await send_email(
                 to=LAW_FIRM_EMAIL,
-                subject=f"New Consultation Request - {appointment.client_name}",
-                body=f"""New consultation request:
-Name: {appointment.client_name}
-Email: {appointment.client_email}
-Phone: {appointment.client_phone or 'Not provided'}
-Please contact to schedule."""
+                subject=f"🔔 New Consultation: {appointment.client_name} - {appointment.case_type}",
+                body=email_body
             )
-        
-        return {
-            "success": True,
-            "appointment_id": new_appointment.id,
-            "calendar_link": calendar_result.get("booking_url") if calendar_result else None,
-            "message": "Consultation scheduled successfully" if calendar_result and calendar_result.get("success") else "Request received"
-        }
+            
+            # Email to client
+            client_email_body = f"""Dear {appointment.client_name},
+
+Thank you for requesting a consultation with our law firm.
+
+We've received your request for: {appointment.preferred_date or 'a consultation'}
+Case type: {appointment.case_type or 'General consultation'}
+
+Our scheduling team will review your preferred time and contact you within 2 hours at:
+- Phone: {appointment.client_phone or 'Not provided'}
+- Email: {appointment.client_email}
+
+If your requested time isn't available, we'll suggest alternative times that work for you.
+
+Need immediate assistance? Call us at {LAW_FIRM_PHONE}
+
+Best regards,
+The Legal Team"""
+            
+            await send_email(
+                to=appointment.client_email,
+                subject="✓ Consultation Request Received - We'll Confirm Soon",
+                body=client_email_body
+            )
+            
+            return {
+                "success": True,
+                "appointment_id": new_appointment.id,
+                "calendar_link": None,
+                "message": "Your consultation request has been received. We'll confirm your appointment within 2 hours."
+            }
         
     except Exception as e:
-        print(f"Appointment error: {e}")
+        print(f"Appointment scheduling error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/appointments/availability")
 async def get_availability(date: Optional[str] = None):
-    """Get available slots"""
+    """Get available appointment slots"""
     result = await calendar_service.get_available_slots(date)
     if result["success"]:
         return result
     else:
         raise HTTPException(status_code=400, detail=result["error"])
+
+@app.get("/api/appointments/{appointment_id}")
+async def get_appointment(appointment_id: str, db: Session = Depends(get_db)):
+    """Get appointment details"""
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    
+    return {
+        "id": appointment.id,
+        "client_name": appointment.client_name,
+        "client_email": appointment.client_email,
+        "scheduled_date": appointment.scheduled_date.isoformat() if appointment.scheduled_date else None,
+        "case_type": appointment.case_type,
+        "status": appointment.status,
+        "calendar_link": appointment.calendar_link,
+        "notes": appointment.notes
+    }
+
+@app.patch("/api/appointments/{appointment_id}/status")
+async def update_appointment_status(
+    appointment_id: str,
+    status: str,
+    db: Session = Depends(get_db)
+):
+    """Update appointment status"""
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    
+    appointment.status = status
+    appointment.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    
+    return {"success": True, "status": status}
 
 # ============================================
 # HEALTH CHECK

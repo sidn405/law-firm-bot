@@ -1,22 +1,509 @@
-<script>
-        // ============================================
-        // LAW FIRM CHATBOT WIDGET - SCRIPTED INTAKE
-        // ============================================
-
-        // --- CONFIG ---
-        const API_URL = 'http://localhost:8000';  // backend (only for general chat / logging)
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Law Firm Chat Widget</title>
+    <style>
+        /* ============================================
+           LAW FIRM CHATBOT - PROFESSIONAL DESIGN -
+           ============================================ */
+        
+        :root {
+            --primary-color: #1e40af;
+            --secondary-color: #3b82f6;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --bg-light: #f9fafb;
+            --border-color: #e5e7eb;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        #lawfirm-chatbot-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+        
+        /* Chat Button */
+        #lawfirm-chat-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        #lawfirm-chat-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(30, 64, 175, 0.4);
+        }
+        
+        #lawfirm-chat-button svg {
+            width: 28px;
+            height: 28px;
+            fill: white;
+        }
+        
+        /* Notification Badge */
+        .chat-notification {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger-color);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        /* Chat Window */
+        #lawfirm-chat-window {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 400px;
+            height: 600px;
+            max-height: calc(100vh - 120px);
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+        
+        #lawfirm-chat-window.open {
+            display: flex;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Header */
+        .chat-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .chat-header-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .chat-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .chat-subtitle {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .chat-close {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 5px;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        
+        .chat-close:hover {
+            opacity: 1;
+        }
+        
+        /* Quick Actions */
+        .chat-quick-actions {
+            padding: 15px;
+            background: var(--bg-light);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+        }
+        
+        .quick-action-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        
+        .quick-action-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        /* Messages */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .chat-message {
+            display: flex;
+            gap: 10px;
+            max-width: 80%;
+        }
+        
+        .chat-message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+        
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        
+        .message-content {
+            background: var(--bg-light);
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+        
+        .chat-message.user .message-content {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+        
+        /* Script Flow Buttons */
+        .script-button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 0 10px;
+            margin-top: 8px;
+        }
+        
+        .script-button {
+            background: white;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        
+        .script-button:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateX(4px);
+        }
+        
+        .script-button:active {
+            transform: translateX(2px);
+        }
+        
+        /* File Upload Status */
+        .upload-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--bg-light);
+            border-radius: 12px;
+            font-size: 13px;
+            margin: 8px 0;
+        }
+        
+        .upload-status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .upload-status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .upload-status.uploading {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        /* Typing Indicator */
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+        }
+        
+        .typing-indicator.active {
+            display: flex;
+        }
+        
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-light);
+            animation: bounce 1.4s infinite;
+        }
+        
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        
+        /* Input Area */
+        .chat-input-area {
+            padding: 15px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        .chat-input:focus {
+            border-color: var(--primary-color);
+        }
+        
+        .upload-btn, .chat-send-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            color: var(--primary-color);
+            transition: all 0.2s;
+        }
+        
+        .upload-btn:hover, .chat-send-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .chat-send-btn {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* File Upload */
+        #file-input {
+            display: none;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 480px) {
+            #lawfirm-chat-window {
+                width: 100%;
+                height: 100%;
+                max-height: 100vh;
+                bottom: 0;
+                right: 0;
+                border-radius: 0;
+            }
+            
+            #lawfirm-chatbot-container {
+                bottom: 10px;
+                right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Chat Container -->
+    <div id="lawfirm-chatbot-container">
+        <!-- Chat Button -->
+        <button id="lawfirm-chat-button" onclick="toggleChat()">
+            <svg viewBox="0 0 24 24">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+            </svg>
+            <span class="chat-notification" id="chat-notification" style="display: none;">1</span>
+        </button>
+        
+        <!-- Chat Window -->
+        <div id="lawfirm-chat-window">
+            <!-- Header -->
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <div class="chat-avatar">⚖️</div>
+                    <div>
+                        <div class="chat-title">Legal Assistant</div>
+                        <div class="chat-subtitle">Online • Available 24/7</div>
+                    </div>
+                </div>
+                <button class="chat-close" onclick="toggleChat()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="chat-quick-actions">
+                <button class="quick-action-btn" onclick="quickAction('personal_injury')">Personal Injury</button>
+                <button class="quick-action-btn" onclick="quickAction('family_law')">Family Law</button>
+                <button class="quick-action-btn" onclick="quickAction('immigration')">Immigration</button>
+                <button class="quick-action-btn" onclick="quickAction('schedule')">Schedule Consultation</button>
+            </div>
+            
+            <!-- Messages -->
+            <div class="chat-messages" id="chat-messages">
+                <!-- Welcome message will be added here -->
+            </div>
+            
+            <!-- Typing Indicator -->
+            <div class="typing-indicator" id="typing-indicator">
+                <div class="message-avatar">🤖</div>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+            
+            <!-- Input Area -->
+            <div class="chat-input-area">
+                <input type="file" id="file-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onchange="handleFileUpload(event)">
+                <button class="upload-btn" onclick="document.getElementById('file-input').click()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                </button>
+                <input 
+                    type="text" 
+                    id="chat-input" 
+                    class="chat-input" 
+                    placeholder="Type your message..." 
+                    onkeypress="handleKeyPress(event)"
+                >
+                <button class="chat-send-btn" onclick="sendMessage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"/>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // =====================================================
+        // LAW FIRM CHATBOT - FRONTEND LOGIC W/ SCRIPTED INTAKE
+        // =====================================================
+        
+        // Configuration - UPDATE THIS WITH YOUR RAILWAY URL
+        const API_URL = 'https://law-firm-bot-production.up.railway.app';
         let sessionId = null;
         let clientId = null;
         let currentStep = 'start';
-        let intakeActive = true;     // we are in scripted intake flow
+        let intakeActive = true;
         let collectedData = {};
-
-        // --- SCRIPTED FLOW (copied from chatbot.html) ---
+        
+        
         const flowSteps = {
             start: {
-                prompt:
-"Hello and welcome to our law firm. I can help you with a free case evaluation, scheduling, or questions about our services.\n\nWhat type of legal issue do you need help with?",
+                prompt: "Hello and welcome to our law firm. I can help you with a free case evaluation, scheduling, or questions about our services.\n\nWhat type of legal issue do you need help with?",
                 input_type: "choice",
                 options: [
                     { value: "personal_injury", label: "Personal Injury", next_step: "pi_intro" },
@@ -30,10 +517,15 @@
                 ]
             },
             pi_intro: {
-                prompt:
-"I'm sorry you're going through this. I'll ask a few quick questions so our team can review your situation.\n\nWhen did the incident occur?",
-                input_type: "text",
-                next_step: "pi_injury_type"
+                prompt: "I'm sorry you're going through this. I'll ask a few quick questions so our team can review your situation.\n\nWhat date did the incident occur?",
+                input_type: "choice",
+                options: [
+                    { value: "11/12/2025", label: "November 12, 2025", next_step: "pi_injury_type" },
+                    { value: "today", label: "Today", next_step: "pi_injury_type" },
+                    { value: "30_days", label: "Within the last 30 days", next_step: "pi_injury_type" },
+                    { value: "6_months", label: "1–6 months ago", next_step: "pi_injury_type" },
+                    { value: "over_6_months", label: "Over 6 months ago", next_step: "pi_injury_type" }
+                ]
             },
             pi_injury_type: {
                 prompt: "How were you injured?",
@@ -68,20 +560,17 @@
                 ]
             },
             pi_existing_attorney: {
-                prompt:
-"Thanks for letting us know. Because you're already represented, we may not be able to take your case, but you're welcome to contact our office for general questions.",
+                prompt: "Thanks for letting us know. Because you're already represented, we may not be able to take your case, but you're welcome to contact our office for general questions.",
                 input_type: "none",
-                next_step: "pi_end"
+                next_step: "end"
             },
             pi_contact_info: {
-                prompt:
-"Please share your contact details so our team can review your case and reach out.\n\n1) Full name\n2) Phone number\n3) Email address",
+                prompt: "Please share your contact details so our team can review your case and reach out.\n\n1) Full name\n2) Phone number\n3) Email address",
                 input_type: "text",
                 next_step: "pi_docs"
             },
             pi_docs: {
-                prompt:
-"If you have photos, police reports, or medical documents, you can upload them here (optional).\n\nType 'skip' if you don't have any documents right now, or 'done' when you've uploaded them.",
+                prompt: "If you have photos, police reports, or medical documents, you can upload them here (optional).\n\nType 'skip' if you don't have any documents right now, or 'done' when you've uploaded them.",
                 input_type: "text",
                 next_step: "pi_consult"
             },
@@ -94,20 +583,22 @@
                 ]
             },
             pi_schedule: {
-                prompt:
-"Great. Please provide your preferred date and time (e.g., 'November 25 at 2pm'), and we'll confirm by SMS/email.",
+                prompt: "Great! Let me check our availability and book your consultation.\n\nWhat date and time works best for you? (e.g., 'November 28 at 2pm' or 'next Tuesday at 10am')",
                 input_type: "text",
+                next_step: "pi_schedule_process"
+            },
+            pi_schedule_process: {
+                prompt: "Let me check our calendar...",
+                input_type: "none",
                 next_step: "pi_end"
             },
             pi_followup: {
-                prompt:
-"Thanks. Our team will review your information and contact you as soon as possible.",
+                prompt: "Thanks. Our team will review your information and contact you as soon as possible.",
                 input_type: "none",
                 next_step: "pi_end"
             },
             pi_end: {
-                prompt:
-"Your intake has been submitted. You'll receive a confirmation shortly. If this is urgent, please call our office at (555) 123-4567.",
+                prompt: "Your intake has been submitted. You'll receive a confirmation shortly. If this is urgent, please call our office at (555) 123-4567.",
                 input_type: "none"
             },
             other_intro: {
@@ -116,49 +607,41 @@
                 next_step: "other_contact_info"
             },
             other_contact_info: {
-                prompt:
-"Thank you. Please provide your name, phone number, and email so our team can follow up.",
+                prompt: "Thank you. Please provide your name, phone number, and email so our team can follow up.",
                 input_type: "text",
                 next_step: "other_end"
             },
             other_end: {
-                prompt:
-"Thanks. Your message has been sent to our intake team. Expect a response within one business day.",
+                prompt: "Thanks. Your message has been sent to our intake team. Expect a response within one business day.",
                 input_type: "none"
             },
             family_intro: {
-                prompt:
-"I understand family matters can be difficult. Our team specializes in divorce, custody, and family law.\n\nPlease provide your contact information so we can schedule a consultation.",
+                prompt: "I understand family matters can be difficult. Our team specializes in divorce, custody, and family law.\n\nPlease provide your contact information so we can schedule a consultation.",
                 input_type: "text",
                 next_step: "other_end"
             },
             imm_intro: {
-                prompt:
-"We can help with immigration matters including visas, green cards, and citizenship.\n\nPlease provide your contact information and a brief description of your situation.",
+                prompt: "We can help with immigration matters including visas, green cards, and citizenship.\n\nPlease provide your contact information and a brief description of your situation.",
                 input_type: "text",
                 next_step: "other_end"
             },
             crim_intro: {
-                prompt:
-"We understand this is a serious matter. Our criminal defense team is here to help.\n\nPlease provide your contact information and a brief description of your situation.",
+                prompt: "We understand this is a serious matter. Our criminal defense team is here to help.\n\nPlease provide your contact information and a brief description of your situation.",
                 input_type: "text",
                 next_step: "other_end"
             },
             wc_intro: {
-                prompt:
-"We can help you get the workers' compensation benefits you deserve.\n\nPlease provide your contact information and details about your workplace injury.",
+                prompt: "We can help you get the workers' compensation benefits you deserve.\n\nPlease provide your contact information and details about your workplace injury.",
                 input_type: "text",
                 next_step: "other_end"
             },
             biz_intro: {
-                prompt:
-"Our business law team can help with contracts, disputes, and business formation.\n\nPlease provide your contact information and a brief description of your needs.",
+                prompt: "Our business law team can help with contracts, disputes, and business formation.\n\nPlease provide your contact information and a brief description of your needs.",
                 input_type: "text",
                 next_step: "other_end"
             },
             estate_intro: {
-                prompt:
-"We can help you plan for the future with wills, trusts, and estate planning.\n\nPlease provide your contact information to schedule a consultation.",
+                prompt: "We can help you plan for the future with wills, trusts, and estate planning.\n\nPlease provide your contact information to schedule a consultation.",
                 input_type: "text",
                 next_step: "other_end"
             }
@@ -169,7 +652,6 @@
             sessionId = localStorage.getItem('lawfirm_session_id') || generateSessionId();
             localStorage.setItem('lawfirm_session_id', sessionId);
 
-            // Load previous messages if you want; for a fresh intake we just show greeting:
             document.getElementById('chat-messages').innerHTML = '';
             addScriptStep('start');
         });
@@ -222,8 +704,13 @@
             if (!step) return;
             currentStep = stepId;
 
-            // bot message
             addMessage('bot', step.prompt);
+
+            // Handle scheduling step
+            if (stepId === 'pi_schedule_process') {
+                setTimeout(() => scheduleAppointment(), 1000);
+                return;
+            }
 
             // add buttons (if any)
             if (step.options && step.options.length) {
@@ -245,7 +732,7 @@
         }
 
         function handleOptionClick(stepId, option) {
-            // Remove existing button groups (so they don't stack)
+            // Remove existing button groups
             document.querySelectorAll('.script-button-group').forEach(el => el.remove());
 
             addMessage('user', option.label);
@@ -260,11 +747,9 @@
             }
         }
 
-        // --- QUICK ACTIONS (top chips) ---
+        // --- QUICK ACTIONS ---
         function quickAction(action) {
-            // Map quick actions to the script
             if (action === 'personal_injury') {
-                // Equivalent to clicking "Personal Injury" on the start step
                 const opt = flowSteps.start.options.find(o => o.value === 'personal_injury');
                 if (opt) handleOptionClick('start', opt);
                 return;
@@ -280,9 +765,7 @@
                 return;
             }
             if (action === 'schedule') {
-                // generic scheduling question -> treat as asking about consult
                 addMessage('user', "I'd like to schedule a consultation.");
-                // You can either route into a specific script here or send to backend:
                 sendToBackend("I'd like to schedule a consultation.");
             }
         }
@@ -297,7 +780,7 @@
             input.value = '';
             addMessage('user', message);
 
-            // If we're in a scripted TEXT step, use it as the answer and advance
+            // If we're in a scripted TEXT step, use it as the answer
             if (intakeActive && flowSteps[currentStep] && flowSteps[currentStep].input_type === 'text') {
                 collectedData[currentStep] = message;
                 const nextId = flowSteps[currentStep].next_step;
@@ -307,12 +790,10 @@
                     intakeActive = false;
                     addMessage('bot', "Thank you. Your information has been received.");
                 }
-                // You can still send to backend for logging if desired:
-                // sendToBackend(message);
                 return;
             }
 
-            // Otherwise: GENERAL CHAT → backend supplies answer
+            // Otherwise: GENERAL CHAT
             showTyping(true);
             try {
                 const data = await sendToBackend(message);
@@ -320,19 +801,17 @@
                 if (data && data.response) {
                     addMessage('bot', data.response);
                 } else {
-                    addMessage('bot',
-                        "I'm having trouble connecting right now. Please call our office at (555) 123-4567.");
+                    addMessage('bot', "I'm having trouble connecting right now. Please call our office at (555) 123-4567.");
                 }
             } catch (err) {
                 console.error(err);
                 showTyping(false);
-                addMessage('bot',
-                    "I'm having trouble connecting right now. Please call our office at (555) 123-4567.");
+                addMessage('bot', "I'm having trouble connecting right now. Please call our office at (555) 123-4567.");
             }
         }
 
         async function sendToBackend(message) {
-            const response = await fetch(`${API_URL}/chat`, {
+            const response = await fetch(`${API_URL}/api/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -354,34 +833,138 @@
             else indicator.classList.remove('active');
         }
 
-        // File upload functions are unchanged; they just log documents to backend
+        // --- FILE UPLOAD ---
         async function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            addMessage('user', `📎 Uploading: ${file.name}`);
+            // Validate file size (10MB max)
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+                addUploadStatus('error', `File too large. Maximum size is 10MB.`);
+                event.target.value = '';
+                return;
+            }
+
+            // Show uploading status
+            const statusId = addUploadStatus('uploading', `Uploading: ${file.name}`);
 
             try {
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('session_id', sessionId);
+                formData.append('client_id', clientId || 'guest');
+                formData.append('case_id', 'intake_' + sessionId);
 
-                const response = await fetch(`${API_URL}/upload`, {
+                const response = await fetch(`${API_URL}/api/upload`, {
                     method: 'POST',
                     body: formData
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const data = await response.json();
+                
+                // Remove uploading status
+                removeUploadStatus(statusId);
+                
                 if (data.success) {
-                    addMessage('bot', `✅ File uploaded successfully: ${file.name}`);
+                    addUploadStatus('success', `✓ ${file.name} uploaded successfully`);
+                    addMessage('bot', 'Thank you for uploading the document. I\'ve saved it to your case file.');
                 } else {
-                    addMessage('bot', '❌ File upload failed. Please try again.');
+                    addUploadStatus('error', `✗ Upload failed: ${data.error || 'Unknown error'}`);
                 }
             } catch (error) {
                 console.error('Upload error:', error);
-                addMessage('bot', '❌ File upload failed. Please try again.');
+                removeUploadStatus(statusId);
+                addUploadStatus('error', `✗ Upload failed. Please check your connection and try again.`);
             }
 
             event.target.value = '';
         }
+
+        function addUploadStatus(type, message) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const statusDiv = document.createElement('div');
+            const statusId = 'status_' + Date.now();
+            statusDiv.id = statusId;
+            statusDiv.className = `upload-status ${type}`;
+            
+            const icon = type === 'success' ? '✓' : type === 'error' ? '✗' : '⏳';
+            statusDiv.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+            
+            messagesContainer.appendChild(statusDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            return statusId;
+        }
+
+        function removeUploadStatus(statusId) {
+            const element = document.getElementById(statusId);
+            if (element) {
+                element.remove();
+            }
+        }
+
+        // --- APPOINTMENT SCHEDULING ---
+        async function scheduleAppointment() {
+            showTyping(true);
+            
+            try {
+                // Extract collected data
+                const contactInfo = collectedData['pi_contact_info'] || '';
+                const preferredTime = collectedData['pi_schedule'] || '';
+                
+                // Parse contact info (expected format: name, phone, email)
+                const lines = contactInfo.split('\n').map(l => l.trim());
+                const name = lines[0] || 'Guest';
+                const phone = lines[1] || '';
+                const email = lines[2] || '';
+                
+                const response = await fetch(`${API_URL}/api/appointments/schedule`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        client_name: name,
+                        client_email: email,
+                        client_phone: phone,
+                        preferred_date: preferredTime,
+                        case_type: collectedData['start'] || 'Personal Injury',
+                        notes: JSON.stringify(collectedData)
+                    })
+                });
+                
+                const data = await response.json();
+                showTyping(false);
+                
+                if (data.success) {
+                    if (data.calendar_link) {
+                        // Calendly link available
+                        addMessage('bot', `✓ Perfect! I've found availability for you.\n\nClick the link below to confirm your consultation time:\n\n🔗 ${data.calendar_link}\n\nYou can choose from available time slots and you'll receive a confirmation email immediately.`);
+                    } else {
+                        // Manual scheduling fallback
+                        addMessage('bot', `✓ Thank you! I've received your request for ${preferredTime}.\n\nOur scheduling team will review your preferred time and confirm availability within 2 hours. You'll receive:\n\n📧 Confirmation email\n📱 Text message with your appointment details\n\nIf ${preferredTime} isn't available, we'll suggest the closest alternative times.`);
+                    }
+                    
+                    // Add final message
+                    setTimeout(() => {
+                        addMessage('bot', `Your case intake is complete! Reference ID: ${data.appointment_id.substring(0, 8).toUpperCase()}\n\nWhat happens next:\n1. You'll receive confirmation within 2 hours\n2. We'll review your case details\n3. A lawyer will be prepared for your consultation\n\nUrgent? Call us now at (555) 123-4567`);
+                    }, 500);
+                } else {
+                    addMessage('bot', `I had a small technical issue, but don't worry - I've saved all your information!\n\nOur team will contact you at ${phone || email} within 2 hours to confirm your consultation for ${preferredTime}.\n\nNeed immediate assistance? Call (555) 123-4567`);
+                }
+            } catch (error) {
+                console.error('Scheduling error:', error);
+                showTyping(false);
+                
+                const preferredTime = collectedData['pi_schedule'] || 'your preferred time';
+                const phone = collectedData['pi_contact_info']?.split('\n')[1] || 'the number you provided';
+                
+                addMessage('bot', `I've saved all your information! Our scheduling team will contact you at ${phone} within 2 hours to confirm your consultation.\n\nPreferred time: ${preferredTime}\n\nFor immediate assistance, call (555) 123-4567`);
+            }
+        }
     </script>
+</body>
+</html>
