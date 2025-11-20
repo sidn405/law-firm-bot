@@ -30,9 +30,10 @@
       "steps": [
         {
           "id": "pi_intro",
-          "prompt": "I’m sorry you’re going through this. I’ll ask a few quick questions so our team can review your situation.\n\nWhen did the incident occur?",
+          "prompt": "I’m sorry you’re going through this. I’ll ask a few quick questions so our team can review your situation.\n\nWhat date did the incident occur?",
           "input_type": "choice",
           "options": [
+            { "value": "11/12/2025", "label": "November 12, 2025", "next_step": "pi_injury_type" },
             { "value": "today", "label": "Today", "next_step": "pi_injury_type" },
             { "value": "30_days", "label": "Within the last 30 days", "next_step": "pi_injury_type" },
             { "value": "6_months", "label": "1–6 months ago", "next_step": "pi_injury_type" },
