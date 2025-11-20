@@ -1,0 +1,387 @@
+<script>
+        // ============================================
+        // LAW FIRM CHATBOT WIDGET - SCRIPTED INTAKE
+        // ============================================
+
+        // --- CONFIG ---
+        const API_URL = 'http://localhost:8000';  // backend (only for general chat / logging)
+
+        let sessionId = null;
+        let clientId = null;
+        let currentStep = 'start';
+        let intakeActive = true;     // we are in scripted intake flow
+        let collectedData = {};
+
+        // --- SCRIPTED FLOW (copied from chatbot.html) ---
+        const flowSteps = {
+            start: {
+                prompt:
+"Hello and welcome to our law firm. I can help you with a free case evaluation, scheduling, or questions about our services.\n\nWhat type of legal issue do you need help with?",
+                input_type: "choice",
+                options: [
+                    { value: "personal_injury", label: "Personal Injury", next_step: "pi_intro" },
+                    { value: "family_law", label: "Family Law", next_step: "family_intro" },
+                    { value: "immigration", label: "Immigration", next_step: "imm_intro" },
+                    { value: "criminal_defense", label: "Criminal Defense", next_step: "crim_intro" },
+                    { value: "workers_comp", label: "Workers' Compensation", next_step: "wc_intro" },
+                    { value: "business_law", label: "Business / Contract", next_step: "biz_intro" },
+                    { value: "estate_planning", label: "Estate Planning / Wills", next_step: "estate_intro" },
+                    { value: "other", label: "Something else", next_step: "other_intro" }
+                ]
+            },
+            pi_intro: {
+                prompt:
+"I'm sorry you're going through this. I'll ask a few quick questions so our team can review your situation.\n\nWhen did the incident occur?",
+                input_type: "text",
+                next_step: "pi_injury_type"
+            },
+            pi_injury_type: {
+                prompt: "How were you injured?",
+                input_type: "choice",
+                options: [
+                    { value: "car_accident", label: "Car accident", next_step: "pi_medical_treatment" },
+                    { value: "slip_fall", label: "Slip and fall", next_step: "pi_medical_treatment" },
+                    { value: "work_injury", label: "Workplace injury", next_step: "pi_medical_treatment" },
+                    { value: "med_mal", label: "Medical malpractice", next_step: "pi_medical_treatment" },
+                    { value: "other", label: "Other (explain)", next_step: "pi_injury_details" }
+                ]
+            },
+            pi_injury_details: {
+                prompt: "Please briefly describe what happened.",
+                input_type: "text",
+                next_step: "pi_medical_treatment"
+            },
+            pi_medical_treatment: {
+                prompt: "Have you received any medical treatment for this injury?",
+                input_type: "choice",
+                options: [
+                    { value: "yes", label: "Yes", next_step: "pi_has_attorney" },
+                    { value: "no", label: "No", next_step: "pi_has_attorney" }
+                ]
+            },
+            pi_has_attorney: {
+                prompt: "Do you already have an attorney for this matter?",
+                input_type: "choice",
+                options: [
+                    { value: "no", label: "No", next_step: "pi_contact_info" },
+                    { value: "yes", label: "Yes", next_step: "pi_existing_attorney" }
+                ]
+            },
+            pi_existing_attorney: {
+                prompt:
+"Thanks for letting us know. Because you're already represented, we may not be able to take your case, but you're welcome to contact our office for general questions.",
+                input_type: "none",
+                next_step: "pi_end"
+            },
+            pi_contact_info: {
+                prompt:
+"Please share your contact details so our team can review your case and reach out.\n\n1) Full name\n2) Phone number\n3) Email address",
+                input_type: "text",
+                next_step: "pi_docs"
+            },
+            pi_docs: {
+                prompt:
+"If you have photos, police reports, or medical documents, you can upload them here (optional).\n\nType 'skip' if you don't have any documents right now, or 'done' when you've uploaded them.",
+                input_type: "text",
+                next_step: "pi_consult"
+            },
+            pi_consult: {
+                prompt: "Would you like to schedule a free consultation now?",
+                input_type: "choice",
+                options: [
+                    { value: "yes", label: "Yes, schedule a consultation", next_step: "pi_schedule" },
+                    { value: "no", label: "No, just have someone call me", next_step: "pi_followup" }
+                ]
+            },
+            pi_schedule: {
+                prompt:
+"Great. Please provide your preferred date and time (e.g., 'November 25 at 2pm'), and we'll confirm by SMS/email.",
+                input_type: "text",
+                next_step: "pi_end"
+            },
+            pi_followup: {
+                prompt:
+"Thanks. Our team will review your information and contact you as soon as possible.",
+                input_type: "none",
+                next_step: "pi_end"
+            },
+            pi_end: {
+                prompt:
+"Your intake has been submitted. You'll receive a confirmation shortly. If this is urgent, please call our office at (555) 123-4567.",
+                input_type: "none"
+            },
+            other_intro: {
+                prompt: "Please briefly describe the legal issue you're dealing with.",
+                input_type: "text",
+                next_step: "other_contact_info"
+            },
+            other_contact_info: {
+                prompt:
+"Thank you. Please provide your name, phone number, and email so our team can follow up.",
+                input_type: "text",
+                next_step: "other_end"
+            },
+            other_end: {
+                prompt:
+"Thanks. Your message has been sent to our intake team. Expect a response within one business day.",
+                input_type: "none"
+            },
+            family_intro: {
+                prompt:
+"I understand family matters can be difficult. Our team specializes in divorce, custody, and family law.\n\nPlease provide your contact information so we can schedule a consultation.",
+                input_type: "text",
+                next_step: "other_end"
+            },
+            imm_intro: {
+                prompt:
+"We can help with immigration matters including visas, green cards, and citizenship.\n\nPlease provide your contact information and a brief description of your situation.",
+                input_type: "text",
+                next_step: "other_end"
+            },
+            crim_intro: {
+                prompt:
+"We understand this is a serious matter. Our criminal defense team is here to help.\n\nPlease provide your contact information and a brief description of your situation.",
+                input_type: "text",
+                next_step: "other_end"
+            },
+            wc_intro: {
+                prompt:
+"We can help you get the workers' compensation benefits you deserve.\n\nPlease provide your contact information and details about your workplace injury.",
+                input_type: "text",
+                next_step: "other_end"
+            },
+            biz_intro: {
+                prompt:
+"Our business law team can help with contracts, disputes, and business formation.\n\nPlease provide your contact information and a brief description of your needs.",
+                input_type: "text",
+                next_step: "other_end"
+            },
+            estate_intro: {
+                prompt:
+"We can help you plan for the future with wills, trusts, and estate planning.\n\nPlease provide your contact information to schedule a consultation.",
+                input_type: "text",
+                next_step: "other_end"
+            }
+        };
+
+        // --- INITIALIZE ---
+        document.addEventListener('DOMContentLoaded', () => {
+            sessionId = localStorage.getItem('lawfirm_session_id') || generateSessionId();
+            localStorage.setItem('lawfirm_session_id', sessionId);
+
+            // Load previous messages if you want; for a fresh intake we just show greeting:
+            document.getElementById('chat-messages').innerHTML = '';
+            addScriptStep('start');
+        });
+
+        function generateSessionId() {
+            return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // --- UI HELPERS ---
+
+        function toggleChat() {
+            const chatWindow = document.getElementById('lawfirm-chat-window');
+            chatWindow.classList.toggle('open');
+            if (chatWindow.classList.contains('open')) {
+                document.getElementById('chat-input').focus();
+                document.getElementById('chat-notification').style.display = 'none';
+            }
+        }
+
+        function addMessage(sender, text) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = sender === 'user' ? '👤' : '🤖';
+
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            content.textContent = text;
+
+            const time = document.createElement('div');
+            time.className = 'message-time';
+            time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const body = document.createElement('div');
+            body.appendChild(content);
+            body.appendChild(time);
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(body);
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function addScriptStep(stepId) {
+            const step = flowSteps[stepId];
+            if (!step) return;
+            currentStep = stepId;
+
+            // bot message
+            addMessage('bot', step.prompt);
+
+            // add buttons (if any)
+            if (step.options && step.options.length) {
+                const messagesContainer = document.getElementById('chat-messages');
+                const btnGroup = document.createElement('div');
+                btnGroup.className = 'script-button-group';
+
+                step.options.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = 'script-button';
+                    btn.textContent = opt.label;
+                    btn.onclick = () => handleOptionClick(stepId, opt);
+                    btnGroup.appendChild(btn);
+                });
+
+                messagesContainer.appendChild(btnGroup);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        }
+
+        function handleOptionClick(stepId, option) {
+            // Remove existing button groups (so they don't stack)
+            document.querySelectorAll('.script-button-group').forEach(el => el.remove());
+
+            addMessage('user', option.label);
+            collectedData[stepId] = option.value;
+
+            const nextId = option.next_step || flowSteps[stepId].next_step;
+            if (nextId) {
+                addScriptStep(nextId);
+            } else {
+                intakeActive = false;
+                addMessage('bot', "Thank you. Your information has been received.");
+            }
+        }
+
+        // --- QUICK ACTIONS (top chips) ---
+        function quickAction(action) {
+            // Map quick actions to the script
+            if (action === 'personal_injury') {
+                // Equivalent to clicking "Personal Injury" on the start step
+                const opt = flowSteps.start.options.find(o => o.value === 'personal_injury');
+                if (opt) handleOptionClick('start', opt);
+                return;
+            }
+            if (action === 'family_law') {
+                const opt = flowSteps.start.options.find(o => o.value === 'family_law');
+                if (opt) handleOptionClick('start', opt);
+                return;
+            }
+            if (action === 'immigration') {
+                const opt = flowSteps.start.options.find(o => o.value === 'immigration');
+                if (opt) handleOptionClick('start', opt);
+                return;
+            }
+            if (action === 'schedule') {
+                // generic scheduling question -> treat as asking about consult
+                addMessage('user', "I'd like to schedule a consultation.");
+                // You can either route into a specific script here or send to backend:
+                sendToBackend("I'd like to schedule a consultation.");
+            }
+        }
+
+        // --- INPUT / GENERAL CHAT ---
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            input.value = '';
+            addMessage('user', message);
+
+            // If we're in a scripted TEXT step, use it as the answer and advance
+            if (intakeActive && flowSteps[currentStep] && flowSteps[currentStep].input_type === 'text') {
+                collectedData[currentStep] = message;
+                const nextId = flowSteps[currentStep].next_step;
+                if (nextId) {
+                    addScriptStep(nextId);
+                } else {
+                    intakeActive = false;
+                    addMessage('bot', "Thank you. Your information has been received.");
+                }
+                // You can still send to backend for logging if desired:
+                // sendToBackend(message);
+                return;
+            }
+
+            // Otherwise: GENERAL CHAT → backend supplies answer
+            showTyping(true);
+            try {
+                const data = await sendToBackend(message);
+                showTyping(false);
+                if (data && data.response) {
+                    addMessage('bot', data.response);
+                } else {
+                    addMessage('bot',
+                        "I'm having trouble connecting right now. Please call our office at (555) 123-4567.");
+                }
+            } catch (err) {
+                console.error(err);
+                showTyping(false);
+                addMessage('bot',
+                    "I'm having trouble connecting right now. Please call our office at (555) 123-4567.");
+            }
+        }
+
+        async function sendToBackend(message) {
+            const response = await fetch(`${API_URL}/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: message,
+                    session_id: sessionId,
+                    client_id: clientId
+                })
+            });
+            return response.json();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') sendMessage();
+        }
+
+        function showTyping(show) {
+            const indicator = document.getElementById('typing-indicator');
+            if (show) indicator.classList.add('active');
+            else indicator.classList.remove('active');
+        }
+
+        // File upload functions are unchanged; they just log documents to backend
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            addMessage('user', `📎 Uploading: ${file.name}`);
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('session_id', sessionId);
+
+                const response = await fetch(`${API_URL}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    addMessage('bot', `✅ File uploaded successfully: ${file.name}`);
+                } else {
+                    addMessage('bot', '❌ File upload failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                addMessage('bot', '❌ File upload failed. Please try again.');
+            }
+
+            event.target.value = '';
+        }
+    </script>

@@ -1,5 +1,5 @@
 import React from 'react';
-import LawFirmChatbot from './LawFirmChatbot';
+import LawFirmChatbot from '../../LawFirmChatbot';
 
 function App() {
   return <LawFirmChatbot />;
