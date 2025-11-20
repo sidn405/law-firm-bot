@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr
+from fastapi.staticfiles import StaticFiles
 from typing import Optional, List, Dict, Any
 import re
 import asyncio
@@ -64,6 +65,8 @@ openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 stripe.api_key = STRIPE_SECRET_KEY
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_SID else None
 
+app = FastAPI()
+
 # File storage
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -77,6 +80,7 @@ with open(FLOW_PATH, "r", encoding="utf-8") as f:
 
 flow_manager = FlowStateManager(LAW_FIRM_FLOW)
 
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
 # ============================================
 # DATABASE SETUP
