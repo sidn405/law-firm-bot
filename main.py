@@ -65,7 +65,7 @@ openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 stripe.api_key = STRIPE_SECRET_KEY
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_SID else None
 
-app = FastAPI()
+
 
 # File storage
 UPLOAD_DIR = Path("uploads")
@@ -80,7 +80,6 @@ with open(FLOW_PATH, "r", encoding="utf-8") as f:
 
 flow_manager = FlowStateManager(LAW_FIRM_FLOW)
 
-app.mount("/", StaticFiles(directory=".", html=True), name="static")
 
 # ============================================
 # DATABASE SETUP
@@ -178,6 +177,17 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+app.mount("/", StaticFiles(directory=".", html=True), name="static")
+
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app.mount(
+    "/static",
+    StaticFiles(directory=BASE_DIR, html=True),
+    name="static",
 )
 
 # ============================================
