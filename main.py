@@ -64,8 +64,6 @@ SALESFORCE_USERNAME = os.getenv("SALESFORCE_USERNAME", "")
 SALESFORCE_PASSWORD = os.getenv("SALESFORCE_PASSWORD", "")
 SALESFORCE_SECURITY_TOKEN = os.getenv("SALESFORCE_SECURITY_TOKEN", "")
 SALESFORCE_DOMAIN = os.getenv("SALESFORCE_DOMAIN", "login")  # 'login' for production, 'test' for sandbox
-SALESFORCE_CLIENT_ID = os.getenv("SALESFORCE_CLIENT_ID")
-SALESFORCE_CLIENT_SECRET = os.getenv("SALESFORCE_CLIENT_SECRET")
 
 # Initialize services
 openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
@@ -1387,56 +1385,56 @@ async def schedule_appointment(appointment: AppointmentRequest, db: Session = De
         print(f"✅ Found existing client: {client.id}")
         
         # Prepare data for Salesforce
-    client_data = {
-        'name': appointment.client_name,
-        'email': appointment.client_email,
-        'phone': appointment.client_phone,
-        'case_type': appointment.case_type or 'General Consultation',
-        'client_id': client.id
-    }
-    
-    # Parse intake data from notes
-    intake_data = {
-        'channel': 'web',
-        'preferred_date': appointment.preferred_date,
-        'case_type': appointment.case_type,
-        'notes': appointment.notes,
-        'appointment_id': new_appointment.id,
-        'scheduled_date': new_appointment.scheduled_date.isoformat() if new_appointment.scheduled_date else None
-    }
-    
-    # Check if contact already exists in Salesforce
-    existing = salesforce_service.search_by_email(appointment.client_email)
-    
-    if existing:
-        print(f"📊 Found existing Salesforce {existing['type']}: {existing['id']}")
+        client_data = {
+            'name': appointment.client_name,
+            'email': appointment.client_email,
+            'phone': appointment.client_phone,
+            'case_type': appointment.case_type or 'General Consultation',
+            'client_id': client.id
+        }
         
-        # If it's a Lead, you might want to update it or convert it
-        if existing['type'] == 'Lead':
-            salesforce_service.update_lead_status(
-                existing['id'], 
-                'Contacted',
-                f"Appointment scheduled for {appointment.preferred_date}"
-            )
+        # Parse intake data from notes
+        intake_data = {
+            'channel': 'web',
+            'preferred_date': appointment.preferred_date,
+            'case_type': appointment.case_type,
+            'notes': appointment.notes,
+            'appointment_id': new_appointment.id,
+            'scheduled_date': new_appointment.scheduled_date.isoformat() if new_appointment.scheduled_date else None
+        }
         
-        # If it's a Contact, create a Case
-        elif existing['type'] == 'Contact':
-            case_id = salesforce_service.create_case(
-                client_data,
-                intake_data,
-                contact_id=existing['id']
-            )
-            print(f"📊 Created Salesforce Case: {case_id}")
-    else:
-        # Create new Lead in Salesforce
-        print("📊 Creating new Salesforce Lead...")
-        lead_id = salesforce_service.create_lead(client_data, intake_data)
+        # Check if contact already exists in Salesforce
+        existing = salesforce_service.search_by_email(appointment.client_email)
         
-        if lead_id:
-            print(f"✅ Salesforce Lead created: {lead_id}")
-            # Optionally store the Salesforce ID in your database
-            # new_appointment.salesforce_lead_id = lead_id
-            # db.commit()
+        if existing:
+            print(f"📊 Found existing Salesforce {existing['type']}: {existing['id']}")
+            
+            # If it's a Lead, you might want to update it or convert it
+            if existing['type'] == 'Lead':
+                salesforce_service.update_lead_status(
+                    existing['id'], 
+                    'Contacted',
+                    f"Appointment scheduled for {appointment.preferred_date}"
+                )
+            
+            # If it's a Contact, create a Case
+            elif existing['type'] == 'Contact':
+                case_id = salesforce_service.create_case(
+                    client_data,
+                    intake_data,
+                    contact_id=existing['id']
+                )
+                print(f"📊 Created Salesforce Case: {case_id}")
+        else:
+            # Create new Lead in Salesforce
+            print("📊 Creating new Salesforce Lead...")
+            lead_id = salesforce_service.create_lead(client_data, intake_data)
+            
+            if lead_id:
+                print(f"✅ Salesforce Lead created: {lead_id}")
+                # Optionally store the Salesforce ID in your database
+                # new_appointment.salesforce_lead_id = lead_id
+                # db.commit()
     
     # Try to create Calendly invitation
     calendar_result = None
@@ -2436,203 +2434,162 @@ async def test_calendly_config():
 
 @app.get("/api/salesforce/quick-test")
 async def quick_salesforce_test():
-    """Quick Salesforce connection test using OAuth (no SOAP login)"""
-
-    print("\n" + "=" * 50)
+    """Quick Salesforce connection test with detailed diagnostics"""
+    
+    print("\n" + "="*50)
     print("SALESFORCE CONNECTION TEST")
-    print("=" * 50)
-
-    # Config summary
+    print("="*50)
+    
+    # Check environment variables
     config = {
         "SALESFORCE_USERNAME": "SET ✅" if SALESFORCE_USERNAME else "NOT SET ❌",
         "SALESFORCE_PASSWORD": "SET ✅" if SALESFORCE_PASSWORD else "NOT SET ❌",
         "SALESFORCE_SECURITY_TOKEN": "SET ✅" if SALESFORCE_SECURITY_TOKEN else "NOT SET ❌",
-        "SALESFORCE_DOMAIN": SALESFORCE_DOMAIN or "NOT SET ❌",
-        "SALESFORCE_CLIENT_ID": "SET ✅" if SALESFORCE_CLIENT_ID else "NOT SET ❌",
-        "SALESFORCE_CLIENT_SECRET": "SET ✅" if SALESFORCE_CLIENT_SECRET else "NOT SET ❌",
+        "SALESFORCE_DOMAIN": SALESFORCE_DOMAIN or "NOT SET ❌"
     }
-
+    
     print("\n📋 Configuration:")
     for key, value in config.items():
         print(f"   {key}: {value}")
-
-    # Check required creds
-    if not all(
-        [
-            SALESFORCE_USERNAME,
-            SALESFORCE_PASSWORD,
-            SALESFORCE_SECURITY_TOKEN,
-            SALESFORCE_CLIENT_ID,
-            SALESFORCE_CLIENT_SECRET,
-        ]
-    ):
+    
+    # Check if all credentials are set
+    if not all([SALESFORCE_USERNAME, SALESFORCE_PASSWORD, SALESFORCE_SECURITY_TOKEN]):
         return {
             "success": False,
-            "error": "Missing Salesforce OAuth credentials",
+            "error": "Missing Salesforce credentials",
             "config": config,
-            "instructions": [
-                "Set SALESFORCE_USERNAME, SALESFORCE_PASSWORD, SALESFORCE_SECURITY_TOKEN,",
-                "SALESFORCE_CLIENT_ID, and SALESFORCE_CLIENT_SECRET in your environment.",
-            ],
+            "instructions": "Set SALESFORCE_USERNAME, SALESFORCE_PASSWORD, and SALESFORCE_SECURITY_TOKEN in Railway environment variables"
         }
-
+    
+    # Test connection
     try:
-        print("\n🔗 Requesting OAuth access token...")
-
-        token_url = f"https://{SALESFORCE_DOMAIN}.salesforce.com/services/oauth2/token"
-
-        data = {
-            "grant_type": "password",
-            "client_id": SALESFORCE_CLIENT_ID,
-            "client_secret": SALESFORCE_CLIENT_SECRET,
-            "username": SALESFORCE_USERNAME,
-            "password": SALESFORCE_PASSWORD + SALESFORCE_SECURITY_TOKEN,
-        }
-
-        token_resp = requests.post(token_url, data=data, timeout=20)
-        if token_resp.status_code != 200:
-            raise Exception(
-                f"OAuth token request failed ({token_resp.status_code}): {token_resp.text}"
-            )
-
-        token_payload = token_resp.json()
-        access_token = token_payload["access_token"]
-        instance_url = token_payload["instance_url"]
-
-        print("✅ OAuth login successful!")
-        print(f"   Instance URL: {instance_url}")
-
-        # Helper for REST SOQL queries
-        headers = {"Authorization": f"Bearer {access_token}"}
-        api_base = f"{instance_url}/services/data/v59.0"
-        query_endpoint = f"{api_base}/query"
-
-        def run_query(soql):
-            r = requests.get(query_endpoint, headers=headers, params={"q": soql}, timeout=20)
-            r.raise_for_status()
-            return r.json()
-
+        print("\n🔗 Attempting connection...")
+        
+        from simple_salesforce import Salesforce
+        
+        sf = Salesforce(
+            username=SALESFORCE_USERNAME,
+            password=SALESFORCE_PASSWORD,
+            security_token=SALESFORCE_SECURITY_TOKEN,
+            domain=SALESFORCE_DOMAIN
+        )
+        
+        print("✅ Connected successfully!")
+        
+        # Test basic queries
         print("\n📊 Running test queries...")
+        
         results = {}
-
-        # Accounts
+        
+        # Query Accounts
         try:
-            accounts = run_query("SELECT Id, Name FROM Account LIMIT 5")
-            results["accounts"] = {
-                "count": accounts["totalSize"],
-                "sample": accounts["records"][0]["Name"] if accounts["records"] else None,
+            accounts = sf.query("SELECT Id, Name FROM Account LIMIT 5")
+            results['accounts'] = {
+                'count': accounts['totalSize'],
+                'sample': accounts['records'][0]['Name'] if accounts['records'] else None
             }
             print(f"   ✅ Accounts: {accounts['totalSize']} found")
         except Exception as e:
-            results["accounts"] = {"error": str(e)}
+            results['accounts'] = {'error': str(e)}
             print(f"   ⚠️ Accounts query: {e}")
-
-        # Leads
+        
+        # Query Leads
         try:
-            leads = run_query(
-                "SELECT Id, FirstName, LastName, Email, Status FROM Lead LIMIT 5"
-            )
-            sample_lead = None
-            if leads["records"]:
-                rec = leads["records"][0]
-                sample_lead = f"{rec.get('FirstName', '')} {rec.get('LastName', '')}".strip()
-            results["leads"] = {
-                "count": leads["totalSize"],
-                "sample": sample_lead,
+            leads = sf.query("SELECT Id, FirstName, LastName, Email, Status FROM Lead LIMIT 5")
+            results['leads'] = {
+                'count': leads['totalSize'],
+                'sample': f"{leads['records'][0].get('FirstName', '')} {leads['records'][0].get('LastName', '')}" if leads['records'] else None
             }
             print(f"   ✅ Leads: {leads['totalSize']} found")
         except Exception as e:
-            results["leads"] = {"error": str(e)}
+            results['leads'] = {'error': str(e)}
             print(f"   ⚠️ Leads query: {e}")
-
-        # Contacts
+        
+        # Query Contacts
         try:
-            contacts = run_query(
-                "SELECT Id, FirstName, LastName, Email FROM Contact LIMIT 5"
-            )
-            sample_contact = None
-            if contacts["records"]:
-                rec = contacts["records"][0]
-                sample_contact = f"{rec.get('FirstName', '')} {rec.get('LastName', '')}".strip()
-            results["contacts"] = {
-                "count": contacts["totalSize"],
-                "sample": sample_contact,
+            contacts = sf.query("SELECT Id, FirstName, LastName, Email FROM Contact LIMIT 5")
+            results['contacts'] = {
+                'count': contacts['totalSize'],
+                'sample': f"{contacts['records'][0].get('FirstName', '')} {contacts['records'][0].get('LastName', '')}" if contacts['records'] else None
             }
             print(f"   ✅ Contacts: {contacts['totalSize']} found")
         except Exception as e:
-            results["contacts"] = {"error": str(e)}
+            results['contacts'] = {'error': str(e)}
             print(f"   ⚠️ Contacts query: {e}")
-
-        # Cases
+        
+        # Query Cases
         try:
-            cases = run_query(
-                "SELECT Id, CaseNumber, Subject, Status FROM Case LIMIT 5"
-            )
-            sample_case = None
-            if cases["records"]:
-                sample_case = cases["records"][0].get("Subject", "")
-            results["cases"] = {
-                "count": cases["totalSize"],
-                "sample": sample_case,
+            cases = sf.query("SELECT Id, CaseNumber, Subject, Status FROM Case LIMIT 5")
+            results['cases'] = {
+                'count': cases['totalSize'],
+                'sample': cases['records'][0].get('Subject', '') if cases['records'] else None
             }
             print(f"   ✅ Cases: {cases['totalSize']} found")
         except Exception as e:
-            results["cases"] = {"error": str(e)}
+            results['cases'] = {'error': str(e)}
             print(f"   ⚠️ Cases query: {e}")
-
+        
         print("\n✅ ALL TESTS PASSED!")
-        print("=" * 50 + "\n")
-
+        print("="*50 + "\n")
+        
         return {
             "success": True,
-            "message": "🎉 Salesforce is connected via OAuth and REST!",
+            "message": "🎉 Salesforce is connected and working perfectly!",
             "username": SALESFORCE_USERNAME,
             "domain": SALESFORCE_DOMAIN,
-            "instance_url": instance_url,
             "data": results,
             "next_steps": [
-                "✅ Connection verified via OAuth",
-                "✅ Can query Salesforce objects via REST",
+                "✅ Connection verified",
+                "✅ Can query Salesforce objects",
                 "📝 Ready to create Leads from chatbot intake",
-                "🚀 Integration is live!",
-            ],
+                "🚀 Integration is live!"
+            ]
         }
-
+        
     except Exception as e:
         error_message = str(e)
         print(f"\n❌ Connection failed: {error_message}")
-        print("=" * 50 + "\n")
-
+        print("="*50 + "\n")
+        
+        # Provide helpful error messages
         troubleshooting = []
-
-        if "invalid_grant" in error_message.lower():
+        
+        if "INVALID_LOGIN" in error_message or "Invalid username" in error_message:
             troubleshooting = [
-                "❌ invalid_grant from Salesforce OAuth",
-                "1. Double-check SALESFORCE_USERNAME and SALESFORCE_PASSWORD.",
-                "2. Ensure SALESFORCE_SECURITY_TOKEN is correct (reset it if needed).",
-                "3. Verify the Connected App's Consumer Key/Secret (CLIENT_ID/CLIENT_SECRET).",
-                "4. Confirm the user is allowed to use this Connected App.",
+                "❌ Invalid username, password, or security token",
+                "1. Double-check your username (must be exact Salesforce email)",
+                "2. Verify your password is correct",
+                "3. Make sure you're using the SECURITY TOKEN (from email), not your password",
+                "4. Security token changes when you reset your password",
+                "5. Try resetting your security token: Settings → Reset My Security Token"
             ]
-        elif "invalid_client" in error_message.lower():
+        elif "NOT_AUTHORIZED" in error_message:
             troubleshooting = [
-                "❌ invalid_client: Connected App credentials are wrong.",
-                "1. Make sure SALESFORCE_CLIENT_ID is the Consumer Key.",
-                "2. Make sure SALESFORCE_CLIENT_SECRET is the Consumer Secret.",
+                "❌ User not authorized for API access",
+                "1. Go to Salesforce Setup → Users → Your User → Edit",
+                "2. Make sure 'API Enabled' checkbox is checked",
+                "3. Check if your profile has API access permissions"
+            ]
+        elif "INVALID_SESSION_ID" in error_message:
+            troubleshooting = [
+                "❌ Session expired or invalid",
+                "1. Reset your security token and update the environment variable",
+                "2. Restart your Railway app after updating credentials"
             ]
         else:
             troubleshooting = [
                 "❌ Connection error",
-                "1. Verify all Salesforce env vars are set correctly.",
-                "2. Check if SALESFORCE_DOMAIN is 'login' (prod) or 'test' (sandbox).",
-                "3. Check your Salesforce user's API access and profile permissions.",
-                "4. Check backend logs for full stack trace.",
+                "1. Verify all credentials are correct",
+                "2. Check if using correct domain (login vs test)",
+                "3. Ensure your Salesforce account is active",
+                "4. Check Railway logs for more details"
             ]
-
+        
         return {
             "success": False,
             "error": error_message,
             "config": config,
-            "troubleshooting": troubleshooting,
+            "troubleshooting": troubleshooting
         }
         
 
