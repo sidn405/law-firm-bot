@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr
 from fastapi.staticfiles import StaticFiles
+from simple_salesforce import Salesforce, SalesforceLogin
 from typing import Optional, List, Dict, Any
 import re
 import asyncio
@@ -59,6 +60,10 @@ CALENDLY_EVENT_TYPE = os.getenv("CALENDLY_EVENT_TYPE", "")
 GOOGLE_CALENDAR_CREDENTIALS = os.getenv("GOOGLE_CALENDAR_CREDENTIALS", "")
 CALENDAR_PROVIDER = os.getenv("CALENDAR_PROVIDER", "calendly")
 BASE_URL = os.getenv("BASE_URL", "https://your-domain.railway.app")
+SALESFORCE_USERNAME = os.getenv("SALESFORCE_USERNAME", "")
+SALESFORCE_PASSWORD = os.getenv("SALESFORCE_PASSWORD", "")
+SALESFORCE_SECURITY_TOKEN = os.getenv("SALESFORCE_SECURITY_TOKEN", "")
+SALESFORCE_DOMAIN = os.getenv("SALESFORCE_DOMAIN", "login")  # 'login' for production, 'test' for sandbox
 
 # Initialize services
 openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
@@ -1353,7 +1358,7 @@ Best regards,
 
 @app.post("/api/appointments/schedule")
 async def schedule_appointment(appointment: AppointmentRequest, db: Session = Depends(get_db)):
-    """Schedule a consultation appointment with automatic Calendly integration"""
+    """Schedule appointment and sync to Salesforce"""
     
     print(f"📅 Scheduling appointment for: {appointment.client_name}")
     
@@ -1378,6 +1383,58 @@ async def schedule_appointment(appointment: AppointmentRequest, db: Session = De
         print(f"✅ Created new client: {client.id}")
     else:
         print(f"✅ Found existing client: {client.id}")
+        
+        # Prepare data for Salesforce
+    client_data = {
+        'name': appointment.client_name,
+        'email': appointment.client_email,
+        'phone': appointment.client_phone,
+        'case_type': appointment.case_type or 'General Consultation',
+        'client_id': client.id
+    }
+    
+    # Parse intake data from notes
+    intake_data = {
+        'channel': 'web',
+        'preferred_date': appointment.preferred_date,
+        'case_type': appointment.case_type,
+        'notes': appointment.notes,
+        'appointment_id': new_appointment.id,
+        'scheduled_date': new_appointment.scheduled_date.isoformat() if new_appointment.scheduled_date else None
+    }
+    
+    # Check if contact already exists in Salesforce
+    existing = salesforce_service.search_by_email(appointment.client_email)
+    
+    if existing:
+        print(f"📊 Found existing Salesforce {existing['type']}: {existing['id']}")
+        
+        # If it's a Lead, you might want to update it or convert it
+        if existing['type'] == 'Lead':
+            salesforce_service.update_lead_status(
+                existing['id'], 
+                'Contacted',
+                f"Appointment scheduled for {appointment.preferred_date}"
+            )
+        
+        # If it's a Contact, create a Case
+        elif existing['type'] == 'Contact':
+            case_id = salesforce_service.create_case(
+                client_data,
+                intake_data,
+                contact_id=existing['id']
+            )
+            print(f"📊 Created Salesforce Case: {case_id}")
+    else:
+        # Create new Lead in Salesforce
+        print("📊 Creating new Salesforce Lead...")
+        lead_id = salesforce_service.create_lead(client_data, intake_data)
+        
+        if lead_id:
+            print(f"✅ Salesforce Lead created: {lead_id}")
+            # Optionally store the Salesforce ID in your database
+            # new_appointment.salesforce_lead_id = lead_id
+            # db.commit()
     
     # Try to create Calendly invitation
     calendar_result = None
@@ -1686,7 +1743,460 @@ Consultation Preference:
     # Use the existing schedule_appointment function
     return await schedule_appointment(appointment_request, db)
 
+class SalesforceService:
+    """Manages Salesforce CRM integration for law firm intake"""
+    
+    def __init__(self):
+        self.sf = None
+        self._connect()
+    
+    def _connect(self):
+        """Establish connection to Salesforce"""
+        if not all([SALESFORCE_USERNAME, SALESFORCE_PASSWORD, SALESFORCE_SECURITY_TOKEN]):
+            print("⚠️ Salesforce credentials not configured")
+            return False
+        
+        try:
+            self.sf = Salesforce(
+                username=SALESFORCE_USERNAME,
+                password=SALESFORCE_PASSWORD,
+                security_token=SALESFORCE_SECURITY_TOKEN,
+                domain=SALESFORCE_DOMAIN
+            )
+            print("✅ Connected to Salesforce")
+            return True
+        except Exception as e:
+            print(f"❌ Salesforce connection error: {e}")
+            return False
+    
+    def create_lead(self, client_data: dict, intake_data: dict = None) -> Optional[str]:
+        """
+        Create a lead in Salesforce
+        
+        Args:
+            client_data: Dict with name, email, phone, case_type
+            intake_data: Optional dict with detailed intake information
+        
+        Returns:
+            Lead ID if successful, None otherwise
+        """
+        if not self.sf:
+            print("❌ Salesforce not connected")
+            return None
+        
+        try:
+            # Parse name
+            name_parts = client_data.get('name', 'Unknown').split(' ', 1)
+            first_name = name_parts[0]
+            last_name = name_parts[1] if len(name_parts) > 1 else 'Unknown'
+            
+            # Determine lead source based on channel
+            lead_source = intake_data.get('channel', 'Web') if intake_data else 'Web'
+            lead_source_map = {
+                'web': 'Website',
+                'phone': 'Phone Inquiry',
+                'sms': 'SMS'
+            }
+            lead_source = lead_source_map.get(lead_source.lower(), 'Website')
+            
+            # Map case type to industry or custom field
+            case_type = client_data.get('case_type', 'General Inquiry')
+            
+            # Build lead data
+            lead_data = {
+                'FirstName': first_name,
+                'LastName': last_name,
+                'Email': client_data.get('email'),
+                'Phone': client_data.get('phone'),
+                'Company': 'Individual',  # Required field for leads
+                'LeadSource': lead_source,
+                'Status': 'New',
+                'Description': self._build_lead_description(intake_data),
+                'Title': case_type
+            }
+            
+            # Add custom fields if they exist in your Salesforce setup
+            # Example: lead_data['Case_Type__c'] = case_type
+            
+            # Remove None values
+            lead_data = {k: v for k, v in lead_data.items() if v is not None}
+            
+            print(f"Creating Salesforce Lead: {first_name} {last_name}")
+            result = self.sf.Lead.create(lead_data)
+            
+            if result.get('success'):
+                lead_id = result.get('id')
+                print(f"✅ Salesforce Lead created: {lead_id}")
+                
+                # Add a note with full intake details if available
+                if intake_data:
+                    self._add_note(lead_id, 'Lead', intake_data)
+                
+                return lead_id
+            else:
+                print(f"❌ Salesforce Lead creation failed: {result}")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Error creating Salesforce Lead: {e}")
+            return None
+    
+    def create_contact(self, client_data: dict, account_id: str = None) -> Optional[str]:
+        """
+        Create a contact in Salesforce
+        
+        Args:
+            client_data: Dict with name, email, phone
+            account_id: Optional Salesforce Account ID to link to
+        
+        Returns:
+            Contact ID if successful, None otherwise
+        """
+        if not self.sf:
+            return None
+        
+        try:
+            name_parts = client_data.get('name', 'Unknown').split(' ', 1)
+            first_name = name_parts[0]
+            last_name = name_parts[1] if len(name_parts) > 1 else 'Unknown'
+            
+            contact_data = {
+                'FirstName': first_name,
+                'LastName': last_name,
+                'Email': client_data.get('email'),
+                'Phone': client_data.get('phone'),
+                'LeadSource': 'Website'
+            }
+            
+            if account_id:
+                contact_data['AccountId'] = account_id
+            
+            contact_data = {k: v for k, v in contact_data.items() if v is not None}
+            
+            print(f"Creating Salesforce Contact: {first_name} {last_name}")
+            result = self.sf.Contact.create(contact_data)
+            
+            if result.get('success'):
+                contact_id = result.get('id')
+                print(f"✅ Salesforce Contact created: {contact_id}")
+                return contact_id
+            else:
+                print(f"❌ Salesforce Contact creation failed: {result}")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Error creating Salesforce Contact: {e}")
+            return None
+    
+    def create_case(self, client_data: dict, intake_data: dict, contact_id: str = None) -> Optional[str]:
+        """
+        Create a case in Salesforce
+        
+        Args:
+            client_data: Dict with client information
+            intake_data: Dict with case details
+            contact_id: Optional Contact ID to link to
+        
+        Returns:
+            Case ID if successful, None otherwise
+        """
+        if not self.sf:
+            return None
+        
+        try:
+            case_type = client_data.get('case_type', 'General Inquiry')
+            
+            # Map case types to Salesforce case types
+            case_type_map = {
+                'personal injury': 'Personal Injury',
+                'car accident': 'Personal Injury - Auto',
+                'slip and fall': 'Personal Injury - Premises',
+                'medical malpractice': 'Personal Injury - Medical',
+                'workers comp': 'Workers Compensation',
+                'family law': 'Family Law',
+                'immigration': 'Immigration',
+                'criminal defense': 'Criminal Defense',
+                'business law': 'Business Law',
+                'estate planning': 'Estate Planning'
+            }
+            
+            sf_case_type = case_type_map.get(case_type.lower(), 'General Inquiry')
+            
+            case_data = {
+                'Subject': f"{sf_case_type} - {client_data.get('name', 'Unknown')}",
+                'Description': self._build_case_description(intake_data),
+                'Status': 'New',
+                'Origin': 'Web',
+                'Priority': 'Medium',
+                'Type': sf_case_type
+            }
+            
+            if contact_id:
+                case_data['ContactId'] = contact_id
+            
+            case_data = {k: v for k, v in case_data.items() if v is not None}
+            
+            print(f"Creating Salesforce Case: {sf_case_type}")
+            result = self.sf.Case.create(case_data)
+            
+            if result.get('success'):
+                case_id = result.get('id')
+                print(f"✅ Salesforce Case created: {case_id}")
+                
+                # Add detailed notes
+                self._add_note(case_id, 'Case', intake_data)
+                
+                return case_id
+            else:
+                print(f"❌ Salesforce Case creation failed: {result}")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Error creating Salesforce Case: {e}")
+            return None
+    
+    def update_lead_status(self, lead_id: str, status: str, notes: str = None) -> bool:
+        """Update lead status in Salesforce"""
+        if not self.sf:
+            return False
+        
+        try:
+            update_data = {'Status': status}
+            
+            result = self.sf.Lead.update(lead_id, update_data)
+            
+            if notes:
+                self._add_note(lead_id, 'Lead', {'notes': notes})
+            
+            print(f"✅ Lead {lead_id} status updated to: {status}")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Error updating lead: {e}")
+            return False
+    
+    def convert_lead_to_contact(self, lead_id: str) -> Optional[dict]:
+        """
+        Convert a Lead to Contact and optionally create Account and Opportunity
+        
+        Returns:
+            Dict with contactId, accountId, opportunityId if successful
+        """
+        if not self.sf:
+            return None
+        
+        try:
+            # Get lead details
+            lead = self.sf.Lead.get(lead_id)
+            
+            # Convert lead
+            result = self.sf.Lead.convert(lead_id, {
+                'convertedStatus': 'Qualified',
+                'doNotCreateOpportunity': False
+            })
+            
+            if result.get('success'):
+                conversion_data = {
+                    'contactId': result.get('contactId'),
+                    'accountId': result.get('accountId'),
+                    'opportunityId': result.get('opportunityId')
+                }
+                print(f"✅ Lead converted: {conversion_data}")
+                return conversion_data
+            else:
+                print(f"❌ Lead conversion failed: {result}")
+                return None
+                
+        except Exception as e:
+            print(f"❌ Error converting lead: {e}")
+            return None
+    
+    def search_by_email(self, email: str) -> Optional[dict]:
+        """Search for existing contact or lead by email"""
+        if not self.sf:
+            return None
+        
+        try:
+            # Search contacts first
+            contact_query = f"SELECT Id, FirstName, LastName, Email, Phone FROM Contact WHERE Email = '{email}' LIMIT 1"
+            contact_results = self.sf.query(contact_query)
+            
+            if contact_results['totalSize'] > 0:
+                return {
+                    'type': 'Contact',
+                    'id': contact_results['records'][0]['Id'],
+                    'data': contact_results['records'][0]
+                }
+            
+            # Search leads
+            lead_query = f"SELECT Id, FirstName, LastName, Email, Phone, Status FROM Lead WHERE Email = '{email}' AND IsConverted = false LIMIT 1"
+            lead_results = self.sf.query(lead_query)
+            
+            if lead_results['totalSize'] > 0:
+                return {
+                    'type': 'Lead',
+                    'id': lead_results['records'][0]['Id'],
+                    'data': lead_results['records'][0]
+                }
+            
+            return None
+            
+        except Exception as e:
+            print(f"❌ Error searching Salesforce: {e}")
+            return None
+    
+    def _build_lead_description(self, intake_data: dict) -> str:
+        """Build a formatted description from intake data"""
+        if not intake_data:
+            return "New lead from website chatbot"
+        
+        description = "Intake from AI Chatbot\n\n"
+        
+        for key, value in intake_data.items():
+            if value and key not in ['session_id', 'client_id']:
+                formatted_key = key.replace('_', ' ').title()
+                description += f"{formatted_key}: {value}\n"
+        
+        return description
+    
+    def _build_case_description(self, intake_data: dict) -> str:
+        """Build a formatted case description from intake data"""
+        if not intake_data:
+            return "New case from website chatbot"
+        
+        description = "Case Details from AI Chatbot Intake\n\n"
+        
+        # Prioritize important fields
+        priority_fields = [
+            'incident_date', 'injury_type', 'medical_treatment', 
+            'has_attorney', 'description', 'notes'
+        ]
+        
+        for field in priority_fields:
+            if field in intake_data and intake_data[field]:
+                formatted_key = field.replace('_', ' ').title()
+                description += f"{formatted_key}: {intake_data[field]}\n"
+        
+        # Add any other fields
+        for key, value in intake_data.items():
+            if value and key not in priority_fields and key not in ['session_id', 'client_id']:
+                formatted_key = key.replace('_', ' ').title()
+                description += f"{formatted_key}: {value}\n"
+        
+        return description
+    
+    def _add_note(self, parent_id: str, parent_type: str, data: dict):
+        """Add a note/attachment to a Lead, Contact, or Case"""
+        try:
+            note_body = json.dumps(data, indent=2)
+            
+            note_data = {
+                'ParentId': parent_id,
+                'Title': f'Chatbot Intake Data - {datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")}',
+                'Body': note_body
+            }
+            
+            self.sf.Note.create(note_data)
+            print(f"✅ Note added to {parent_type} {parent_id}")
+            
+        except Exception as e:
+            print(f"⚠️ Could not add note: {e}")
 
+# Initialize Salesforce service
+salesforce_service = SalesforceService()
+
+
+# ============================================
+# SALESFORCE INTEGRATION ENDPOINTS
+# ============================================
+
+@app.post("/api/salesforce/create-lead")
+async def create_salesforce_lead(
+    client_data: dict,
+    intake_data: dict = None,
+    db: Session = Depends(get_db)
+):
+    """Create a lead in Salesforce from intake data"""
+    
+    lead_id = salesforce_service.create_lead(client_data, intake_data)
+    
+    if lead_id:
+        # Update local database with Salesforce ID
+        if client_data.get('client_id'):
+            client = db.query(Client).filter(Client.id == client_data['client_id']).first()
+            if client:
+                # Store Salesforce ID in a custom field (you'll need to add this column)
+                # client.salesforce_id = lead_id
+                db.commit()
+        
+        return {
+            "success": True,
+            "lead_id": lead_id,
+            "message": "Lead created in Salesforce"
+        }
+    else:
+        return {
+            "success": False,
+            "error": "Failed to create Salesforce lead"
+        }
+
+
+@app.get("/api/salesforce/search/{email}")
+async def search_salesforce(email: str):
+    """Search for existing contact or lead in Salesforce"""
+    
+    result = salesforce_service.search_by_email(email)
+    
+    if result:
+        return {
+            "success": True,
+            "found": True,
+            "type": result['type'],
+            "id": result['id'],
+            "data": result['data']
+        }
+    else:
+        return {
+            "success": True,
+            "found": False
+        }
+
+
+@app.get("/api/salesforce/test")
+async def test_salesforce_connection():
+    """Test Salesforce connection and return diagnostic info"""
+    
+    if not salesforce_service.sf:
+        return {
+            "success": False,
+            "error": "Salesforce not connected",
+            "config": {
+                "SALESFORCE_USERNAME": "SET" if SALESFORCE_USERNAME else "NOT SET",
+                "SALESFORCE_PASSWORD": "SET" if SALESFORCE_PASSWORD else "NOT SET",
+                "SALESFORCE_SECURITY_TOKEN": "SET" if SALESFORCE_SECURITY_TOKEN else "NOT SET",
+                "SALESFORCE_DOMAIN": SALESFORCE_DOMAIN
+            }
+        }
+    
+    try:
+        # Test query
+        result = salesforce_service.sf.query("SELECT Id, Name FROM Account LIMIT 1")
+        
+        return {
+            "success": True,
+            "message": "Salesforce connection working!",
+            "test_query_results": result['totalSize'],
+            "config": {
+                "SALESFORCE_USERNAME": SALESFORCE_USERNAME,
+                "SALESFORCE_DOMAIN": SALESFORCE_DOMAIN
+            }
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 # ============================================
 # HEALTH CHECK & TEST ENDPOINTS

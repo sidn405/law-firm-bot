@@ -1,9 +1,9 @@
 """
 LAW FIRM AI CHATBOT - BACKEND API
-FastAPI backend with OpenAI, Stripe, PayPal, Twilio, Email, File Management
+FastAPI backend with OpenAI, Stripe, PayPal, Twilio, Resend Email, File Management
 """
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Request
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr
@@ -24,9 +24,6 @@ from pathlib import Path
 from openai import OpenAI
 import stripe
 import resend
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from twilio.rest import Client
 from twilio.twiml.voice_response import VoiceResponse, Gather
 import requests
@@ -40,7 +37,6 @@ from sqlalchemy.pool import StaticPool
 # Web scraping
 from bs4 import BeautifulSoup
 from flow_state_manager import FlowStateManager
-# from flow_integration import HybridChatbotService
 
 # ============================================
 # CONFIGURATION
@@ -54,23 +50,21 @@ PAYPAL_SECRET = os.getenv("PAYPAL_SECRET", "")
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
 TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER", "")
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", "")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-LAW_FIRM_EMAIL = os.getenv("LAW_FIRM_EMAIL", "info@lawfirm.com")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+LAW_FIRM_EMAIL = os.getenv("LAW_FIRM_EMAIL", "noreply@yourdomain.com")
+LAW_FIRM_NAME = os.getenv("LAW_FIRM_NAME", "Your Law Firm")
 LAW_FIRM_PHONE = os.getenv("LAW_FIRM_PHONE", "+1234567890")
 CALENDLY_API_KEY = os.getenv("CALENDLY_API_KEY", "")
 CALENDLY_EVENT_TYPE = os.getenv("CALENDLY_EVENT_TYPE", "")
 GOOGLE_CALENDAR_CREDENTIALS = os.getenv("GOOGLE_CALENDAR_CREDENTIALS", "")
 CALENDAR_PROVIDER = os.getenv("CALENDAR_PROVIDER", "calendly")
+BASE_URL = os.getenv("BASE_URL", "https://your-domain.railway.app")
 
 # Initialize services
 openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 stripe.api_key = STRIPE_SECRET_KEY
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN) if TWILIO_ACCOUNT_SID else None
-
-
+resend.api_key = RESEND_API_KEY
 
 # File storage
 UPLOAD_DIR = Path("uploads")
@@ -78,13 +72,12 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 
 # Load law firm flow
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FLOW_PATH = os.path.join(BASE_DIR, "law_firm", "law_firm.json")  # or just "law_firm.json" if it’s in root
+FLOW_PATH = os.path.join(BASE_DIR, "law_firm", "law_firm.json")
 
 with open(FLOW_PATH, "r", encoding="utf-8") as f:
     LAW_FIRM_FLOW = json.load(f)
 
 flow_manager = FlowStateManager(LAW_FIRM_FLOW)
-
 
 # ============================================
 # DATABASE SETUP
@@ -95,6 +88,7 @@ SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./law_firm.db")
 # Fix Railway PostgreSQL URL format
 if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("postgresql://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args={"check_same_thread": False} if "sqlite" in SQLALCHEMY_DATABASE_URL else {},
@@ -112,7 +106,7 @@ class Client(Base):
     phone = Column(String)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     case_type = Column(String)
-    status = Column(String, default="new")  # new, contacted, active, closed
+    status = Column(String, default="new")
     
 class Case(Base):
     __tablename__ = "cases"
@@ -121,7 +115,7 @@ class Case(Base):
     client_id = Column(String, nullable=False)
     case_type = Column(String, nullable=False)
     description = Column(Text)
-    status = Column(String, default="pending")  # pending, reviewing, accepted, rejected
+    status = Column(String, default="pending")
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     incident_date = Column(String)
     medical_treatment = Column(Boolean)
@@ -137,7 +131,7 @@ class Conversation(Base):
     messages = Column(JSON, default=list)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    channel = Column(String, default="web")  # web, phone, sms
+    channel = Column(String, default="web")
     
 class Payment(Base):
     __tablename__ = "payments"
@@ -145,11 +139,11 @@ class Payment(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     case_id = Column(String, nullable=False)
     amount = Column(Float, nullable=False)
-    status = Column(String, default="pending")  # pending, completed, failed, refunded
-    provider = Column(String)  # stripe, paypal
+    status = Column(String, default="pending")
+    provider = Column(String)
     transaction_id = Column(String)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    payment_metadata = Column(JSON)  # Renamed from 'metadata' to avoid SQLAlchemy conflict
+    payment_metadata = Column(JSON)
 
 class Document(Base):
     __tablename__ = "documents"
@@ -163,16 +157,6 @@ class Document(Base):
     uploaded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     file_size = Column(Integer)
 
-Base.metadata.create_all(bind=engine)
-
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-        
 class Appointment(Base):
     __tablename__ = "appointments"
     
@@ -191,6 +175,16 @@ class Appointment(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
+Base.metadata.create_all(bind=engine)
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 # ============================================
 # FASTAPI APP
 # ============================================
@@ -200,12 +194,11 @@ app = FastAPI(title="Law Firm AI Chatbot API", version="1.0.0")
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update with your domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # ============================================
 # PYDANTIC MODELS
@@ -230,7 +223,7 @@ class CaseCreate(BaseModel):
 class PaymentCreate(BaseModel):
     case_id: str
     amount: float
-    provider: str  # stripe or paypal
+    provider: str
     
 class EmailRequest(BaseModel):
     to: str
@@ -240,7 +233,7 @@ class EmailRequest(BaseModel):
     
 class AppointmentRequest(BaseModel):
     client_name: str
-    client_email: str  # Changed from EmailStr to str
+    client_email: str
     client_phone: Optional[str] = None
     preferred_date: Optional[str] = None
     preferred_time: Optional[str] = None
@@ -248,8 +241,36 @@ class AppointmentRequest(BaseModel):
     notes: Optional[str] = None
 
 # ============================================
-# WEB SCRAPING SERVICE
+# EMAIL SERVICE - RESEND
 # ============================================
+
+async def send_email(to: str, subject: str, body: str, html: str = None):
+    """Send email via Resend"""
+    if not RESEND_API_KEY:
+        print("Warning: RESEND_API_KEY not configured")
+        return False
+    
+    try:
+        params: resend.Emails.SendParams = {
+            "from": f"{LAW_FIRM_NAME} <{LAW_FIRM_EMAIL}>",
+            "to": [to],
+            "subject": subject,
+            "html": html or f"<p>{body.replace(chr(10), '<br>')}</p>",
+            "text": body,
+        }
+        
+        email = await asyncio.to_thread(resend.Emails.send, params)
+        print(f"Email sent successfully: {email}")
+        return True
+    except Exception as e:
+        print(f"Resend error: {e}")
+        return False
+
+# ============================================
+# CALENDAR SERVICE
+# ============================================
+
+# Replace the CalendarService class in main.py with this improved version
 
 class CalendarService:
     """Manages calendar integrations for appointment scheduling"""
@@ -257,7 +278,127 @@ class CalendarService:
     @staticmethod
     async def create_calendly_invitation(appointment_data: dict) -> Dict:
         """Create Calendly scheduling link"""
-        if not CALENDLY_API_KEY or not CALENDLY_EVENT_TYPE:
+        if not CALENDLY_API_KEY:
+            print("ERROR: CALENDLY_API_KEY not configured")
+            return {"success": False, "error": "Calendly not configured"}
+        
+        try:
+            headers = {
+                "Authorization": f"Bearer {CALENDLY_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            
+            # First, get the user info to get the proper URI
+            user_response = requests.get(
+                "https://api.calendly.com/users/me",
+                headers=headers,
+                timeout=10
+            )
+            
+            if user_response.status_code != 200:
+                print(f"Calendly user API error: {user_response.status_code} - {user_response.text}")
+                return {"success": False, "error": f"Calendly user API error: {user_response.status_code}"}
+            
+            user_data = user_response.json()
+            user_uri = user_data["resource"]["uri"]
+            
+            print(f"Calendly user URI: {user_uri}")
+            
+            # Get event types for this user
+            event_types_response = requests.get(
+                f"https://api.calendly.com/event_types?user={user_uri}",
+                headers=headers,
+                timeout=10
+            )
+            
+            if event_types_response.status_code != 200:
+                print(f"Calendly event types API error: {event_types_response.status_code}")
+                return {"success": False, "error": "Could not fetch event types"}
+            
+            event_types_data = event_types_response.json()
+            if not event_types_data.get("collection"):
+                print("No Calendly event types found")
+                return {"success": False, "error": "No event types configured"}
+            
+            # Find the right event type
+            event_type_uri = None
+            
+            # If CALENDLY_EVENT_TYPE is set, try to match it
+            if CALENDLY_EVENT_TYPE:
+                # Handle if user provided a booking URL instead of URI
+                if "calendly.com/" in CALENDLY_EVENT_TYPE and "/api.calendly.com/" not in CALENDLY_EVENT_TYPE:
+                    # Extract the event slug from booking URL (e.g., "30min" from "https://calendly.com/user/30min")
+                    event_slug = CALENDLY_EVENT_TYPE.rstrip('/').split('/')[-1]
+                    print(f"Extracted event slug from URL: {event_slug}")
+                    
+                    # Find matching event type by slug
+                    for et in event_types_data["collection"]:
+                        if et["active"] and event_slug in et.get("scheduling_url", ""):
+                            event_type_uri = et["uri"]
+                            print(f"Matched event type by slug: {et['name']}")
+                            break
+                else:
+                    # It's already a URI
+                    event_type_uri = CALENDLY_EVENT_TYPE
+            
+            # If still no match, use the first active event type
+            if not event_type_uri:
+                for et in event_types_data["collection"]:
+                    if et["active"]:
+                        event_type_uri = et["uri"]
+                        print(f"Using first active event type: {et['name']}")
+                        break
+            
+            if not event_type_uri:
+                return {"success": False, "error": "No active event types found"}
+            
+            print(f"Using event type URI: {event_type_uri}")
+            
+            # Create a single-use scheduling link
+            payload = {
+                "max_event_count": 1,
+                "owner": event_type_uri,
+                "owner_type": "EventType"
+            }
+            
+            response = requests.post(
+                "https://api.calendly.com/scheduling_links",
+                headers=headers,
+                json=payload,
+                timeout=10
+            )
+            
+            print(f"Calendly scheduling link response: {response.status_code}")
+            
+            if response.status_code == 201:
+                data = response.json()
+                booking_url = data["resource"]["booking_url"]
+                print(f"✅ Calendly booking URL created: {booking_url}")
+                
+                return {
+                    "success": True,
+                    "booking_url": booking_url,
+                    "event_id": None
+                }
+            else:
+                error_text = response.text
+                print(f"❌ Calendly API error: {response.status_code} - {error_text}")
+                return {"success": False, "error": f"Calendly API error: {response.status_code}"}
+                
+        except requests.exceptions.Timeout:
+            print("Calendly API timeout")
+            return {"success": False, "error": "Calendly API timeout"}
+        except requests.exceptions.RequestException as e:
+            print(f"Calendly API request error: {e}")
+            return {"success": False, "error": str(e)}
+        except Exception as e:
+            print(f"Unexpected Calendly error: {e}")
+            return {"success": False, "error": str(e)}
+    
+    @staticmethod
+    async def get_available_slots(date: str = None) -> Dict:
+        """Get available appointment slots"""
+        if not CALENDLY_API_KEY:
             return {"success": False, "error": "Calendly not configured"}
         
         try:
@@ -268,74 +409,41 @@ class CalendarService:
             
             user_response = requests.get(
                 "https://api.calendly.com/users/me",
-                headers=headers
-            )
-            user_data = user_response.json()
-            
-            payload = {
-                "max_event_count": 1,
-                "owner": user_data["resource"]["uri"],
-                "owner_type": "EventType"
-            }
-            
-            response = requests.post(
-                "https://api.calendly.com/scheduling_links",
                 headers=headers,
-                json=payload
+                timeout=10
             )
             
-            if response.status_code == 201:
-                data = response.json()
-                return {
-                    "success": True,
-                    "booking_url": data["resource"]["booking_url"],
-                    "event_id": None
-                }
+            if user_response.status_code != 200:
+                return {"success": False, "error": "Could not fetch user info"}
+            
+            user_data = user_response.json()
+            user_uri = user_data["resource"]["uri"]
+            
+            params = {"user": user_uri, "count": 10}
+            if date:
+                params["min_start_time"] = date
+            
+            response = requests.get(
+                "https://api.calendly.com/event_type_available_times",
+                headers=headers,
+                params=params,
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                return {"success": True, "slots": response.json()}
             else:
-                return {"success": False, "error": response.text}
+                return {"success": False, "error": "Could not fetch availability"}
                 
         except Exception as e:
-            print(f"Calendly error: {e}")
+            print(f"Error fetching availability: {e}")
             return {"success": False, "error": str(e)}
-    
-    @staticmethod
-    async def get_available_slots(date: str = None) -> Dict:
-        """Get available appointment slots"""
-        if CALENDAR_PROVIDER == "calendly" and CALENDLY_API_KEY:
-            try:
-                headers = {
-                    "Authorization": f"Bearer {CALENDLY_API_KEY}",
-                    "Content-Type": "application/json"
-                }
-                
-                user_response = requests.get(
-                    "https://api.calendly.com/users/me",
-                    headers=headers
-                )
-                user_data = user_response.json()
-                user_uri = user_data["resource"]["uri"]
-                
-                params = {"user": user_uri, "count": 10}
-                if date:
-                    params["min_start_time"] = date
-                
-                response = requests.get(
-                    "https://api.calendly.com/event_type_available_times",
-                    headers=headers,
-                    params=params
-                )
-                
-                if response.status_code == 200:
-                    return {"success": True, "slots": response.json()}
-                else:
-                    return {"success": False, "error": "Could not fetch availability"}
-                    
-            except Exception as e:
-                return {"success": False, "error": str(e)}
-        
-        return {"success": False, "error": "Calendar not configured"}
 
 calendar_service = CalendarService()
+
+# ============================================
+# WEB SCRAPER SERVICE
+# ============================================
 
 class WebScraperService:
     """Scrapes law firm website for dynamic content"""
@@ -343,14 +451,13 @@ class WebScraperService:
     def __init__(self, base_url: str):
         self.base_url = base_url
         self.cache = {}
-        self.cache_duration = 300  # 5 minutes
+        self.cache_duration = 300
         
     async def scrape_page(self, path: str) -> str:
         """Scrape a specific page"""
         url = f"{self.base_url}{path}"
         cache_key = f"page_{path}"
         
-        # Check cache
         if cache_key in self.cache:
             cached_time, content = self.cache[cache_key]
             if (datetime.now(timezone.utc) - cached_time).seconds < self.cache_duration:
@@ -363,19 +470,14 @@ class WebScraperService:
                         html = await response.text()
                         soup = BeautifulSoup(html, 'html.parser')
                         
-                        # Remove script and style elements
                         for script in soup(["script", "style", "nav", "footer"]):
                             script.decompose()
                         
-                        # Get text
                         text = soup.get_text()
-                        
-                        # Clean up
                         lines = (line.strip() for line in text.splitlines())
                         chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
                         text = '\n'.join(chunk for chunk in chunks if chunk)
                         
-                        # Cache
                         self.cache[cache_key] = (datetime.now(timezone.utc), text)
                         return text
         except Exception as e:
@@ -396,136 +498,12 @@ class WebScraperService:
         
         return "\n".join(contents)
 
-# Initialize scraper (update with actual law firm URL)
 scraper = WebScraperService(base_url="https://yourlawfirm.com")
 
-class FlowStateManager:
-    """
-    Tracks the current flow step for each session and advances using law_firm.json.
-    """
-
-    def __init__(self, flow_json: dict):
-        self.flow = flow_json
-        self.step_index = self._index_steps()
-        # in-memory store: session_id -> {"current_step": str, "answers": dict}
-        self.sessions: dict[str, dict] = {}
-
-    def _index_steps(self) -> dict:
-        index = {}
-        for flow in self.flow["flows"]:
-            for step in flow["steps"]:
-                index[step["id"]] = step
-        return index
-
-    # -------- session helpers --------
-    def ensure_session(self, session_id: str):
-        if session_id not in self.sessions:
-            # default entry point for now – matches "start" in main_menu
-            self.sessions[session_id] = {
-                "current_step": "start",
-                "answers": {}
-            }
-
-    def get_current_step(self, session_id: str) -> str:
-        self.ensure_session(session_id)
-        return self.sessions[session_id]["current_step"]
-
-    def set_current_step(self, session_id: str, step_id: str):
-        self.ensure_session(session_id)
-        self.sessions[session_id]["current_step"] = step_id
-
-    def get_step(self, step_id: str) -> dict:
-        return self.step_index[step_id]
-
-    def get_prompt(self, step_id: str) -> str:
-        return self.step_index[step_id]["prompt"]
-
-    # -------- answer detection --------
-    def did_user_answer_step(self, step_id: str, user_message: str) -> bool:
-        """
-        Very simple heuristics – enough to stop the 'date' question repeating.
-        You can refine per step over time.
-        """
-        step = self.get_step(step_id)
-        msg = (user_message or "").strip().lower()
-
-        itype = step.get("input_type")
-
-        if itype == "none":
-            return True
-
-        if itype == "text":
-            # any non-empty text counts as an answer
-            return len(msg) > 0
-
-        if itype == "choice" or itype == "yes_no":
-            # PI intro is special: user may give real date/time, not button values
-            if step_id == "pi_intro":
-                # crude date/time pattern – catches things like '7:23 am', '11/12/2025', 'nov 12'
-                if any(c in msg for c in ["/", "-", ":"]) or any(
-                    m in msg for m in
-                    ["yesterday", "today", "ago", "last week", "last month",
-                     "january", "february", "march", "april", "may", "june",
-                     "july", "august", "september", "october", "november", "december"]
-                ):
-                    return True
-
-            # normal choice / yes_no – match label or value text
-            for opt in step.get("options", []):
-                if opt["label"].lower() in msg or opt["value"].lower() in msg:
-                    return True
-
-        # file upload etc – you can handle later
-        return False
-
-    # -------- next step logic --------
-    def determine_next_step(self, current_step_id: str, user_message: str) -> str | None:
-        step = self.get_step(current_step_id)
-        msg = (user_message or "").lower()
-
-        # Personal-injury special case from your JSON:
-        # pi_injury_type -> either pi_injury_details (if "other") or pi_medical_treatment
-        if current_step_id == "pi_injury_type":
-            for opt in step.get("options", []):
-                if opt["label"].lower() in msg or opt["value"].lower() in msg:
-                    return opt["next_step"]
-            # fallback: if they described it in text, treat as pi_injury_details answered
-            if len(msg.split()) > 3:
-                return "pi_medical_treatment"
-
-        # pi_injury_details should ALWAYS go to pi_medical_treatment
-        if current_step_id == "pi_injury_details":
-            return step.get("next_step", "pi_medical_treatment")
-
-        # generic path – follow JSON
-        if "options" in step:
-            for opt in step["options"]:
-                if opt["label"].lower() in msg or opt["value"].lower() in msg:
-                    return opt.get("next_step")
-
-        return step.get("next_step")
-
-    def advance_if_answered(self, session_id: str, user_message: str):
-        """
-        If user answered the current step, move to the next one.
-        Otherwise leave current_step alone (off-topic or incomplete).
-        """
-        self.ensure_session(session_id)
-        current = self.sessions[session_id]["current_step"]
-
-        if not self.did_user_answer_step(current, user_message):
-            return current  # stay on same step
-
-        nxt = self.determine_next_step(current, user_message)
-        if nxt:
-            self.sessions[session_id]["current_step"] = nxt
-        return self.sessions[session_id]["current_step"]
-
-
 # ============================================
-# OPENAI CHATBOT SERVICE
+# CHATBOT SERVICE
 # ============================================
-from flow_state_manager import FlowStateManager
+
 class ChatbotService:
     """Handles OpenAI conversations with strict flow management"""
     
@@ -538,13 +516,11 @@ class ChatbotService:
 
         self.flow_manager = FlowStateManager(self.flow)
 
-        # Build step index
         self.step_index = {}
         for flow in self.flow["flows"]:
             for step in flow["steps"]:
                 self.step_index[step["id"]] = step
 
-        # Stronger system prompt
         self.system_prompt = """You are a law firm intake assistant. Your ONLY job is to ask the exact question provided and collect the answer.
 
 CRITICAL RULES:
@@ -569,17 +545,14 @@ You are NOT a general chatbot. You are a form-filler following a script."""
         if not openai_client:
             return "I apologize, but the AI service is not configured. Please contact our office directly."
 
-        # Get step details
         step_data = self.step_index.get(current_step_id, {})
         input_type = step_data.get("input_type", "text")
         options = step_data.get("options", [])
 
-        # Build messages
         messages = [
             {"role": "system", "content": self.system_prompt}
         ]
         
-        # CRITICAL: Make the current question unmissable
         current_question_context = f"""
 🎯 CURRENT QUESTION (ask this EXACTLY):
 "{current_step_prompt}"
@@ -595,7 +568,6 @@ Input type: {input_type}
             "content": current_question_context
         })
 
-        # Add what we've collected so far (to avoid re-asking)
         collected_info = self._extract_collected_info(conversation_history)
         if collected_info:
             messages.append({
@@ -603,21 +575,17 @@ Input type: {input_type}
                 "content": f"✅ Already collected:\n{collected_info}\n\n⚠️ DO NOT ask about these again!"
             })
 
-        # Add recent conversation (last 6 messages to save tokens)
         recent = conversation_history[-6:] if len(conversation_history) > 6 else conversation_history
         messages.extend(recent)
-
-        # Add current user message
         messages.append({"role": "user", "content": message})
 
-        # Call OpenAI
         try:
             response = await asyncio.to_thread(
                 openai_client.chat.completions.create,
                 model="gpt-4o-mini",
                 messages=messages,
-                max_tokens=150,  # Keep responses short
-                temperature=0.3   # More focused
+                max_tokens=150,
+                temperature=0.3
             )
             
             return response.choices[0].message.content
@@ -634,56 +602,21 @@ Input type: {input_type}
         collected = []
         all_user_text = " ".join([m.get("content", "") for m in history if m.get("role") == "user"]).lower()
 
-        # Check for case type
         if "accident" in all_user_text or "car" in all_user_text:
             collected.append("- Case type: Personal Injury (car accident)")
         
-        # Check for timing
         if any(word in all_user_text for word in ["today", "yesterday", "last week", "ago", "/", "2025", "2024"]):
             collected.append("- Incident timing mentioned")
         
-        # Check for medical
         if any(word in all_user_text for word in ["hospital", "doctor", "medical", "treatment", "er"]):
             collected.append("- Medical treatment discussed")
         
-        # Check for attorney status
         if "attorney" in all_user_text or "lawyer" in all_user_text:
             collected.append("- Attorney status mentioned")
 
         return "\n".join(collected) if collected else ""
 
 chatbot = ChatbotService()
-
-# ============================================
-# EMAIL SERVICE
-# ============================================
-
-async def send_email(to: str, subject: str, body: str, html: str = None):
-    """Send email via SMTP"""
-    try:
-        msg = MIMEMultipart('alternative')
-        msg['From'] = SMTP_USER
-        msg['To'] = to
-        msg['Subject'] = subject
-        
-        # Plain text
-        msg.attach(MIMEText(body, 'plain'))
-        
-        # HTML if provided
-        if html:
-            msg.attach(MIMEText(html, 'html'))
-        
-        # Send
-        await asyncio.to_thread(
-            lambda: smtplib.SMTP(SMTP_HOST, SMTP_PORT).starttls() or 
-                    smtplib.SMTP(SMTP_HOST, SMTP_PORT).login(SMTP_USER, SMTP_PASSWORD) or
-                    smtplib.SMTP(SMTP_HOST, SMTP_PORT).send_message(msg)
-        )
-        
-        return True
-    except Exception as e:
-        print(f"Email error: {e}")
-        return False
 
 # ============================================
 # PAYMENT SERVICES
@@ -694,7 +627,7 @@ async def create_stripe_payment(amount: float, description: str, metadata: dict 
     try:
         intent = await asyncio.to_thread(
             stripe.PaymentIntent.create,
-            amount=int(amount * 100),  # Convert to cents
+            amount=int(amount * 100),
             currency="usd",
             description=description,
             metadata=metadata or {}
@@ -712,7 +645,7 @@ async def create_paypal_payment(amount: float, description: str) -> Dict:
     try:
         auth = requests.auth.HTTPBasicAuth(PAYPAL_CLIENT_ID, PAYPAL_SECRET)
         response = requests.post(
-            "https://api-m.sandbox.paypal.com/v2/checkout/orders",  # Use production URL for live
+            "https://api-m.sandbox.paypal.com/v2/checkout/orders",
             auth=auth,
             headers={"Content-Type": "application/json"},
             json={
@@ -749,12 +682,10 @@ async def root():
 
 @app.post("/api/chat")
 async def chat_endpoint(chat: ChatMessage, db: Session = Depends(get_db)):
-    """Main chat endpoint - PURE script-driven flow (no LLM for now)"""
+    """Main chat endpoint"""
 
-    # Get or create session
     session_id = chat.session_id or str(uuid.uuid4())
 
-    # Get conversation
     conversation = db.query(Conversation).filter(
         Conversation.session_id == session_id
     ).first()
@@ -768,22 +699,12 @@ async def chat_endpoint(chat: ChatMessage, db: Session = Depends(get_db)):
         )
         db.add(conversation)
 
-    # Ensure flow session exists
     flow_manager.ensure_session(session_id)
-
-    # Previous step (before this message)
     prev_step_id = flow_manager.get_current_step(session_id)
-
-    # Treat this message as the answer to the CURRENT step
     new_step_id = flow_manager.advance_if_answered(session_id, chat.message)
-
-    # Current step AFTER processing the answer
     current_step_id = flow_manager.get_current_step(session_id)
-
-    # Get the prompt for the current step (what we should ask next)
     response_text = flow_manager.get_prompt(current_step_id)
 
-    # Update conversation history
     conversation.messages.append({"role": "user", "content": chat.message})
     conversation.messages.append({"role": "assistant", "content": response_text})
     conversation.updated_at = datetime.now(timezone.utc)
@@ -798,7 +719,6 @@ async def chat_endpoint(chat: ChatMessage, db: Session = Depends(get_db)):
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
 
-
 # ============================================
 # CLIENT MANAGEMENT
 # ============================================
@@ -807,7 +727,6 @@ async def chat_endpoint(chat: ChatMessage, db: Session = Depends(get_db)):
 async def create_client(client: ClientCreate, db: Session = Depends(get_db)):
     """Create new client"""
     
-    # Check if exists
     existing = db.query(Client).filter(Client.email == client.email).first()
     if existing:
         return {"success": True, "client_id": existing.id, "existing": True}
@@ -821,12 +740,11 @@ async def create_client(client: ClientCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_client)
     
-    # Send welcome email
     await send_email(
         to=client.email,
         subject="Thank you for contacting us",
-        body=f"Dear {client.name},\n\nThank you for reaching out. We'll review your case and contact you soon.\n\nBest regards,\nThe Legal Team",
-        html=f"<p>Dear {client.name},</p><p>Thank you for reaching out. We'll review your case and contact you soon.</p>"
+        body=f"Dear {client.name},\n\nThank you for reaching out. We'll review your case and contact you soon.\n\nBest regards,\n{LAW_FIRM_NAME}",
+        html=f"<p>Dear {client.name},</p><p>Thank you for reaching out. We'll review your case and contact you soon.</p><p>Best regards,<br>{LAW_FIRM_NAME}</p>"
     )
     
     return {"success": True, "client_id": new_client.id}
@@ -855,7 +773,6 @@ async def lookup_client_by_email(email: str, db: Session = Depends(get_db)):
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
     
-    # Get cases
     cases = db.query(Case).filter(Case.client_id == client.id).all()
     
     return {
@@ -894,7 +811,6 @@ async def create_case(case: CaseCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_case)
     
-    # Notify law firm
     client = db.query(Client).filter(Client.id == case.client_id).first()
     if client:
         await send_email(
@@ -920,7 +836,6 @@ async def create_stripe_payment_endpoint(payment: PaymentCreate, db: Session = D
     )
     
     if result["success"]:
-        # Save to database
         new_payment = Payment(
             case_id=payment.case_id,
             amount=payment.amount,
@@ -974,22 +889,18 @@ async def upload_file(
     """Upload document"""
     
     try:
-        # Validate file size (10MB max)
         content = await file.read()
         if len(content) > 10 * 1024 * 1024:
             return {"success": False, "error": "File too large. Maximum size is 10MB."}
         
-        # Generate unique filename
         file_id = str(uuid.uuid4())
         file_ext = Path(file.filename).suffix
         new_filename = f"{file_id}{file_ext}"
         file_path = UPLOAD_DIR / new_filename
         
-        # Save file
         with open(file_path, "wb") as f:
             f.write(content)
         
-        # Save to database
         document = Document(
             case_id=case_id,
             client_id=client_id,
@@ -1068,14 +979,241 @@ async def handle_voice_call():
     
     return str(response)
 
+# Replace the Twilio callback endpoints in main.py with these enhanced versions
+
+@app.api_route("/api/twilio/appointment-confirmation", methods=["GET", "POST"])
+async def appointment_confirmation_call(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Handle automated appointment confirmation call with full details"""
+    appointment_id = request.query_params.get("appointment_id")
+    
+    print(f"📞 Incoming confirmation call for appointment: {appointment_id}")
+    
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    
+    response = VoiceResponse()
+    
+    if not appointment:
+        print(f"❌ Appointment not found: {appointment_id}")
+        response.say("We're sorry, we couldn't find your appointment. Please call our office.", voice='alice')
+        return Response(content=str(response), media_type="application/xml")
+    
+    print(f"✅ Found appointment for {appointment.client_name}")
+    
+    gather = Gather(
+        num_digits=1,
+        action=f'{BASE_URL}/api/twilio/confirm-appointment?appointment_id={appointment_id}',
+        timeout=10
+    )
+    
+    # Build detailed message with appointment info
+    case_type = appointment.case_type or 'consultation'
+    date_time = appointment.scheduled_date.strftime('%A, %B %d at %I:%M %p') if appointment.scheduled_date else 'your requested time'
+    
+    # Parse notes to extract key details
+    notes = appointment.notes or ""
+    injury_type = "your injury"
+    incident_date = "recently"
+    
+    if "Injury Type:" in notes:
+        try:
+            injury_line = notes.split("Injury Type:")[1].split("\n")[0].strip()
+            if injury_line and len(injury_line) < 50:
+                injury_type = injury_line
+        except:
+            pass
+    
+    if "Date/Time:" in notes:
+        try:
+            incident_line = notes.split("Date/Time:")[1].split("\n")[0].strip()
+            if incident_line and len(incident_line) < 50:
+                incident_date = incident_line
+        except:
+            pass
+    
+    message = f"""Hello {appointment.client_name}. This is {LAW_FIRM_NAME} calling to confirm your {case_type} consultation.
+
+We have you scheduled for {date_time}.
+
+Based on your intake, this is regarding {injury_type} that occurred {incident_date}.
+
+To confirm this appointment, press 1.
+To request a different time, press 2.
+To speak with someone now, press 3."""
+    
+    gather.say(message, voice='alice')
+    response.append(gather)
+    
+    # Fallback if no response
+    response.say("We didn't receive a response. We'll send you an email instead. Thank you, goodbye.", voice='alice')
+    
+    return Response(content=str(response), media_type="application/xml")
+
+
+@app.api_route("/api/twilio/confirm-appointment", methods=["GET", "POST"])
+async def confirm_appointment_response(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Process appointment confirmation response"""
+    
+    # Get form data from Twilio
+    form = await request.form()
+    digits = form.get("Digits")
+    appointment_id = request.query_params.get("appointment_id")
+    
+    print(f"📞 Received response: {digits} for appointment: {appointment_id}")
+    
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    response = VoiceResponse()
+    
+    if not appointment:
+        print(f"❌ Appointment not found: {appointment_id}")
+        response.say("We couldn't find your appointment. Please call our office.", voice='alice')
+        return Response(content=str(response), media_type="application/xml")
+    
+    if digits == "1":
+        # CONFIRM APPOINTMENT
+        print(f"✅ Appointment CONFIRMED by {appointment.client_name}")
+        appointment.status = "confirmed"
+        db.commit()
+        
+        date_str = appointment.scheduled_date.strftime('%A, %B %d at %I:%M %p') if appointment.scheduled_date else 'your scheduled time'
+        
+        response.say(
+            f"""Perfect! Your {appointment.case_type or 'consultation'} is confirmed for {date_str}.
+            
+            You'll receive a confirmation email with our office address, what to bring, and our attorney's contact information.
+            
+            We look forward to meeting with you. Thank you, goodbye.""",
+            voice='alice'
+        )
+        
+        # Send detailed confirmation email
+        await send_email(
+            to=appointment.client_email,
+            subject=f"✅ Appointment Confirmed - {LAW_FIRM_NAME}",
+            body=f"""Dear {appointment.client_name},
+
+✅ YOUR APPOINTMENT IS CONFIRMED
+
+Date & Time: {date_str}
+Case Type: {appointment.case_type or 'Consultation'}
+Duration: 30-45 minutes
+
+📍 LOCATION:
+{LAW_FIRM_NAME}
+[Office Address Here]
+
+📋 WHAT TO BRING:
+✓ Photo ID
+✓ Any documents related to your case
+✓ Medical records (if applicable)
+✓ Insurance information
+
+Need to reschedule? Call {LAW_FIRM_PHONE}
+
+Best regards,
+{LAW_FIRM_NAME}""",
+            html=f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background-color: #10b981; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                    <h1 style="margin: 0; font-size: 24px;">✅ Appointment Confirmed</h1>
+                </div>
+                
+                <div style="background-color: #f9fafb; padding: 20px; border: 1px solid #e5e7eb;">
+                    <h2 style="color: #1f2937; margin-top: 0;">Your Consultation Details</h2>
+                    <div style="background-color: white; padding: 15px; border-radius: 6px; margin: 15px 0;">
+                        <p style="margin: 5px 0;"><strong>📅 Date & Time:</strong> {date_str}</p>
+                        <p style="margin: 5px 0;"><strong>⚖️ Case Type:</strong> {appointment.case_type or 'Consultation'}</p>
+                        <p style="margin: 5px 0;"><strong>⏱️ Duration:</strong> 30-45 minutes</p>
+                    </div>
+                    
+                    <h3 style="color: #1f2937;">📍 Location</h3>
+                    <p style="background-color: white; padding: 15px; border-radius: 6px;">
+                        <strong>{LAW_FIRM_NAME}</strong><br>
+                        [Office Address Here]
+                    </p>
+                    
+                    <h3 style="color: #1f2937;">📋 What to Bring</h3>
+                    <ul style="background-color: white; padding: 20px; border-radius: 6px;">
+                        <li>Photo ID</li>
+                        <li>Documents related to your case</li>
+                        <li>Medical records (if applicable)</li>
+                        <li>Insurance information</li>
+                    </ul>
+                    
+                    <div style="background-color: #dbeafe; padding: 15px; border-radius: 6px; margin-top: 20px;">
+                        <p style="margin: 0;"><strong>📱 Need to reschedule?</strong></p>
+                        <p style="margin: 10px 0 0 0;">Call <a href="tel:{LAW_FIRM_PHONE}">{LAW_FIRM_PHONE}</a></p>
+                    </div>
+                </div>
+                
+                <div style="background-color: #1f2937; color: white; padding: 15px; border-radius: 0 0 8px 8px; text-align: center;">
+                    <p style="margin: 0;"><strong>{LAW_FIRM_NAME}</strong> • {LAW_FIRM_PHONE}</p>
+                </div>
+            </div>
+            """
+        )
+        
+    elif digits == "2":
+        # REQUEST RESCHEDULE
+        print(f"📅 Reschedule requested by {appointment.client_name}")
+        appointment.status = "rescheduling"
+        db.commit()
+        
+        response.say(
+            f"""No problem. We'll have someone call you within one hour to find a better time. Thank you, goodbye.""",
+            voice='alice'
+        )
+        
+        # Alert law firm staff
+        await send_email(
+            to=LAW_FIRM_EMAIL,
+            subject=f"🔄 RESCHEDULE REQUEST: {appointment.client_name}",
+            body=f"""URGENT: Reschedule Request
+
+Client: {appointment.client_name}
+Phone: {appointment.client_phone}
+Email: {appointment.client_email}
+
+⏰ ACTION: Call within 1 hour
+
+Appointment ID: {appointment_id}""",
+            html=f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #dc2626;">🔄 RESCHEDULE REQUEST</h2>
+                <div style="background-color: #fee; padding: 15px; border-left: 4px solid #dc2626;">
+                    <strong>⏰ Call within 1 hour</strong>
+                </div>
+                <ul>
+                    <li><strong>Name:</strong> {appointment.client_name}</li>
+                    <li><strong>Phone:</strong> <a href="tel:{appointment.client_phone}">{appointment.client_phone}</a></li>
+                    <li><strong>Email:</strong> {appointment.client_email}</li>
+                </ul>
+            </div>
+            """
+        )
+        
+    elif digits == "3":
+        # SPEAK WITH SOMEONE NOW
+        print(f"📞 Transfer requested by {appointment.client_name}")
+        response.say("Transferring you now. Please hold.", voice='alice')
+        response.dial(LAW_FIRM_PHONE)
+        
+    else:
+        response.say("Invalid option. Goodbye.", voice='alice')
+    
+    return Response(content=str(response), media_type="application/xml")
+
 @app.post("/api/twilio/process-speech")
 async def process_speech(SpeechResult: str = Form(...), CallSid: str = Form(...), db: Session = Depends(get_db)):
     """Process speech input from phone"""
     
-    # Get knowledge base
     knowledge_base = await scraper.get_knowledge_base()
     
-    # Get or create conversation
     conversation = db.query(Conversation).filter(
         Conversation.session_id == CallSid
     ).first()
@@ -1088,25 +1226,19 @@ async def process_speech(SpeechResult: str = Form(...), CallSid: str = Form(...)
         )
         db.add(conversation)
     
-    # Generate response
     response_text = await chatbot.chat(
         message=SpeechResult,
         conversation_history=conversation.messages,
         knowledge_base=knowledge_base
     )
     
-    # Update conversation
     conversation.messages.append({"role": "user", "content": SpeechResult})
     conversation.messages.append({"role": "assistant", "content": response_text})
     db.commit()
     
-    # Create voice response
     twiml = VoiceResponse()
-    
-    # Speak response
     twiml.say(response_text, voice='alice')
     
-    # Continue gathering
     gather = Gather(
         input='speech',
         action='/api/twilio/process-speech',
@@ -1124,10 +1256,8 @@ async def process_speech(SpeechResult: str = Form(...), CallSid: str = Form(...)
 async def handle_sms(Body: str = Form(...), From: str = Form(...), db: Session = Depends(get_db)):
     """Handle incoming SMS"""
     
-    # Get knowledge base
     knowledge_base = await scraper.get_knowledge_base()
     
-    # Get or create conversation
     session_id = f"sms_{From}"
     conversation = db.query(Conversation).filter(
         Conversation.session_id == session_id
@@ -1141,19 +1271,16 @@ async def handle_sms(Body: str = Form(...), From: str = Form(...), db: Session =
         )
         db.add(conversation)
     
-    # Generate response
     response_text = await chatbot.chat(
         message=Body,
         conversation_history=conversation.messages,
         knowledge_base=knowledge_base
     )
     
-    # Update conversation
     conversation.messages.append({"role": "user", "content": Body})
     conversation.messages.append({"role": "assistant", "content": response_text})
     db.commit()
     
-    # Send SMS response
     if twilio_client:
         twilio_client.messages.create(
             body=response_text,
@@ -1181,22 +1308,62 @@ async def send_email_endpoint(email: EmailRequest):
         return {"success": True}
     else:
         raise HTTPException(status_code=500, detail="Failed to send email")
-    
+
 # ============================================
-# CALENDAR SCHEDULER
-# ============================================   
+# APPOINTMENT SCHEDULING WITH CALLBACKS
+# ============================================
+
+async def schedule_callback_task(appointment_id: str, delay_seconds: int, db_session):
+    """Background task to schedule appointment confirmation callback"""
+    await asyncio.sleep(delay_seconds)
     
+    db = SessionLocal()
+    try:
+        appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+        
+        if not appointment or appointment.status != "pending":
+            print(f"Skipping callback - appointment {appointment_id} not pending")
+            return
+        
+        if not twilio_client or not appointment.client_phone:
+            print(f"Skipping callback - Twilio not configured or no phone number")
+            return
+        
+        try:
+            call = twilio_client.calls.create(
+                to=appointment.client_phone,
+                from_=TWILIO_PHONE_NUMBER,
+                url=f"{BASE_URL}/api/twilio/appointment-confirmation?appointment_id={appointment_id}"
+            )
+            print(f"Callback scheduled: {call.sid} to {appointment.client_phone}")
+        except Exception as e:
+            print(f"Twilio callback error: {e}")
+            await send_email(
+                to=appointment.client_email,
+                subject="⏰ Appointment Confirmation Needed",
+                body=f"""Dear {appointment.client_name},
+
+We haven't confirmed your appointment yet. Please reply to confirm or call us at {LAW_FIRM_PHONE}.
+
+Best regards,
+{LAW_FIRM_NAME}"""
+            )
+    finally:
+        db.close()
+
 @app.post("/api/appointments/schedule")
 async def schedule_appointment(appointment: AppointmentRequest, db: Session = Depends(get_db)):
-    """Schedule a consultation appointment"""
+    """Schedule a consultation appointment with automatic Calendly integration"""
     
-    # Validate email
+    print(f"📅 Scheduling appointment for: {appointment.client_name}")
+    
+    # Validate and clean email
     email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
     if not re.match(email_regex, appointment.client_email):
-        # Use a placeholder email if invalid
+        print(f"⚠️ Invalid email provided: {appointment.client_email}")
         appointment.client_email = f"contact_{uuid.uuid4().hex[:8]}@lawfirm-placeholder.com"
     
-    # Get or create client
+    # Find or create client
     client = db.query(Client).filter(Client.email == appointment.client_email).first()
     if not client:
         client = Client(
@@ -1208,16 +1375,23 @@ async def schedule_appointment(appointment: AppointmentRequest, db: Session = De
         db.add(client)
         db.commit()
         db.refresh(client)
+        print(f"✅ Created new client: {client.id}")
+    else:
+        print(f"✅ Found existing client: {client.id}")
     
-    # Create calendar invitation based on provider
+    # Try to create Calendly invitation
     calendar_result = None
-    if CALENDAR_PROVIDER == "calendly":
+    if CALENDAR_PROVIDER == "calendly" and CALENDLY_API_KEY:
+        print("🔗 Attempting to create Calendly invitation...")
         calendar_result = await calendar_service.create_calendly_invitation({
             "name": appointment.client_name,
             "email": appointment.client_email,
             "phone": appointment.client_phone,
             "notes": appointment.notes
         })
+        print(f"Calendly result: {calendar_result}")
+    else:
+        print(f"⚠️ Calendly not configured. PROVIDER={CALENDAR_PROVIDER}, API_KEY={'SET' if CALENDLY_API_KEY else 'NOT SET'}")
     
     # Create appointment record
     new_appointment = Appointment(
@@ -1229,49 +1403,97 @@ async def schedule_appointment(appointment: AppointmentRequest, db: Session = De
         notes=appointment.notes,
         status="pending",
         calendar_event_id=calendar_result.get("event_id") if calendar_result else None,
-        calendar_link=calendar_result.get("booking_url") if calendar_result else None
+        calendar_link=calendar_result.get("booking_url") if calendar_result and calendar_result.get("success") else None
     )
     
     db.add(new_appointment)
     db.commit()
     db.refresh(new_appointment)
+    print(f"✅ Appointment created: {new_appointment.id}")
     
-    # Send confirmation email
-    if calendar_result and calendar_result.get("success"):
+    # Schedule callback for 5 minutes (300s) for testing, or 2 hours (7200s) for production
+    CALLBACK_DELAY = 300  # Change to 7200 for production
+    if appointment.client_phone and twilio_client:
+        asyncio.create_task(schedule_callback_task(new_appointment.id, CALLBACK_DELAY, db))
+        print(f"📞 Callback scheduled for {CALLBACK_DELAY} seconds from now")
+    
+    # SUCCESS PATH: Calendly link available
+    if calendar_result and calendar_result.get("success") and calendar_result.get("booking_url"):
+        booking_url = calendar_result.get("booking_url")
+        print(f"✅ SUCCESS: Calendly booking URL available: {booking_url}")
+        
         email_body = f"""Dear {appointment.client_name},
 
-Thank you for choosing our law firm for your {appointment.case_type or 'legal'} consultation.
+Thank you for choosing {LAW_FIRM_NAME} for your {appointment.case_type or 'legal'} consultation.
 
-NEXT STEP: Please click the link below to select your preferred appointment time:
-{calendar_result.get('booking_url')}
+🔗 BOOK YOUR APPOINTMENT NOW:
+Click here to select your preferred time: {booking_url}
 
 Your requested time: {appointment.preferred_date or 'Not specified'}
 
 Once you complete your booking, you'll receive:
-- Instant calendar confirmation
-- Email reminder 24 hours before
-- Text message reminder (if you provided your phone)
+✅ Instant calendar confirmation
+📧 Email reminder 24 hours before
+📱 Text message reminder
 
 Questions? Call us at {LAW_FIRM_PHONE} or reply to this email.
 
 Best regards,
-The Legal Team"""
+{LAW_FIRM_NAME}"""
+
+        email_html = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">✅ Your Consultation Booking Link</h2>
+            <p>Dear {appointment.client_name},</p>
+            <p>Thank you for choosing <strong>{LAW_FIRM_NAME}</strong> for your <strong>{appointment.case_type or 'legal'}</strong> consultation.</p>
+            
+            <div style="background-color: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                <h3 style="margin-top: 0; color: #1e40af;">📅 Select Your Appointment Time</h3>
+                <a href="{booking_url}" 
+                   style="display: inline-block; background-color: #2563eb; color: white; padding: 15px 30px; 
+                          text-decoration: none; border-radius: 6px; font-weight: bold; margin: 10px 0; font-size: 16px;">
+                    Book Your Consultation Now
+                </a>
+                <p style="margin-top: 15px; font-size: 14px;">Your requested time: <strong>{appointment.preferred_date or 'Not specified'}</strong></p>
+            </div>
+            
+            <h3>What Happens Next:</h3>
+            <ul>
+                <li>✅ Choose your preferred time slot</li>
+                <li>📧 Get instant email confirmation</li>
+                <li>🔔 Receive automatic reminders</li>
+            </ul>
+            
+            <p>Questions? Call us at <a href="tel:{LAW_FIRM_PHONE}">{LAW_FIRM_PHONE}</a></p>
+            <p>Best regards,<br><strong>{LAW_FIRM_NAME}</strong></p>
+        </div>
+        """
         
         await send_email(
             to=appointment.client_email,
-            subject="📅 Complete Your Consultation Booking - Action Required",
-            body=email_body
+            subject=f"📅 Book Your Consultation - {LAW_FIRM_NAME}",
+            body=email_body,
+            html=email_html
         )
         
         return {
             "success": True,
             "appointment_id": new_appointment.id,
-            "calendar_link": calendar_result.get("booking_url"),
-            "message": "Please use the calendar link to confirm your appointment time"
+            "calendar_link": booking_url,
+            "message": "Calendly booking link sent! Check your email to select your preferred time.",
+            "callback_scheduled": bool(appointment.client_phone and twilio_client)
         }
+    
+    # FALLBACK PATH: Manual scheduling
     else:
-        # Fallback: send email to law firm for manual scheduling
-        email_body = f"""New Consultation Request - ACTION REQUIRED
+        error_msg = calendar_result.get("error") if calendar_result else "Calendly not configured"
+        print(f"⚠️ FALLBACK: Using manual scheduling. Reason: {error_msg}")
+        
+        # Email to law firm
+        await send_email(
+            to=LAW_FIRM_EMAIL,
+            subject=f"🔔 New Consultation: {appointment.client_name} - {appointment.case_type}",
+            body=f"""New Consultation Request - ACTION REQUIRED
 
 Client Details:
 - Name: {appointment.client_name}
@@ -1280,23 +1502,43 @@ Client Details:
 - Case Type: {appointment.case_type or 'Not specified'}
 - Requested Time: {appointment.preferred_date or 'Not specified'}
 
-Additional Notes:
-{appointment.notes or 'None'}
+Notes:
+{appointment.notes if appointment.notes else 'No additional notes'}
 
-Appointment ID: {new_appointment.id}
+⚠️ Calendly auto-scheduling failed: {error_msg}
 
-ACTION: Please contact this client within 2 hours to confirm appointment availability."""
-        
-        await send_email(
-            to=LAW_FIRM_EMAIL,
-            subject=f"🔔 New Consultation: {appointment.client_name} - {appointment.case_type}",
-            body=email_body
+ACTION: Please contact this client within 2 hours to confirm appointment.
+
+Appointment ID: {new_appointment.id}""",
+            html=f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #dc2626;">🔔 New Consultation Request</h2>
+                <div style="background-color: #fee; padding: 15px; border-left: 4px solid #dc2626; margin: 20px 0;">
+                    <strong>ACTION REQUIRED:</strong> Contact client within 2 hours<br>
+                    <small>⚠️ Calendly auto-scheduling failed: {error_msg}</small>
+                </div>
+                <h3>Client Details:</h3>
+                <ul>
+                    <li><strong>Name:</strong> {appointment.client_name}</li>
+                    <li><strong>Email:</strong> <a href="mailto:{appointment.client_email}">{appointment.client_email}</a></li>
+                    <li><strong>Phone:</strong> <a href="tel:{appointment.client_phone or ''}">{appointment.client_phone or 'Not provided'}</a></li>
+                    <li><strong>Case Type:</strong> {appointment.case_type or 'Not specified'}</li>
+                    <li><strong>Requested Time:</strong> {appointment.preferred_date or 'Not specified'}</li>
+                </ul>
+                <h3>Additional Notes:</h3>
+                <pre style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; white-space: pre-wrap;">{appointment.notes or 'None'}</pre>
+                <p><small>Appointment ID: {new_appointment.id}</small></p>
+            </div>
+            """
         )
         
         # Email to client
-        client_email_body = f"""Dear {appointment.client_name},
+        await send_email(
+            to=appointment.client_email,
+            subject=f"✓ Consultation Request Received - {LAW_FIRM_NAME}",
+            body=f"""Dear {appointment.client_name},
 
-Thank you for requesting a consultation with our law firm.
+Thank you for requesting a consultation with {LAW_FIRM_NAME}.
 
 We've received your request for: {appointment.preferred_date or 'a consultation'}
 Case type: {appointment.case_type or 'General consultation'}
@@ -1305,27 +1547,38 @@ Our scheduling team will review your preferred time and contact you within 2 hou
 - Phone: {appointment.client_phone or 'Not provided'}
 - Email: {appointment.client_email}
 
-If your requested time isn't available, we'll suggest alternative times that work for you.
-
 Need immediate assistance? Call us at {LAW_FIRM_PHONE}
 
 Best regards,
-The Legal Team"""
-        
-        await send_email(
-            to=appointment.client_email,
-            subject="✓ Consultation Request Received - We'll Confirm Soon",
-            body=client_email_body
+{LAW_FIRM_NAME}""",
+            html=f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #16a34a;">✓ Consultation Request Received</h2>
+                <p>Dear {appointment.client_name},</p>
+                <p>Thank you for requesting a consultation with <strong>{LAW_FIRM_NAME}</strong>.</p>
+                <div style="background-color: #f0fdf4; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <p><strong>Requested:</strong> {appointment.preferred_date or 'a consultation'}</p>
+                    <p><strong>Case type:</strong> {appointment.case_type or 'General consultation'}</p>
+                </div>
+                <p>Our scheduling team will contact you within <strong>2 hours</strong> at:</p>
+                <ul>
+                    <li>Phone: {appointment.client_phone or 'Not provided'}</li>
+                    <li>Email: {appointment.client_email}</li>
+                </ul>
+                <p>Need immediate assistance? Call <a href="tel:{LAW_FIRM_PHONE}">{LAW_FIRM_PHONE}</a></p>
+                <p>Best regards,<br><strong>{LAW_FIRM_NAME}</strong></p>
+            </div>
+            """
         )
         
         return {
             "success": True,
             "appointment_id": new_appointment.id,
             "calendar_link": None,
-            "message": "Your consultation request has been received. We'll confirm your appointment within 2 hours."
+            "message": "Your consultation request has been received. We'll confirm your appointment within 2 hours.",
+            "callback_scheduled": bool(appointment.client_phone and twilio_client),
+            "fallback_reason": error_msg
         }
-        
-
 
 @app.get("/api/appointments/availability")
 async def get_availability(date: Optional[str] = None):
@@ -1371,7 +1624,6 @@ async def update_appointment_status(
     
     return {"success": True, "status": status}
 
-
 @app.post("/api/appointments/schedule-debug")
 async def schedule_appointment_debug(request: Request):
     """Debug endpoint to see what data is being sent"""
@@ -1379,151 +1631,67 @@ async def schedule_appointment_debug(request: Request):
     print("Received data:", body)
     return {"received": body}
 
-# ============================================
-# FOLLOW UP CALL
-# ============================================
+@app.post("/api/intake/complete")
+async def complete_intake(request: Request, db: Session = Depends(get_db)):
+    """Handle completed intake form with all collected data"""
+    data = await request.json()
+    
+    # Extract contact info from the intake data
+    client_name = data.get('client_name', 'Unknown')
+    client_email = data.get('client_email', '')
+    client_phone = data.get('client_phone', '')
+    
+    # Try to extract email from intake responses if not provided
+    if not client_email:
+        intake_text = json.dumps(data)
+        email_matches = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', intake_text)
+        if email_matches:
+            client_email = email_matches[0]
+    
+    # Extract case details
+    case_type = data.get('case_type', 'personal_injury')
+    preferred_date = data.get('pi_schedule', data.get('preferred_date', 'Not specified'))
+    
+    # Format intake data nicely
+    formatted_notes = f"""Intake Completed: {datetime.now(timezone.utc).strftime('%B %d, %Y at %I:%M %p')}
 
-@app.post("/api/appointments/{appointment_id}/schedule-callback")
-async def schedule_callback(
-    appointment_id: str,
-    callback_time: str,  # ISO format datetime
-    db: Session = Depends(get_db)
-):
-    """Schedule an automated callback for appointment confirmation"""
-    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
-    if not appointment:
-        raise HTTPException(status_code=404, detail="Appointment not found")
+Case Type: {case_type.replace('_', ' ').title()}
+
+Incident Details:
+- Date/Time: {data.get('pi_intro', 'Not specified')}
+- Injury Type: {data.get('pi_injury_type', 'Not specified')}
+- Injury Details: {data.get('pi_injury_details', 'N/A')}
+- Medical Treatment: {data.get('pi_medical_treatment', 'Not specified')}
+
+Legal Status:
+- Currently Has Attorney: {data.get('pi_has_attorney', 'Not specified')}
+
+Documents:
+- Documents Submitted: {data.get('pi_docs', 'Not specified')}
+
+Consultation Preference:
+- Type: {data.get('pi_consult', 'Not specified')}
+- Preferred Time: {preferred_date}"""
     
-    if not twilio_client or not appointment.client_phone:
-        return {"success": False, "error": "Phone service not configured or no client phone"}
-    
-    # Schedule the call using Twilio's scheduling
-    try:
-        call = twilio_client.calls.create(
-            to=appointment.client_phone,
-            from_=TWILIO_PHONE_NUMBER,
-            url=f"{os.getenv('BASE_URL', 'https://your-domain.com')}/api/twilio/appointment-confirmation?appointment_id={appointment_id}",
-            # Schedule for specific time if your Twilio account supports it
-        )
-        
-        return {
-            "success": True,
-            "call_sid": call.sid,
-            "message": f"Callback scheduled to {appointment.client_phone}"
-        }
-    except Exception as e:
-        print(f"Twilio callback error: {e}")
-        return {"success": False, "error": str(e)}
-    
-@app.post("/api/twilio/appointment-confirmation")
-async def appointment_confirmation_call(
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    """Handle automated appointment confirmation call"""
-    form_data = await request.form()
-    appointment_id = request.query_params.get("appointment_id")
-    
-    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
-    
-    response = VoiceResponse()
-    gather = Gather(
-        num_digits=1,
-        action=f'/api/twilio/confirm-appointment?appointment_id={appointment_id}',
-        timeout=10
+    # Create appointment request
+    appointment_request = AppointmentRequest(
+        client_name=client_name,
+        client_email=client_email,
+        client_phone=client_phone,
+        case_type=case_type.replace('_', ' ').title(),
+        preferred_date=preferred_date,
+        notes=formatted_notes
     )
     
-    message = f"""Hello {appointment.client_name}. This is a confirmation call from the law firm 
-    regarding your {appointment.case_type or 'consultation'} appointment scheduled for 
-    {appointment.scheduled_date.strftime('%B %d at %I:%M %p') if appointment.scheduled_date else 'your requested time'}.
-    
-    Press 1 to confirm this appointment.
-    Press 2 to request a different time.
-    Press 3 to speak with someone now."""
-    
-    gather.say(message, voice='alice')
-    response.append(gather)
-    
-    response.say("We didn't receive a response. We'll send you an email instead. Goodbye.")
-    
-    return str(response)
+    # Use the existing schedule_appointment function
+    return await schedule_appointment(appointment_request, db)
 
-@app.post("/api/twilio/confirm-appointment")
-async def confirm_appointment_response(
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    """Process appointment confirmation response"""
-    form_data = await request.form()
-    digits = form_data.get("Digits")
-    appointment_id = request.query_params.get("appointment_id")
-    
-    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
-    response = VoiceResponse()
-    
-    if digits == "1":
-        # Confirm appointment
-        appointment.status = "confirmed"
-        db.commit()
-        
-        response.say(
-            "Perfect! Your appointment is confirmed. You'll receive a confirmation email shortly. Thank you!",
-            voice='alice'
-        )
-        
-        # Send confirmation email
-        await send_email(
-            to=appointment.client_email,
-            subject="✅ Appointment Confirmed",
-            body=f"""Dear {appointment.client_name},
 
-Your consultation is CONFIRMED:
-📅 Date: {appointment.scheduled_date.strftime('%B %d, %Y at %I:%M %p') if appointment.scheduled_date else 'TBD'}
-📍 Location: [Office Address or Video Call Link]
-⏱️ Duration: 30 minutes
-
-What to bring:
-- Any relevant documents
-- List of questions
-- Photo ID
-
-Need to reschedule? Call {LAW_FIRM_PHONE}
-
-Best regards,
-The Legal Team"""
-        )
-        
-    elif digits == "2":
-        appointment.status = "rescheduling"
-        db.commit()
-        
-        response.say(
-            "No problem. We'll have someone call you within one hour to find a better time. Goodbye.",
-            voice='alice'
-        )
-        
-        # Alert law firm
-        await send_email(
-            to=LAW_FIRM_EMAIL,
-            subject=f"🔄 Reschedule Request: {appointment.client_name}",
-            body=f"Client requested to reschedule appointment {appointment_id}. Please call {appointment.client_phone} within 1 hour."
-        )
-        
-    elif digits == "3":
-        response.say(
-            "Transferring you now. Please hold.",
-            voice='alice'
-        )
-        response.dial(LAW_FIRM_PHONE)
-    else:
-        response.say("Invalid option. Goodbye.", voice='alice')
-    
-    return str(response)
 
 # ============================================
-# HEALTH CHECK
+# HEALTH CHECK & TEST ENDPOINTS
 # ============================================
-    
+
 @app.get("/health")
 async def health_check():
     return {
@@ -1534,9 +1702,226 @@ async def health_check():
             "stripe": bool(STRIPE_SECRET_KEY),
             "paypal": bool(PAYPAL_CLIENT_ID),
             "twilio": bool(TWILIO_ACCOUNT_SID),
-            "email": bool(SMTP_USER)
+            "resend": bool(RESEND_API_KEY),
+            "calendly": bool(CALENDLY_API_KEY)
         }
     }
+
+@app.post("/api/test/email")
+async def test_email_endpoint(email: str):
+    """Test Resend email configuration"""
+    success = await send_email(
+        to=email,
+        subject=f"Test Email from {LAW_FIRM_NAME}",
+        body="If you receive this, your Resend configuration is working correctly!",
+        html=f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #16a34a;">✅ Email Test Successful</h2>
+            <p>Your Resend configuration is working correctly!</p>
+            <p>Sent from: <strong>{LAW_FIRM_NAME}</strong></p>
+            <p><small>Test performed at {datetime.now(timezone.utc).isoformat()}</small></p>
+        </div>
+        """
+    )
     
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    if success:
+        return {"success": True, "message": f"Test email sent to {email}"}
+    else:
+        return {"success": False, "message": "Email failed - check Resend API key and configuration"}
+
+@app.post("/api/test/callback")
+async def test_callback_endpoint(phone: str, appointment_id: str = None):
+    """Test Twilio callback (for testing only)"""
+    if not twilio_client:
+        return {"success": False, "error": "Twilio not configured"}
+    
+    if not appointment_id:
+        db = SessionLocal()
+        test_appointment = Appointment(
+            client_id="test",
+            client_name="Test User",
+            client_email="test@example.com",
+            client_phone=phone,
+            case_type="Test Consultation",
+            status="pending"
+        )
+        db.add(test_appointment)
+        db.commit()
+        appointment_id = test_appointment.id
+        db.close()
+    
+    try:
+        call = twilio_client.calls.create(
+            to=phone,
+            from_=TWILIO_PHONE_NUMBER,
+            url=f"{BASE_URL}/api/twilio/appointment-confirmation?appointment_id={appointment_id}"
+        )
+        return {
+            "success": True,
+            "call_sid": call.sid,
+            "appointment_id": appointment_id,
+            "message": f"Test call initiated to {phone}"
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+    
+# Add this test endpoint to main.py to verify Calendly configuration
+
+@app.get("/api/test/calendly")
+async def test_calendly_config():
+    """Test Calendly API configuration and return diagnostic info"""
+    
+    if not CALENDLY_API_KEY:
+        return {
+            "success": False,
+            "error": "CALENDLY_API_KEY not set in environment variables",
+            "config": {
+                "CALENDLY_API_KEY": "NOT SET",
+                "CALENDLY_EVENT_TYPE": CALENDLY_EVENT_TYPE or "NOT SET",
+                "CALENDAR_PROVIDER": CALENDAR_PROVIDER
+            }
+        }
+    
+    try:
+        headers = {
+            "Authorization": f"Bearer {CALENDLY_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        # Test 1: Get user info
+        print("Testing Calendly API - Step 1: Get user info...")
+        user_response = requests.get(
+            "https://api.calendly.com/users/me",
+            headers=headers,
+            timeout=10
+        )
+        
+        if user_response.status_code != 200:
+            return {
+                "success": False,
+                "error": f"Calendly API authentication failed: {user_response.status_code}",
+                "response": user_response.text,
+                "config": {
+                    "CALENDLY_API_KEY": "SET (but invalid or expired)",
+                    "CALENDLY_EVENT_TYPE": CALENDLY_EVENT_TYPE or "NOT SET",
+                    "CALENDAR_PROVIDER": CALENDAR_PROVIDER
+                }
+            }
+        
+        user_data = user_response.json()
+        user_uri = user_data["resource"]["uri"]
+        user_name = user_data["resource"]["name"]
+        
+        print(f"✅ User authenticated: {user_name}")
+        
+        # Test 2: Get event types
+        print("Testing Calendly API - Step 2: Get event types...")
+        event_types_response = requests.get(
+            f"https://api.calendly.com/event_types?user={user_uri}",
+            headers=headers,
+            timeout=10
+        )
+        
+        if event_types_response.status_code != 200:
+            return {
+                "success": False,
+                "error": f"Could not fetch event types: {event_types_response.status_code}",
+                "user_info": {
+                    "name": user_name,
+                    "uri": user_uri
+                }
+            }
+        
+        event_types_data = event_types_response.json()
+        event_types = event_types_data.get("collection", [])
+        
+        if not event_types:
+            return {
+                "success": False,
+                "error": "No event types found. Please create at least one event type in Calendly.",
+                "user_info": {
+                    "name": user_name,
+                    "uri": user_uri
+                },
+                "instructions": "Go to https://calendly.com/event_types/user/me and create an event type"
+            }
+        
+        event_type_list = [
+            {
+                "name": et["name"],
+                "uri": et["uri"],
+                "active": et["active"],
+                "booking_url": et["scheduling_url"]
+            }
+            for et in event_types
+        ]
+        
+        print(f"✅ Found {len(event_types)} event types")
+        
+        # Test 3: Create a test scheduling link
+        print("Testing Calendly API - Step 3: Create scheduling link...")
+        test_event_type = event_types[0]["uri"]
+        
+        payload = {
+            "max_event_count": 1,
+            "owner": test_event_type,
+            "owner_type": "EventType"
+        }
+        
+        scheduling_response = requests.post(
+            "https://api.calendly.com/scheduling_links",
+            headers=headers,
+            json=payload,
+            timeout=10
+        )
+        
+        if scheduling_response.status_code == 201:
+            scheduling_data = scheduling_response.json()
+            booking_url = scheduling_data["resource"]["booking_url"]
+            
+            print(f"✅ Test scheduling link created: {booking_url}")
+            
+            return {
+                "success": True,
+                "message": "Calendly is properly configured and working!",
+                "user_info": {
+                    "name": user_name,
+                    "uri": user_uri
+                },
+                "event_types": event_type_list,
+                "test_booking_url": booking_url,
+                "config": {
+                    "CALENDLY_API_KEY": "SET ✅",
+                    "CALENDLY_EVENT_TYPE": CALENDLY_EVENT_TYPE or f"Using first available: {event_types[0]['name']}",
+                    "CALENDAR_PROVIDER": CALENDAR_PROVIDER
+                }
+            }
+        else:
+            return {
+                "success": False,
+                "error": f"Could not create scheduling link: {scheduling_response.status_code}",
+                "response": scheduling_response.text,
+                "user_info": {
+                    "name": user_name,
+                    "uri": user_uri
+                },
+                "event_types": event_type_list
+            }
+            
+    except requests.exceptions.Timeout:
+        return {
+            "success": False,
+            "error": "Calendly API timeout - check your internet connection"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Unexpected error: {str(e)}",
+            "type": type(e).__name__
+        }
+
+# ============================================
+# STATIC FILES (serve frontend)
+# ============================================
+
 app.mount("/", StaticFiles(directory=BASE_DIR, html=True), name="static")

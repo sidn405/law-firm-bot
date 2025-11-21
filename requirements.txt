@@ -43,3 +43,6 @@ httpx==0.25.2
 
 # Calendar
 requests==2.31.0
+
+# Salesforce
+simple-salesforce==1.12.6
