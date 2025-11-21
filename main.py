@@ -1229,7 +1229,7 @@ async def schedule_appointment(appointment: AppointmentRequest, db: Session = De
         client_email=appointment.client_email,
         client_phone=appointment.client_phone,
         case_type=appointment.case_type,
-        notes=appointment.notes,
+        notes=appointment.notes,  # Use parsed notes instead of raw JSON
         status="pending",
         calendar_event_id=calendar_result.get("event_id") if calendar_result else None,
         calendar_link=calendar_result.get("booking_url") if calendar_result else None
@@ -1318,8 +1318,7 @@ Client Details:
 - Case Type: {appointment.case_type or 'Not specified'}
 - Requested Time: {appointment.preferred_date or 'Not specified'}
 
-Additional Notes:
-{appointment.notes or 'None'}
+{appointment.notes if appointment.notes else 'No additional notes'}
 
 Appointment ID: {new_appointment.id}
 
@@ -1344,7 +1343,7 @@ ACTION: Please contact this client within 2 hours to confirm appointment availab
                     <li><strong>Requested Time:</strong> {appointment.preferred_date or 'Not specified'}</li>
                 </ul>
                 <h3>Additional Notes:</h3>
-                <p>{appointment.notes or 'None'}</p>
+                <pre style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; white-space: pre-wrap;">{appointment.notes or 'None'}</pre>
                 <p><small>Appointment ID: {new_appointment.id}</small></p>
             </div>
             """
@@ -1451,6 +1450,61 @@ async def schedule_appointment_debug(request: Request):
     body = await request.json()
     print("Received data:", body)
     return {"received": body}
+
+@app.post("/api/intake/complete")
+async def complete_intake(request: Request, db: Session = Depends(get_db)):
+    """Handle completed intake form with all collected data"""
+    data = await request.json()
+    
+    # Extract contact info from the intake data
+    client_name = data.get('client_name', 'Unknown')
+    client_email = data.get('client_email', '')
+    client_phone = data.get('client_phone', '')
+    
+    # Try to extract email from intake responses if not provided
+    if not client_email:
+        intake_text = json.dumps(data)
+        email_matches = re.findall(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', intake_text)
+        if email_matches:
+            client_email = email_matches[0]
+    
+    # Extract case details
+    case_type = data.get('case_type', 'personal_injury')
+    preferred_date = data.get('pi_schedule', data.get('preferred_date', 'Not specified'))
+    
+    # Format intake data nicely
+    formatted_notes = f"""Intake Completed: {datetime.now(timezone.utc).strftime('%B %d, %Y at %I:%M %p')}
+
+Case Type: {case_type.replace('_', ' ').title()}
+
+Incident Details:
+- Date/Time: {data.get('pi_intro', 'Not specified')}
+- Injury Type: {data.get('pi_injury_type', 'Not specified')}
+- Injury Details: {data.get('pi_injury_details', 'N/A')}
+- Medical Treatment: {data.get('pi_medical_treatment', 'Not specified')}
+
+Legal Status:
+- Currently Has Attorney: {data.get('pi_has_attorney', 'Not specified')}
+
+Documents:
+- Documents Submitted: {data.get('pi_docs', 'Not specified')}
+
+Consultation Preference:
+- Type: {data.get('pi_consult', 'Not specified')}
+- Preferred Time: {preferred_date}"""
+    
+    # Create appointment request
+    appointment_request = AppointmentRequest(
+        client_name=client_name,
+        client_email=client_email,
+        client_phone=client_phone,
+        case_type=case_type.replace('_', ' ').title(),
+        preferred_date=preferred_date,
+        notes=formatted_notes
+    )
+    
+    # Use the existing schedule_appointment function
+    return await schedule_appointment(appointment_request, db)
 
 # ============================================
 # HEALTH CHECK & TEST ENDPOINTS

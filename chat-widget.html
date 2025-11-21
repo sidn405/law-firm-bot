@@ -919,24 +919,55 @@
                 
                 // Parse contact info (expected format: name, phone, email)
                 const lines = contactInfo.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-                const name = lines[0] || 'Guest User';
-                const phone = lines[1] || null;
-                const email = lines[2] || 'no-email@example.com';
+                let name = 'Guest User';
+                let phone = null;
+                let email = 'no-email@example.com';
                 
-                // Validate email format
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                const validEmail = emailRegex.test(email) ? email : 'no-email@example.com';
+                // More flexible parsing
+                const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
+                const phoneRegex = /[\d\(\)\-\+\s]{10,}/;
+                
+                for (const line of lines) {
+                    if (emailRegex.test(line) && email === 'no-email@example.com') {
+                        email = line.match(emailRegex)[0];
+                    } else if (phoneRegex.test(line) && !phone) {
+                        phone = line.match(phoneRegex)[0].trim();
+                    } else if (!name || name === 'Guest User') {
+                        name = line;
+                    }
+                }
+                
+                // Format notes as human-readable text
+                const formattedNotes = `Intake Completed: ${new Date().toLocaleString()}
+
+Case Type: ${(collectedData['start'] || 'personal_injury').replace('_', ' ').toUpperCase()}
+
+Incident Details:
+- Date/Time: ${collectedData['pi_intro'] || 'Not specified'}
+- Injury Type: ${collectedData['pi_injury_type'] || 'Not specified'}
+- Injury Details: ${collectedData['pi_injury_details'] || 'N/A'}
+- Medical Treatment: ${collectedData['pi_medical_treatment'] || 'Not specified'}
+
+Legal Status:
+- Currently Has Attorney: ${collectedData['pi_has_attorney'] || 'Not specified'}
+
+Documents:
+- Documents Submitted: ${collectedData['pi_docs'] || 'Not specified'}
+
+Consultation Preference:
+- Type: ${collectedData['pi_consult'] || 'Not specified'}
+- Preferred Time: ${preferredTime}`;
                 
                 const response = await fetch(`${API_URL}/api/appointments/schedule`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         client_name: name,
-                        client_email: validEmail,
+                        client_email: email,
                         client_phone: phone,
                         preferred_date: preferredTime,
-                        case_type: collectedData['start'] || 'Personal Injury',
-                        notes: JSON.stringify(collectedData)
+                        case_type: (collectedData['start'] || 'Personal Injury').replace('_', ' '),
+                        notes: formattedNotes
                     })
                 });
                 
