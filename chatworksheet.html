@@ -918,23 +918,33 @@
                 const preferredTime = collectedData['pi_schedule'] || '';
                 
                 // Parse contact info (expected format: name, phone, email)
-                const lines = contactInfo.split('\n').map(l => l.trim());
-                const name = lines[0] || 'Guest';
-                const phone = lines[1] || '';
-                const email = lines[2] || '';
+                const lines = contactInfo.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                const name = lines[0] || 'Guest User';
+                const phone = lines[1] || null;
+                const email = lines[2] || 'no-email@example.com';
+                
+                // Validate email format
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                const validEmail = emailRegex.test(email) ? email : 'no-email@example.com';
                 
                 const response = await fetch(`${API_URL}/api/appointments/schedule`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         client_name: name,
-                        client_email: email,
+                        client_email: validEmail,
                         client_phone: phone,
                         preferred_date: preferredTime,
                         case_type: collectedData['start'] || 'Personal Injury',
                         notes: JSON.stringify(collectedData)
                     })
                 });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('Schedule error:', response.status, errorData);
+                    throw new Error(`HTTP ${response.status}: ${JSON.stringify(errorData)}`);
+                }
                 
                 const data = await response.json();
                 showTyping(false);
