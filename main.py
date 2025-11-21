@@ -1381,7 +1381,18 @@ async def schedule_appointment_debug(request: Request):
 # ============================================
 # HEALTH CHECK
 # ============================================
-
+@app.get("/api/admin/recreate-appointments")
+async def recreate_appointments():
+    """Force recreate appointments table"""
+    try:
+        # Drop the table
+        engine.execute("DROP TABLE IF EXISTS appointments CASCADE")
+        # Recreate with correct schema
+        Appointment.__table__.create(engine)
+        return {"success": True, "message": "Table recreated"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+    
 @app.get("/health")
 async def health_check():
     return {
