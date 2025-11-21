@@ -2430,6 +2430,168 @@ async def test_calendly_config():
             "type": type(e).__name__
         }
         
+# Add this simple test endpoint to your main.py to verify Salesforce is working
+
+@app.get("/api/salesforce/quick-test")
+async def quick_salesforce_test():
+    """Quick Salesforce connection test with detailed diagnostics"""
+    
+    print("\n" + "="*50)
+    print("SALESFORCE CONNECTION TEST")
+    print("="*50)
+    
+    # Check environment variables
+    config = {
+        "SALESFORCE_USERNAME": "SET ✅" if SALESFORCE_USERNAME else "NOT SET ❌",
+        "SALESFORCE_PASSWORD": "SET ✅" if SALESFORCE_PASSWORD else "NOT SET ❌",
+        "SALESFORCE_SECURITY_TOKEN": "SET ✅" if SALESFORCE_SECURITY_TOKEN else "NOT SET ❌",
+        "SALESFORCE_DOMAIN": SALESFORCE_DOMAIN or "NOT SET ❌"
+    }
+    
+    print("\n📋 Configuration:")
+    for key, value in config.items():
+        print(f"   {key}: {value}")
+    
+    # Check if all credentials are set
+    if not all([SALESFORCE_USERNAME, SALESFORCE_PASSWORD, SALESFORCE_SECURITY_TOKEN]):
+        return {
+            "success": False,
+            "error": "Missing Salesforce credentials",
+            "config": config,
+            "instructions": "Set SALESFORCE_USERNAME, SALESFORCE_PASSWORD, and SALESFORCE_SECURITY_TOKEN in Railway environment variables"
+        }
+    
+    # Test connection
+    try:
+        print("\n🔗 Attempting connection...")
+        
+        from simple_salesforce import Salesforce
+        
+        sf = Salesforce(
+            username=SALESFORCE_USERNAME,
+            password=SALESFORCE_PASSWORD,
+            security_token=SALESFORCE_SECURITY_TOKEN,
+            domain=SALESFORCE_DOMAIN
+        )
+        
+        print("✅ Connected successfully!")
+        
+        # Test basic queries
+        print("\n📊 Running test queries...")
+        
+        results = {}
+        
+        # Query Accounts
+        try:
+            accounts = sf.query("SELECT Id, Name FROM Account LIMIT 5")
+            results['accounts'] = {
+                'count': accounts['totalSize'],
+                'sample': accounts['records'][0]['Name'] if accounts['records'] else None
+            }
+            print(f"   ✅ Accounts: {accounts['totalSize']} found")
+        except Exception as e:
+            results['accounts'] = {'error': str(e)}
+            print(f"   ⚠️ Accounts query: {e}")
+        
+        # Query Leads
+        try:
+            leads = sf.query("SELECT Id, FirstName, LastName, Email, Status FROM Lead LIMIT 5")
+            results['leads'] = {
+                'count': leads['totalSize'],
+                'sample': f"{leads['records'][0].get('FirstName', '')} {leads['records'][0].get('LastName', '')}" if leads['records'] else None
+            }
+            print(f"   ✅ Leads: {leads['totalSize']} found")
+        except Exception as e:
+            results['leads'] = {'error': str(e)}
+            print(f"   ⚠️ Leads query: {e}")
+        
+        # Query Contacts
+        try:
+            contacts = sf.query("SELECT Id, FirstName, LastName, Email FROM Contact LIMIT 5")
+            results['contacts'] = {
+                'count': contacts['totalSize'],
+                'sample': f"{contacts['records'][0].get('FirstName', '')} {contacts['records'][0].get('LastName', '')}" if contacts['records'] else None
+            }
+            print(f"   ✅ Contacts: {contacts['totalSize']} found")
+        except Exception as e:
+            results['contacts'] = {'error': str(e)}
+            print(f"   ⚠️ Contacts query: {e}")
+        
+        # Query Cases
+        try:
+            cases = sf.query("SELECT Id, CaseNumber, Subject, Status FROM Case LIMIT 5")
+            results['cases'] = {
+                'count': cases['totalSize'],
+                'sample': cases['records'][0].get('Subject', '') if cases['records'] else None
+            }
+            print(f"   ✅ Cases: {cases['totalSize']} found")
+        except Exception as e:
+            results['cases'] = {'error': str(e)}
+            print(f"   ⚠️ Cases query: {e}")
+        
+        print("\n✅ ALL TESTS PASSED!")
+        print("="*50 + "\n")
+        
+        return {
+            "success": True,
+            "message": "🎉 Salesforce is connected and working perfectly!",
+            "username": SALESFORCE_USERNAME,
+            "domain": SALESFORCE_DOMAIN,
+            "data": results,
+            "next_steps": [
+                "✅ Connection verified",
+                "✅ Can query Salesforce objects",
+                "📝 Ready to create Leads from chatbot intake",
+                "🚀 Integration is live!"
+            ]
+        }
+        
+    except Exception as e:
+        error_message = str(e)
+        print(f"\n❌ Connection failed: {error_message}")
+        print("="*50 + "\n")
+        
+        # Provide helpful error messages
+        troubleshooting = []
+        
+        if "INVALID_LOGIN" in error_message or "Invalid username" in error_message:
+            troubleshooting = [
+                "❌ Invalid username, password, or security token",
+                "1. Double-check your username (must be exact Salesforce email)",
+                "2. Verify your password is correct",
+                "3. Make sure you're using the SECURITY TOKEN (from email), not your password",
+                "4. Security token changes when you reset your password",
+                "5. Try resetting your security token: Settings → Reset My Security Token"
+            ]
+        elif "NOT_AUTHORIZED" in error_message:
+            troubleshooting = [
+                "❌ User not authorized for API access",
+                "1. Go to Salesforce Setup → Users → Your User → Edit",
+                "2. Make sure 'API Enabled' checkbox is checked",
+                "3. Check if your profile has API access permissions"
+            ]
+        elif "INVALID_SESSION_ID" in error_message:
+            troubleshooting = [
+                "❌ Session expired or invalid",
+                "1. Reset your security token and update the environment variable",
+                "2. Restart your Railway app after updating credentials"
+            ]
+        else:
+            troubleshooting = [
+                "❌ Connection error",
+                "1. Verify all credentials are correct",
+                "2. Check if using correct domain (login vs test)",
+                "3. Ensure your Salesforce account is active",
+                "4. Check Railway logs for more details"
+            ]
+        
+        return {
+            "success": False,
+            "error": error_message,
+            "config": config,
+            "troubleshooting": troubleshooting
+        }
+        
 
 # ============================================
 # STATIC FILES (serve frontend)
