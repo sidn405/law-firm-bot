@@ -1385,11 +1385,17 @@ async def schedule_appointment_debug(request: Request):
 async def recreate_appointments():
     """Force recreate appointments table"""
     try:
+        from sqlalchemy import text
+        
         # Drop the table
-        engine.execute("DROP TABLE IF EXISTS appointments CASCADE")
+        with engine.connect() as conn:
+            conn.execute(text("DROP TABLE IF EXISTS appointments CASCADE"))
+            conn.commit()
+        
         # Recreate with correct schema
-        Appointment.__table__.create(engine)
-        return {"success": True, "message": "Table recreated"}
+        Appointment.__table__.create(engine, checkfirst=True)
+        
+        return {"success": True, "message": "Table recreated successfully"}
     except Exception as e:
         return {"success": False, "error": str(e)}
     
