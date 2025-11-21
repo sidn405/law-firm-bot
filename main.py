@@ -1358,7 +1358,7 @@ Best regards,
 
 @app.post("/api/appointments/schedule")
 async def schedule_appointment(appointment: AppointmentRequest, db: Session = Depends(get_db)):
-    """Schedule appointment and sync to Salesforce"""
+    """Schedule a consultation appointment with automatic Calendly integration"""
     
     print(f"📅 Scheduling appointment for: {appointment.client_name}")
     
@@ -1382,59 +1382,7 @@ async def schedule_appointment(appointment: AppointmentRequest, db: Session = De
         db.refresh(client)
         print(f"✅ Created new client: {client.id}")
     else:
-        print(f"✅ Found existing client: {client.id}")
-        
-        # Prepare data for Salesforce
-        client_data = {
-            'name': appointment.client_name,
-            'email': appointment.client_email,
-            'phone': appointment.client_phone,
-            'case_type': appointment.case_type or 'General Consultation',
-            'client_id': client.id
-        }
-        
-        # Parse intake data from notes
-        intake_data = {
-            'channel': 'web',
-            'preferred_date': appointment.preferred_date,
-            'case_type': appointment.case_type,
-            'notes': appointment.notes,
-            'appointment_id': new_appointment.id,
-            'scheduled_date': new_appointment.scheduled_date.isoformat() if new_appointment.scheduled_date else None
-        }
-        
-        # Check if contact already exists in Salesforce
-        existing = salesforce_service.search_by_email(appointment.client_email)
-        
-        if existing:
-            print(f"📊 Found existing Salesforce {existing['type']}: {existing['id']}")
-            
-            # If it's a Lead, you might want to update it or convert it
-            if existing['type'] == 'Lead':
-                salesforce_service.update_lead_status(
-                    existing['id'], 
-                    'Contacted',
-                    f"Appointment scheduled for {appointment.preferred_date}"
-                )
-            
-            # If it's a Contact, create a Case
-            elif existing['type'] == 'Contact':
-                case_id = salesforce_service.create_case(
-                    client_data,
-                    intake_data,
-                    contact_id=existing['id']
-                )
-                print(f"📊 Created Salesforce Case: {case_id}")
-        else:
-            # Create new Lead in Salesforce
-            print("📊 Creating new Salesforce Lead...")
-            lead_id = salesforce_service.create_lead(client_data, intake_data)
-            
-            if lead_id:
-                print(f"✅ Salesforce Lead created: {lead_id}")
-                # Optionally store the Salesforce ID in your database
-                # new_appointment.salesforce_lead_id = lead_id
-                # db.commit()
+        print(f"✅ Found existing client: {client.id}") 
     
     # Try to create Calendly invitation
     calendar_result = None
