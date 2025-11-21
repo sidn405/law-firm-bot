@@ -18,6 +18,7 @@ requests==2.31.0  # For PayPal
 
 # Email
 aiosmtplib==3.0.1
+resend>=2.19.0
 
 # Twilio (Phone/SMS)
 twilio==8.10.0
