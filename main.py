@@ -2429,6 +2429,7 @@ async def test_calendly_config():
             "error": f"Unexpected error: {str(e)}",
             "type": type(e).__name__
         }
+        
 
 # ============================================
 # STATIC FILES (serve frontend)

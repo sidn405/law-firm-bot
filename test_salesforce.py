@@ -8,10 +8,10 @@ import os
 from simple_salesforce import Salesforce
 
 # Load credentials from environment or replace with your values
-SALESFORCE_USERNAME = os.getenv("SALESFORCE_USERNAME", "your-email@example.com")
-SALESFORCE_PASSWORD = os.getenv("SALESFORCE_PASSWORD", "your-password")
-SALESFORCE_SECURITY_TOKEN = os.getenv("SALESFORCE_SECURITY_TOKEN", "your-token")
-SALESFORCE_DOMAIN = os.getenv("SALESFORCE_DOMAIN", "login")
+SALESFORCE_USERNAME = os.getenv("SALESFORCE_USERNAME")
+SALESFORCE_PASSWORD = os.getenv("SALESFORCE_PASSWORD")
+SALESFORCE_SECURITY_TOKEN = os.getenv("SALESFORCE_SECURITY_TOKEN")
+SALESFORCE_DOMAIN = os.getenv("SALESFORCE_DOMAIN")
 
 def test_connection():
     """Test Salesforce connection"""
