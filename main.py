@@ -1381,23 +1381,6 @@ async def schedule_appointment_debug(request: Request):
 # ============================================
 # HEALTH CHECK
 # ============================================
-@app.get("/api/admin/recreate-appointments")
-async def recreate_appointments():
-    """Force recreate appointments table"""
-    try:
-        from sqlalchemy import text
-        
-        # Drop the table
-        with engine.connect() as conn:
-            conn.execute(text("DROP TABLE IF EXISTS appointments CASCADE"))
-            conn.commit()
-        
-        # Recreate with correct schema
-        Appointment.__table__.create(engine, checkfirst=True)
-        
-        return {"success": True, "message": "Table recreated successfully"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
     
 @app.get("/health")
 async def health_check():
