@@ -3,7 +3,7 @@ LAW FIRM AI CHATBOT - BACKEND API
 FastAPI backend with OpenAI, Stripe, PayPal, Twilio, Resend Email, File Management
 """
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Request
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr
@@ -981,13 +981,12 @@ async def handle_voice_call():
 
 # Replace the Twilio callback endpoints in main.py with these enhanced versions
 
-@app.post("/api/twilio/appointment-confirmation")
+@app.api_route("/api/twilio/appointment-confirmation", methods=["GET", "POST"])
 async def appointment_confirmation_call(
     request: Request,
     db: Session = Depends(get_db)
 ):
     """Handle automated appointment confirmation call with full details"""
-    form_data = await request.form()
     appointment_id = request.query_params.get("appointment_id")
     
     print(f"📞 Incoming confirmation call for appointment: {appointment_id}")
@@ -999,13 +998,13 @@ async def appointment_confirmation_call(
     if not appointment:
         print(f"❌ Appointment not found: {appointment_id}")
         response.say("We're sorry, we couldn't find your appointment. Please call our office.", voice='alice')
-        return str(response)
+        return Response(content=str(response), media_type="application/xml")
     
     print(f"✅ Found appointment for {appointment.client_name}")
     
     gather = Gather(
         num_digits=1,
-        action=f'/api/twilio/confirm-appointment?appointment_id={appointment_id}',
+        action=f'{BASE_URL}/api/twilio/confirm-appointment?appointment_id={appointment_id}',
         timeout=10
     )
     
@@ -1015,18 +1014,22 @@ async def appointment_confirmation_call(
     
     # Parse notes to extract key details
     notes = appointment.notes or ""
-    injury_type = "not specified"
-    incident_date = "not specified"
+    injury_type = "your injury"
+    incident_date = "recently"
     
     if "Injury Type:" in notes:
         try:
-            injury_type = notes.split("Injury Type:")[1].split("\n")[0].strip()
+            injury_line = notes.split("Injury Type:")[1].split("\n")[0].strip()
+            if injury_line and len(injury_line) < 50:
+                injury_type = injury_line
         except:
             pass
     
     if "Date/Time:" in notes:
         try:
-            incident_date = notes.split("Date/Time:")[1].split("\n")[0].strip()
+            incident_line = notes.split("Date/Time:")[1].split("\n")[0].strip()
+            if incident_line and len(incident_line) < 50:
+                incident_date = incident_line
         except:
             pass
     
@@ -1034,18 +1037,11 @@ async def appointment_confirmation_call(
 
 We have you scheduled for {date_time}.
 
-Based on your intake, this is regarding a {injury_type} that occurred {incident_date}.
-
-Our attorney will review:
-- Your incident details
-- Medical treatment received
-- Potential case value
-- Next steps for your claim
+Based on your intake, this is regarding {injury_type} that occurred {incident_date}.
 
 To confirm this appointment, press 1.
 To request a different time, press 2.
-To speak with someone now, press 3.
-To hear these options again, press 9."""
+To speak with someone now, press 3."""
     
     gather.say(message, voice='alice')
     response.append(gather)
@@ -1053,17 +1049,19 @@ To hear these options again, press 9."""
     # Fallback if no response
     response.say("We didn't receive a response. We'll send you an email instead. Thank you, goodbye.", voice='alice')
     
-    return str(response)
+    return Response(content=str(response), media_type="application/xml")
 
 
-@app.post("/api/twilio/confirm-appointment")
+@app.api_route("/api/twilio/confirm-appointment", methods=["GET", "POST"])
 async def confirm_appointment_response(
     request: Request,
     db: Session = Depends(get_db)
 ):
     """Process appointment confirmation response"""
-    form_data = await request.form()
-    digits = form_data.get("Digits")
+    
+    # Get form data from Twilio
+    form = await request.form()
+    digits = form.get("Digits")
     appointment_id = request.query_params.get("appointment_id")
     
     print(f"📞 Received response: {digits} for appointment: {appointment_id}")
@@ -1072,8 +1070,9 @@ async def confirm_appointment_response(
     response = VoiceResponse()
     
     if not appointment:
+        print(f"❌ Appointment not found: {appointment_id}")
         response.say("We couldn't find your appointment. Please call our office.", voice='alice')
-        return str(response)
+        return Response(content=str(response), media_type="application/xml")
     
     if digits == "1":
         # CONFIRM APPOINTMENT
@@ -1086,10 +1085,7 @@ async def confirm_appointment_response(
         response.say(
             f"""Perfect! Your {appointment.case_type or 'consultation'} is confirmed for {date_str}.
             
-            You'll receive a confirmation email with:
-            - Office address and directions
-            - What to bring to your consultation
-            - Our attorney's direct contact information
+            You'll receive a confirmation email with our office address, what to bring, and our attorney's contact information.
             
             We look forward to meeting with you. Thank you, goodbye.""",
             voice='alice'
@@ -1110,37 +1106,17 @@ Duration: 30-45 minutes
 📍 LOCATION:
 {LAW_FIRM_NAME}
 [Office Address Here]
-[Suite Number]
-
-🚗 PARKING:
-[Parking instructions]
 
 📋 WHAT TO BRING:
-✓ Photo ID (driver's license or state ID)
+✓ Photo ID
 ✓ Any documents related to your case
-✓ Medical records or bills (if applicable)
-✓ Police report (if applicable)
+✓ Medical records (if applicable)
 ✓ Insurance information
-✓ List of questions you want to ask
 
-👔 WHAT TO EXPECT:
-Our attorney will:
-- Review your case details
-- Assess the strength of your claim
-- Explain your legal options
-- Discuss potential case value
-- Answer all your questions
-- Outline next steps if you decide to proceed
-
-📱 NEED TO RESCHEDULE?
-Call us at {LAW_FIRM_PHONE}
-Or email {LAW_FIRM_EMAIL}
-
-We look forward to helping you with your {appointment.case_type or 'legal matter'}.
+Need to reschedule? Call {LAW_FIRM_PHONE}
 
 Best regards,
-{LAW_FIRM_NAME}
-{LAW_FIRM_PHONE}""",
+{LAW_FIRM_NAME}""",
             html=f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                 <div style="background-color: #10b981; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
@@ -1158,41 +1134,25 @@ Best regards,
                     <h3 style="color: #1f2937;">📍 Location</h3>
                     <p style="background-color: white; padding: 15px; border-radius: 6px;">
                         <strong>{LAW_FIRM_NAME}</strong><br>
-                        [Office Address Here]<br>
-                        [Suite Number]<br>
-                        <a href="https://maps.google.com" style="color: #2563eb;">Get Directions</a>
+                        [Office Address Here]
                     </p>
                     
                     <h3 style="color: #1f2937;">📋 What to Bring</h3>
                     <ul style="background-color: white; padding: 20px; border-radius: 6px;">
-                        <li>Photo ID (driver's license or state ID)</li>
-                        <li>Any documents related to your case</li>
-                        <li>Medical records or bills (if applicable)</li>
-                        <li>Police report (if applicable)</li>
+                        <li>Photo ID</li>
+                        <li>Documents related to your case</li>
+                        <li>Medical records (if applicable)</li>
                         <li>Insurance information</li>
-                        <li>List of questions you want to ask</li>
                     </ul>
                     
-                    <h3 style="color: #1f2937;">👔 What to Expect</h3>
-                    <p style="background-color: white; padding: 15px; border-radius: 6px;">
-                        Our attorney will review your case details, assess the strength of your claim, 
-                        explain your legal options, and discuss potential case value. This is your opportunity 
-                        to ask questions and learn about the legal process.
-                    </p>
-                    
-                    <div style="background-color: #dbeafe; padding: 15px; border-radius: 6px; margin-top: 20px; border-left: 4px solid #2563eb;">
+                    <div style="background-color: #dbeafe; padding: 15px; border-radius: 6px; margin-top: 20px;">
                         <p style="margin: 0;"><strong>📱 Need to reschedule?</strong></p>
-                        <p style="margin: 10px 0 0 0;">
-                            Call <a href="tel:{LAW_FIRM_PHONE}" style="color: #2563eb;">{LAW_FIRM_PHONE}</a><br>
-                            Email <a href="mailto:{LAW_FIRM_EMAIL}" style="color: #2563eb;">{LAW_FIRM_EMAIL}</a>
-                        </p>
+                        <p style="margin: 10px 0 0 0;">Call <a href="tel:{LAW_FIRM_PHONE}">{LAW_FIRM_PHONE}</a></p>
                     </div>
                 </div>
                 
                 <div style="background-color: #1f2937; color: white; padding: 15px; border-radius: 0 0 8px 8px; text-align: center;">
-                    <p style="margin: 0;">We look forward to helping you!</p>
-                    <p style="margin: 5px 0;"><strong>{LAW_FIRM_NAME}</strong></p>
-                    <p style="margin: 5px 0;">{LAW_FIRM_PHONE}</p>
+                    <p style="margin: 0;"><strong>{LAW_FIRM_NAME}</strong> • {LAW_FIRM_PHONE}</p>
                 </div>
             </div>
             """
@@ -1205,13 +1165,7 @@ Best regards,
         db.commit()
         
         response.say(
-            f"""No problem, {appointment.client_name}. 
-            
-            We'll have someone from our scheduling team call you within one hour to find a better time that works for you.
-            
-            If you need immediate assistance, please call our office at {LAW_FIRM_PHONE}.
-            
-            Thank you, goodbye.""",
+            f"""No problem. We'll have someone call you within one hour to find a better time. Thank you, goodbye.""",
             voice='alice'
         )
         
@@ -1224,27 +1178,21 @@ Best regards,
 Client: {appointment.client_name}
 Phone: {appointment.client_phone}
 Email: {appointment.client_email}
-Original Time: {appointment.scheduled_date.strftime('%B %d, %Y at %I:%M %p') if appointment.scheduled_date else 'Not set'}
-Case Type: {appointment.case_type}
 
-⏰ ACTION REQUIRED: Call client within 1 hour to reschedule.
+⏰ ACTION: Call within 1 hour
 
 Appointment ID: {appointment_id}""",
             html=f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #dc2626;">🔄 RESCHEDULE REQUEST</h2>
-                <div style="background-color: #fee; padding: 15px; border-left: 4px solid #dc2626; margin: 20px 0;">
-                    <strong>⏰ ACTION REQUIRED:</strong> Call client within 1 hour to reschedule
+                <div style="background-color: #fee; padding: 15px; border-left: 4px solid #dc2626;">
+                    <strong>⏰ Call within 1 hour</strong>
                 </div>
-                <h3>Client Details:</h3>
                 <ul>
                     <li><strong>Name:</strong> {appointment.client_name}</li>
                     <li><strong>Phone:</strong> <a href="tel:{appointment.client_phone}">{appointment.client_phone}</a></li>
                     <li><strong>Email:</strong> {appointment.client_email}</li>
-                    <li><strong>Case Type:</strong> {appointment.case_type}</li>
-                    <li><strong>Original Time:</strong> {appointment.scheduled_date.strftime('%B %d, %Y at %I:%M %p') if appointment.scheduled_date else 'Not set'}</li>
                 </ul>
-                <p><small>Appointment ID: {appointment_id}</small></p>
             </div>
             """
         )
@@ -1252,20 +1200,13 @@ Appointment ID: {appointment_id}""",
     elif digits == "3":
         # SPEAK WITH SOMEONE NOW
         print(f"📞 Transfer requested by {appointment.client_name}")
-        response.say(
-            "Transferring you to our office now. Please hold.",
-            voice='alice'
-        )
+        response.say("Transferring you now. Please hold.", voice='alice')
         response.dial(LAW_FIRM_PHONE)
         
-    elif digits == "9":
-        # REPEAT OPTIONS
-        return await appointment_confirmation_call(request, db)
-        
     else:
-        response.say("I didn't understand that option. Goodbye.", voice='alice')
+        response.say("Invalid option. Goodbye.", voice='alice')
     
-    return str(response)
+    return Response(content=str(response), media_type="application/xml")
 
 @app.post("/api/twilio/process-speech")
 async def process_speech(SpeechResult: str = Form(...), CallSid: str = Form(...), db: Session = Depends(get_db)):
