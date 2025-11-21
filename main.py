@@ -3,7 +3,7 @@ LAW FIRM AI CHATBOT - BACKEND API
 FastAPI backend with OpenAI, Stripe, PayPal, Twilio, Email, File Management
 """
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr
@@ -239,7 +239,7 @@ class EmailRequest(BaseModel):
     
 class AppointmentRequest(BaseModel):
     client_name: str
-    client_email: EmailStr
+    client_email: str  # Changed from EmailStr to str
     client_phone: Optional[str] = None
     preferred_date: Optional[str] = None
     preferred_time: Optional[str] = None
@@ -1189,47 +1189,55 @@ async def send_email_endpoint(email: EmailRequest):
 async def schedule_appointment(appointment: AppointmentRequest, db: Session = Depends(get_db)):
     """Schedule a consultation appointment"""
     
-    try:
-        client = db.query(Client).filter(Client.email == appointment.client_email).first()
-        if not client:
-            client = Client(
-                name=appointment.client_name,
-                email=appointment.client_email,
-                phone=appointment.client_phone,
-                case_type=appointment.case_type
-            )
-            db.add(client)
-            db.commit()
-            db.refresh(client)
-        
-        calendar_result = None
-        if CALENDAR_PROVIDER == "calendly":
-            calendar_result = await calendar_service.create_calendly_invitation({
-                "name": appointment.client_name,
-                "email": appointment.client_email,
-                "phone": appointment.client_phone,
-                "notes": appointment.notes
-            })
-        
-        new_appointment = Appointment(
-            client_id=client.id,
-            client_name=appointment.client_name,
-            client_email=appointment.client_email,
-            client_phone=appointment.client_phone,
-            case_type=appointment.case_type,
-            notes=appointment.notes,
-            status="pending",
-            calendar_event_id=calendar_result.get("event_id") if calendar_result else None,
-            calendar_link=calendar_result.get("booking_url") if calendar_result else None
+    # Validate email
+    email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+    if not re.match(email_regex, appointment.client_email):
+        # Use a placeholder email if invalid
+        appointment.client_email = f"contact_{uuid.uuid4().hex[:8]}@lawfirm-placeholder.com"
+    
+    # Get or create client
+    client = db.query(Client).filter(Client.email == appointment.client_email).first()
+    if not client:
+        client = Client(
+            name=appointment.client_name,
+            email=appointment.client_email,
+            phone=appointment.client_phone,
+            case_type=appointment.case_type
         )
-        
-        db.add(new_appointment)
+        db.add(client)
         db.commit()
-        db.refresh(new_appointment)
-        
-        # Send confirmation email
-        if calendar_result and calendar_result.get("success"):
-            email_body = f"""Dear {appointment.client_name},
+        db.refresh(client)
+    
+    # Create calendar invitation based on provider
+    calendar_result = None
+    if CALENDAR_PROVIDER == "calendly":
+        calendar_result = await calendar_service.create_calendly_invitation({
+            "name": appointment.client_name,
+            "email": appointment.client_email,
+            "phone": appointment.client_phone,
+            "notes": appointment.notes
+        })
+    
+    # Create appointment record
+    new_appointment = Appointment(
+        client_id=client.id,
+        client_name=appointment.client_name,
+        client_email=appointment.client_email,
+        client_phone=appointment.client_phone,
+        case_type=appointment.case_type,
+        notes=appointment.notes,
+        status="pending",
+        calendar_event_id=calendar_result.get("event_id") if calendar_result else None,
+        calendar_link=calendar_result.get("booking_url") if calendar_result else None
+    )
+    
+    db.add(new_appointment)
+    db.commit()
+    db.refresh(new_appointment)
+    
+    # Send confirmation email
+    if calendar_result and calendar_result.get("success"):
+        email_body = f"""Dear {appointment.client_name},
 
 Thank you for choosing our law firm for your {appointment.case_type or 'legal'} consultation.
 
@@ -1247,22 +1255,22 @@ Questions? Call us at {LAW_FIRM_PHONE} or reply to this email.
 
 Best regards,
 The Legal Team"""
-            
-            await send_email(
-                to=appointment.client_email,
-                subject="📅 Complete Your Consultation Booking - Action Required",
-                body=email_body
-            )
-            
-            return {
-                "success": True,
-                "appointment_id": new_appointment.id,
-                "calendar_link": calendar_result.get("booking_url"),
-                "message": "Please use the calendar link to confirm your appointment time"
-            }
-        else:
-            # Fallback: send email to law firm for manual scheduling
-            email_body = f"""New Consultation Request - ACTION REQUIRED
+        
+        await send_email(
+            to=appointment.client_email,
+            subject="📅 Complete Your Consultation Booking - Action Required",
+            body=email_body
+        )
+        
+        return {
+            "success": True,
+            "appointment_id": new_appointment.id,
+            "calendar_link": calendar_result.get("booking_url"),
+            "message": "Please use the calendar link to confirm your appointment time"
+        }
+    else:
+        # Fallback: send email to law firm for manual scheduling
+        email_body = f"""New Consultation Request - ACTION REQUIRED
 
 Client Details:
 - Name: {appointment.client_name}
@@ -1277,15 +1285,15 @@ Additional Notes:
 Appointment ID: {new_appointment.id}
 
 ACTION: Please contact this client within 2 hours to confirm appointment availability."""
-            
-            await send_email(
-                to=LAW_FIRM_EMAIL,
-                subject=f"🔔 New Consultation: {appointment.client_name} - {appointment.case_type}",
-                body=email_body
-            )
-            
-            # Email to client
-            client_email_body = f"""Dear {appointment.client_name},
+        
+        await send_email(
+            to=LAW_FIRM_EMAIL,
+            subject=f"🔔 New Consultation: {appointment.client_name} - {appointment.case_type}",
+            body=email_body
+        )
+        
+        # Email to client
+        client_email_body = f"""Dear {appointment.client_name},
 
 Thank you for requesting a consultation with our law firm.
 
@@ -1302,23 +1310,21 @@ Need immediate assistance? Call us at {LAW_FIRM_PHONE}
 
 Best regards,
 The Legal Team"""
-            
-            await send_email(
-                to=appointment.client_email,
-                subject="✓ Consultation Request Received - We'll Confirm Soon",
-                body=client_email_body
-            )
-            
-            return {
-                "success": True,
-                "appointment_id": new_appointment.id,
-                "calendar_link": None,
-                "message": "Your consultation request has been received. We'll confirm your appointment within 2 hours."
-            }
         
-    except Exception as e:
-        print(f"Appointment scheduling error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        await send_email(
+            to=appointment.client_email,
+            subject="✓ Consultation Request Received - We'll Confirm Soon",
+            body=client_email_body
+        )
+        
+        return {
+            "success": True,
+            "appointment_id": new_appointment.id,
+            "calendar_link": None,
+            "message": "Your consultation request has been received. We'll confirm your appointment within 2 hours."
+        }
+        
+
 
 @app.get("/api/appointments/availability")
 async def get_availability(date: Optional[str] = None):
@@ -1364,16 +1370,17 @@ async def update_appointment_status(
     
     return {"success": True, "status": status}
 
+
+@app.post("/api/appointments/schedule-debug")
+async def schedule_appointment_debug(request: Request):
+    """Debug endpoint to see what data is being sent"""
+    body = await request.json()
+    print("Received data:", body)
+    return {"received": body}
+
 # ============================================
 # HEALTH CHECK
 # ============================================
-
-@app.post("/api/admin/recreate-db")
-async def recreate_database():
-    """Temporary endpoint to recreate database tables"""
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    return {"success": True, "message": "Database tables recreated"}
 
 @app.get("/health")
 async def health_check():
