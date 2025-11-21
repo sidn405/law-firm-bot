@@ -270,13 +270,109 @@ async def send_email(to: str, subject: str, body: str, html: str = None):
 # CALENDAR SERVICE
 # ============================================
 
+# Replace the CalendarService class in main.py with this improved version
+
 class CalendarService:
     """Manages calendar integrations for appointment scheduling"""
     
     @staticmethod
     async def create_calendly_invitation(appointment_data: dict) -> Dict:
         """Create Calendly scheduling link"""
-        if not CALENDLY_API_KEY or not CALENDLY_EVENT_TYPE:
+        if not CALENDLY_API_KEY:
+            print("ERROR: CALENDLY_API_KEY not configured")
+            return {"success": False, "error": "Calendly not configured"}
+        
+        try:
+            headers = {
+                "Authorization": f"Bearer {CALENDLY_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            
+            # First, get the user info to get the proper URI
+            user_response = requests.get(
+                "https://api.calendly.com/users/me",
+                headers=headers,
+                timeout=10
+            )
+            
+            if user_response.status_code != 200:
+                print(f"Calendly user API error: {user_response.status_code} - {user_response.text}")
+                return {"success": False, "error": f"Calendly user API error: {user_response.status_code}"}
+            
+            user_data = user_response.json()
+            user_uri = user_data["resource"]["uri"]
+            
+            print(f"Calendly user URI: {user_uri}")
+            
+            # If CALENDLY_EVENT_TYPE is set, use it; otherwise get the first available event type
+            if CALENDLY_EVENT_TYPE:
+                event_type_uri = CALENDLY_EVENT_TYPE
+            else:
+                # Get event types for this user
+                event_types_response = requests.get(
+                    f"https://api.calendly.com/event_types?user={user_uri}",
+                    headers=headers,
+                    timeout=10
+                )
+                
+                if event_types_response.status_code != 200:
+                    print(f"Calendly event types API error: {event_types_response.status_code}")
+                    return {"success": False, "error": "Could not fetch event types"}
+                
+                event_types_data = event_types_response.json()
+                if not event_types_data.get("collection"):
+                    print("No Calendly event types found")
+                    return {"success": False, "error": "No event types configured"}
+                
+                # Use the first active event type
+                event_type_uri = event_types_data["collection"][0]["uri"]
+                print(f"Using event type: {event_type_uri}")
+            
+            # Create a single-use scheduling link
+            payload = {
+                "max_event_count": 1,
+                "owner": event_type_uri,
+                "owner_type": "EventType"
+            }
+            
+            response = requests.post(
+                "https://api.calendly.com/scheduling_links",
+                headers=headers,
+                json=payload,
+                timeout=10
+            )
+            
+            print(f"Calendly scheduling link response: {response.status_code}")
+            
+            if response.status_code == 201:
+                data = response.json()
+                booking_url = data["resource"]["booking_url"]
+                print(f"✅ Calendly booking URL created: {booking_url}")
+                
+                return {
+                    "success": True,
+                    "booking_url": booking_url,
+                    "event_id": None
+                }
+            else:
+                error_text = response.text
+                print(f"❌ Calendly API error: {response.status_code} - {error_text}")
+                return {"success": False, "error": f"Calendly API error: {response.status_code}"}
+                
+        except requests.exceptions.Timeout:
+            print("Calendly API timeout")
+            return {"success": False, "error": "Calendly API timeout"}
+        except requests.exceptions.RequestException as e:
+            print(f"Calendly API request error: {e}")
+            return {"success": False, "error": str(e)}
+        except Exception as e:
+            print(f"Unexpected Calendly error: {e}")
+            return {"success": False, "error": str(e)}
+    
+    @staticmethod
+    async def get_available_slots(date: str = None) -> Dict:
+        """Get available appointment slots"""
+        if not CALENDLY_API_KEY:
             return {"success": False, "error": "Calendly not configured"}
         
         try:
@@ -287,72 +383,35 @@ class CalendarService:
             
             user_response = requests.get(
                 "https://api.calendly.com/users/me",
-                headers=headers
-            )
-            user_data = user_response.json()
-            
-            payload = {
-                "max_event_count": 1,
-                "owner": user_data["resource"]["uri"],
-                "owner_type": "EventType"
-            }
-            
-            response = requests.post(
-                "https://api.calendly.com/scheduling_links",
                 headers=headers,
-                json=payload
+                timeout=10
             )
             
-            if response.status_code == 201:
-                data = response.json()
-                return {
-                    "success": True,
-                    "booking_url": data["resource"]["booking_url"],
-                    "event_id": None
-                }
+            if user_response.status_code != 200:
+                return {"success": False, "error": "Could not fetch user info"}
+            
+            user_data = user_response.json()
+            user_uri = user_data["resource"]["uri"]
+            
+            params = {"user": user_uri, "count": 10}
+            if date:
+                params["min_start_time"] = date
+            
+            response = requests.get(
+                "https://api.calendly.com/event_type_available_times",
+                headers=headers,
+                params=params,
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                return {"success": True, "slots": response.json()}
             else:
-                return {"success": False, "error": response.text}
+                return {"success": False, "error": "Could not fetch availability"}
                 
         except Exception as e:
-            print(f"Calendly error: {e}")
+            print(f"Error fetching availability: {e}")
             return {"success": False, "error": str(e)}
-    
-    @staticmethod
-    async def get_available_slots(date: str = None) -> Dict:
-        """Get available appointment slots"""
-        if CALENDAR_PROVIDER == "calendly" and CALENDLY_API_KEY:
-            try:
-                headers = {
-                    "Authorization": f"Bearer {CALENDLY_API_KEY}",
-                    "Content-Type": "application/json"
-                }
-                
-                user_response = requests.get(
-                    "https://api.calendly.com/users/me",
-                    headers=headers
-                )
-                user_data = user_response.json()
-                user_uri = user_data["resource"]["uri"]
-                
-                params = {"user": user_uri, "count": 10}
-                if date:
-                    params["min_start_time"] = date
-                
-                response = requests.get(
-                    "https://api.calendly.com/event_type_available_times",
-                    headers=headers,
-                    params=params
-                )
-                
-                if response.status_code == 200:
-                    return {"success": True, "slots": response.json()}
-                else:
-                    return {"success": False, "error": "Could not fetch availability"}
-                    
-            except Exception as e:
-                return {"success": False, "error": str(e)}
-        
-        return {"success": False, "error": "Calendar not configured"}
 
 calendar_service = CalendarService()
 
@@ -1196,12 +1255,17 @@ Best regards,
 
 @app.post("/api/appointments/schedule")
 async def schedule_appointment(appointment: AppointmentRequest, db: Session = Depends(get_db)):
-    """Schedule a consultation appointment"""
+    """Schedule a consultation appointment with automatic Calendly integration"""
     
+    print(f"📅 Scheduling appointment for: {appointment.client_name}")
+    
+    # Validate and clean email
     email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
     if not re.match(email_regex, appointment.client_email):
+        print(f"⚠️ Invalid email provided: {appointment.client_email}")
         appointment.client_email = f"contact_{uuid.uuid4().hex[:8]}@lawfirm-placeholder.com"
     
+    # Find or create client
     client = db.query(Client).filter(Client.email == appointment.client_email).first()
     if not client:
         client = Client(
@@ -1213,52 +1277,66 @@ async def schedule_appointment(appointment: AppointmentRequest, db: Session = De
         db.add(client)
         db.commit()
         db.refresh(client)
+        print(f"✅ Created new client: {client.id}")
+    else:
+        print(f"✅ Found existing client: {client.id}")
     
+    # Try to create Calendly invitation
     calendar_result = None
-    if CALENDAR_PROVIDER == "calendly":
+    if CALENDAR_PROVIDER == "calendly" and CALENDLY_API_KEY:
+        print("🔗 Attempting to create Calendly invitation...")
         calendar_result = await calendar_service.create_calendly_invitation({
             "name": appointment.client_name,
             "email": appointment.client_email,
             "phone": appointment.client_phone,
             "notes": appointment.notes
         })
+        print(f"Calendly result: {calendar_result}")
+    else:
+        print(f"⚠️ Calendly not configured. PROVIDER={CALENDAR_PROVIDER}, API_KEY={'SET' if CALENDLY_API_KEY else 'NOT SET'}")
     
+    # Create appointment record
     new_appointment = Appointment(
         client_id=client.id,
         client_name=appointment.client_name,
         client_email=appointment.client_email,
         client_phone=appointment.client_phone,
         case_type=appointment.case_type,
-        notes=appointment.notes,  # Use parsed notes instead of raw JSON
+        notes=appointment.notes,
         status="pending",
         calendar_event_id=calendar_result.get("event_id") if calendar_result else None,
-        calendar_link=calendar_result.get("booking_url") if calendar_result else None
+        calendar_link=calendar_result.get("booking_url") if calendar_result and calendar_result.get("success") else None
     )
     
     db.add(new_appointment)
     db.commit()
     db.refresh(new_appointment)
+    print(f"✅ Appointment created: {new_appointment.id}")
     
-    # Schedule callback - 300 seconds (5 min) for testing, 7200 (2 hours) for production
+    # Schedule callback for 5 minutes (300s) for testing, or 2 hours (7200s) for production
     CALLBACK_DELAY = 300  # Change to 7200 for production
     if appointment.client_phone and twilio_client:
         asyncio.create_task(schedule_callback_task(new_appointment.id, CALLBACK_DELAY, db))
-        print(f"Callback scheduled for {CALLBACK_DELAY} seconds from now")
+        print(f"📞 Callback scheduled for {CALLBACK_DELAY} seconds from now")
     
-    if calendar_result and calendar_result.get("success"):
+    # SUCCESS PATH: Calendly link available
+    if calendar_result and calendar_result.get("success") and calendar_result.get("booking_url"):
+        booking_url = calendar_result.get("booking_url")
+        print(f"✅ SUCCESS: Calendly booking URL available: {booking_url}")
+        
         email_body = f"""Dear {appointment.client_name},
 
 Thank you for choosing {LAW_FIRM_NAME} for your {appointment.case_type or 'legal'} consultation.
 
-NEXT STEP: Please click the link below to select your preferred appointment time:
-{calendar_result.get('booking_url')}
+🔗 BOOK YOUR APPOINTMENT NOW:
+Click here to select your preferred time: {booking_url}
 
 Your requested time: {appointment.preferred_date or 'Not specified'}
 
 Once you complete your booking, you'll receive:
 ✅ Instant calendar confirmation
 📧 Email reminder 24 hours before
-📱 Text message reminder (if you provided your phone)
+📱 Text message reminder
 
 Questions? Call us at {LAW_FIRM_PHONE} or reply to this email.
 
@@ -1267,25 +1345,25 @@ Best regards,
 
         email_html = f"""
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #2563eb;">Thank You for Contacting {LAW_FIRM_NAME}</h2>
+            <h2 style="color: #2563eb;">✅ Your Consultation Booking Link</h2>
             <p>Dear {appointment.client_name},</p>
-            <p>Thank you for choosing us for your <strong>{appointment.case_type or 'legal'}</strong> consultation.</p>
+            <p>Thank you for choosing <strong>{LAW_FIRM_NAME}</strong> for your <strong>{appointment.case_type or 'legal'}</strong> consultation.</p>
             
-            <div style="background-color: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h3 style="margin-top: 0; color: #1e40af;">📅 NEXT STEP: Select Your Time</h3>
-                <a href="{calendar_result.get('booking_url')}" 
-                   style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; 
-                          text-decoration: none; border-radius: 6px; font-weight: bold; margin: 10px 0;">
-                    Choose Your Appointment Time
+            <div style="background-color: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                <h3 style="margin-top: 0; color: #1e40af;">📅 Select Your Appointment Time</h3>
+                <a href="{booking_url}" 
+                   style="display: inline-block; background-color: #2563eb; color: white; padding: 15px 30px; 
+                          text-decoration: none; border-radius: 6px; font-weight: bold; margin: 10px 0; font-size: 16px;">
+                    Book Your Consultation Now
                 </a>
-                <p>Your requested time: {appointment.preferred_date or 'Not specified'}</p>
+                <p style="margin-top: 15px; font-size: 14px;">Your requested time: <strong>{appointment.preferred_date or 'Not specified'}</strong></p>
             </div>
             
             <h3>What Happens Next:</h3>
             <ul>
-                <li>✅ Instant calendar confirmation</li>
-                <li>📧 Email reminder 24 hours before</li>
-                <li>📱 Text message reminder (if provided)</li>
+                <li>✅ Choose your preferred time slot</li>
+                <li>📧 Get instant email confirmation</li>
+                <li>🔔 Receive automatic reminders</li>
             </ul>
             
             <p>Questions? Call us at <a href="tel:{LAW_FIRM_PHONE}">{LAW_FIRM_PHONE}</a></p>
@@ -1295,7 +1373,7 @@ Best regards,
         
         await send_email(
             to=appointment.client_email,
-            subject=f"📅 Complete Your Consultation Booking - {LAW_FIRM_NAME}",
+            subject=f"📅 Book Your Consultation - {LAW_FIRM_NAME}",
             body=email_body,
             html=email_html
         )
@@ -1303,13 +1381,21 @@ Best regards,
         return {
             "success": True,
             "appointment_id": new_appointment.id,
-            "calendar_link": calendar_result.get("booking_url"),
-            "message": "Please use the calendar link to confirm your appointment time. You'll receive a confirmation call within 2 hours.",
+            "calendar_link": booking_url,
+            "message": "Calendly booking link sent! Check your email to select your preferred time.",
             "callback_scheduled": bool(appointment.client_phone and twilio_client)
         }
+    
+    # FALLBACK PATH: Manual scheduling
     else:
-        # Fallback: send email to law firm for manual scheduling
-        email_body = f"""New Consultation Request - ACTION REQUIRED
+        error_msg = calendar_result.get("error") if calendar_result else "Calendly not configured"
+        print(f"⚠️ FALLBACK: Using manual scheduling. Reason: {error_msg}")
+        
+        # Email to law firm
+        await send_email(
+            to=LAW_FIRM_EMAIL,
+            subject=f"🔔 New Consultation: {appointment.client_name} - {appointment.case_type}",
+            body=f"""New Consultation Request - ACTION REQUIRED
 
 Client Details:
 - Name: {appointment.client_name}
@@ -1318,21 +1404,20 @@ Client Details:
 - Case Type: {appointment.case_type or 'Not specified'}
 - Requested Time: {appointment.preferred_date or 'Not specified'}
 
+Notes:
 {appointment.notes if appointment.notes else 'No additional notes'}
 
-Appointment ID: {new_appointment.id}
+⚠️ Calendly auto-scheduling failed: {error_msg}
 
-ACTION: Please contact this client within 2 hours to confirm appointment availability."""
-        
-        await send_email(
-            to=LAW_FIRM_EMAIL,
-            subject=f"🔔 New Consultation: {appointment.client_name} - {appointment.case_type}",
-            body=email_body,
+ACTION: Please contact this client within 2 hours to confirm appointment.
+
+Appointment ID: {new_appointment.id}""",
             html=f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #dc2626;">🔔 New Consultation Request</h2>
                 <div style="background-color: #fee; padding: 15px; border-left: 4px solid #dc2626; margin: 20px 0;">
-                    <strong>ACTION REQUIRED:</strong> Contact client within 2 hours
+                    <strong>ACTION REQUIRED:</strong> Contact client within 2 hours<br>
+                    <small>⚠️ Calendly auto-scheduling failed: {error_msg}</small>
                 </div>
                 <h3>Client Details:</h3>
                 <ul>
@@ -1349,7 +1434,11 @@ ACTION: Please contact this client within 2 hours to confirm appointment availab
             """
         )
         
-        client_email_body = f"""Dear {appointment.client_name},
+        # Email to client
+        await send_email(
+            to=appointment.client_email,
+            subject=f"✓ Consultation Request Received - {LAW_FIRM_NAME}",
+            body=f"""Dear {appointment.client_name},
 
 Thank you for requesting a consultation with {LAW_FIRM_NAME}.
 
@@ -1360,17 +1449,10 @@ Our scheduling team will review your preferred time and contact you within 2 hou
 - Phone: {appointment.client_phone or 'Not provided'}
 - Email: {appointment.client_email}
 
-If your requested time isn't available, we'll suggest alternative times that work for you.
-
 Need immediate assistance? Call us at {LAW_FIRM_PHONE}
 
 Best regards,
-{LAW_FIRM_NAME}"""
-        
-        await send_email(
-            to=appointment.client_email,
-            subject=f"✓ Consultation Request Received - {LAW_FIRM_NAME}",
-            body=client_email_body,
+{LAW_FIRM_NAME}""",
             html=f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #16a34a;">✓ Consultation Request Received</h2>
@@ -1385,7 +1467,6 @@ Best regards,
                     <li>Phone: {appointment.client_phone or 'Not provided'}</li>
                     <li>Email: {appointment.client_email}</li>
                 </ul>
-                <p>If your requested time isn't available, we'll suggest alternative times.</p>
                 <p>Need immediate assistance? Call <a href="tel:{LAW_FIRM_PHONE}">{LAW_FIRM_PHONE}</a></p>
                 <p>Best regards,<br><strong>{LAW_FIRM_NAME}</strong></p>
             </div>
@@ -1397,7 +1478,8 @@ Best regards,
             "appointment_id": new_appointment.id,
             "calendar_link": None,
             "message": "Your consultation request has been received. We'll confirm your appointment within 2 hours.",
-            "callback_scheduled": bool(appointment.client_phone and twilio_client)
+            "callback_scheduled": bool(appointment.client_phone and twilio_client),
+            "fallback_reason": error_msg
         }
 
 @app.get("/api/appointments/availability")
@@ -1506,6 +1588,8 @@ Consultation Preference:
     # Use the existing schedule_appointment function
     return await schedule_appointment(appointment_request, db)
 
+
+
 # ============================================
 # HEALTH CHECK & TEST ENDPOINTS
 # ============================================
@@ -1582,6 +1666,161 @@ async def test_callback_endpoint(phone: str, appointment_id: str = None):
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
+    
+# Add this test endpoint to main.py to verify Calendly configuration
+
+@app.get("/api/test/calendly")
+async def test_calendly_config():
+    """Test Calendly API configuration and return diagnostic info"""
+    
+    if not CALENDLY_API_KEY:
+        return {
+            "success": False,
+            "error": "CALENDLY_API_KEY not set in environment variables",
+            "config": {
+                "CALENDLY_API_KEY": "NOT SET",
+                "CALENDLY_EVENT_TYPE": CALENDLY_EVENT_TYPE or "NOT SET",
+                "CALENDAR_PROVIDER": CALENDAR_PROVIDER
+            }
+        }
+    
+    try:
+        headers = {
+            "Authorization": f"Bearer {CALENDLY_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        
+        # Test 1: Get user info
+        print("Testing Calendly API - Step 1: Get user info...")
+        user_response = requests.get(
+            "https://api.calendly.com/users/me",
+            headers=headers,
+            timeout=10
+        )
+        
+        if user_response.status_code != 200:
+            return {
+                "success": False,
+                "error": f"Calendly API authentication failed: {user_response.status_code}",
+                "response": user_response.text,
+                "config": {
+                    "CALENDLY_API_KEY": "SET (but invalid or expired)",
+                    "CALENDLY_EVENT_TYPE": CALENDLY_EVENT_TYPE or "NOT SET",
+                    "CALENDAR_PROVIDER": CALENDAR_PROVIDER
+                }
+            }
+        
+        user_data = user_response.json()
+        user_uri = user_data["resource"]["uri"]
+        user_name = user_data["resource"]["name"]
+        
+        print(f"✅ User authenticated: {user_name}")
+        
+        # Test 2: Get event types
+        print("Testing Calendly API - Step 2: Get event types...")
+        event_types_response = requests.get(
+            f"https://api.calendly.com/event_types?user={user_uri}",
+            headers=headers,
+            timeout=10
+        )
+        
+        if event_types_response.status_code != 200:
+            return {
+                "success": False,
+                "error": f"Could not fetch event types: {event_types_response.status_code}",
+                "user_info": {
+                    "name": user_name,
+                    "uri": user_uri
+                }
+            }
+        
+        event_types_data = event_types_response.json()
+        event_types = event_types_data.get("collection", [])
+        
+        if not event_types:
+            return {
+                "success": False,
+                "error": "No event types found. Please create at least one event type in Calendly.",
+                "user_info": {
+                    "name": user_name,
+                    "uri": user_uri
+                },
+                "instructions": "Go to https://calendly.com/event_types/user/me and create an event type"
+            }
+        
+        event_type_list = [
+            {
+                "name": et["name"],
+                "uri": et["uri"],
+                "active": et["active"],
+                "booking_url": et["scheduling_url"]
+            }
+            for et in event_types
+        ]
+        
+        print(f"✅ Found {len(event_types)} event types")
+        
+        # Test 3: Create a test scheduling link
+        print("Testing Calendly API - Step 3: Create scheduling link...")
+        test_event_type = event_types[0]["uri"]
+        
+        payload = {
+            "max_event_count": 1,
+            "owner": test_event_type,
+            "owner_type": "EventType"
+        }
+        
+        scheduling_response = requests.post(
+            "https://api.calendly.com/scheduling_links",
+            headers=headers,
+            json=payload,
+            timeout=10
+        )
+        
+        if scheduling_response.status_code == 201:
+            scheduling_data = scheduling_response.json()
+            booking_url = scheduling_data["resource"]["booking_url"]
+            
+            print(f"✅ Test scheduling link created: {booking_url}")
+            
+            return {
+                "success": True,
+                "message": "Calendly is properly configured and working!",
+                "user_info": {
+                    "name": user_name,
+                    "uri": user_uri
+                },
+                "event_types": event_type_list,
+                "test_booking_url": booking_url,
+                "config": {
+                    "CALENDLY_API_KEY": "SET ✅",
+                    "CALENDLY_EVENT_TYPE": CALENDLY_EVENT_TYPE or f"Using first available: {event_types[0]['name']}",
+                    "CALENDAR_PROVIDER": CALENDAR_PROVIDER
+                }
+            }
+        else:
+            return {
+                "success": False,
+                "error": f"Could not create scheduling link: {scheduling_response.status_code}",
+                "response": scheduling_response.text,
+                "user_info": {
+                    "name": user_name,
+                    "uri": user_uri
+                },
+                "event_types": event_type_list
+            }
+            
+    except requests.exceptions.Timeout:
+        return {
+            "success": False,
+            "error": "Calendly API timeout - check your internet connection"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Unexpected error: {str(e)}",
+            "type": type(e).__name__
+        }
 
 # ============================================
 # STATIC FILES (serve frontend)
