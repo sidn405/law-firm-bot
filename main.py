@@ -304,29 +304,55 @@ class CalendarService:
             
             print(f"Calendly user URI: {user_uri}")
             
-            # If CALENDLY_EVENT_TYPE is set, use it; otherwise get the first available event type
+            # Get event types for this user
+            event_types_response = requests.get(
+                f"https://api.calendly.com/event_types?user={user_uri}",
+                headers=headers,
+                timeout=10
+            )
+            
+            if event_types_response.status_code != 200:
+                print(f"Calendly event types API error: {event_types_response.status_code}")
+                return {"success": False, "error": "Could not fetch event types"}
+            
+            event_types_data = event_types_response.json()
+            if not event_types_data.get("collection"):
+                print("No Calendly event types found")
+                return {"success": False, "error": "No event types configured"}
+            
+            # Find the right event type
+            event_type_uri = None
+            
+            # If CALENDLY_EVENT_TYPE is set, try to match it
             if CALENDLY_EVENT_TYPE:
-                event_type_uri = CALENDLY_EVENT_TYPE
-            else:
-                # Get event types for this user
-                event_types_response = requests.get(
-                    f"https://api.calendly.com/event_types?user={user_uri}",
-                    headers=headers,
-                    timeout=10
-                )
-                
-                if event_types_response.status_code != 200:
-                    print(f"Calendly event types API error: {event_types_response.status_code}")
-                    return {"success": False, "error": "Could not fetch event types"}
-                
-                event_types_data = event_types_response.json()
-                if not event_types_data.get("collection"):
-                    print("No Calendly event types found")
-                    return {"success": False, "error": "No event types configured"}
-                
-                # Use the first active event type
-                event_type_uri = event_types_data["collection"][0]["uri"]
-                print(f"Using event type: {event_type_uri}")
+                # Handle if user provided a booking URL instead of URI
+                if "calendly.com/" in CALENDLY_EVENT_TYPE and "/api.calendly.com/" not in CALENDLY_EVENT_TYPE:
+                    # Extract the event slug from booking URL (e.g., "30min" from "https://calendly.com/user/30min")
+                    event_slug = CALENDLY_EVENT_TYPE.rstrip('/').split('/')[-1]
+                    print(f"Extracted event slug from URL: {event_slug}")
+                    
+                    # Find matching event type by slug
+                    for et in event_types_data["collection"]:
+                        if et["active"] and event_slug in et.get("scheduling_url", ""):
+                            event_type_uri = et["uri"]
+                            print(f"Matched event type by slug: {et['name']}")
+                            break
+                else:
+                    # It's already a URI
+                    event_type_uri = CALENDLY_EVENT_TYPE
+            
+            # If still no match, use the first active event type
+            if not event_type_uri:
+                for et in event_types_data["collection"]:
+                    if et["active"]:
+                        event_type_uri = et["uri"]
+                        print(f"Using first active event type: {et['name']}")
+                        break
+            
+            if not event_type_uri:
+                return {"success": False, "error": "No active event types found"}
+            
+            print(f"Using event type URI: {event_type_uri}")
             
             # Create a single-use scheduling link
             payload = {
@@ -953,41 +979,82 @@ async def handle_voice_call():
     
     return str(response)
 
+# Replace the Twilio callback endpoints in main.py with these enhanced versions
+
 @app.post("/api/twilio/appointment-confirmation")
 async def appointment_confirmation_call(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Handle automated appointment confirmation call"""
+    """Handle automated appointment confirmation call with full details"""
     form_data = await request.form()
     appointment_id = request.query_params.get("appointment_id")
+    
+    print(f"📞 Incoming confirmation call for appointment: {appointment_id}")
     
     appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
     
     response = VoiceResponse()
+    
+    if not appointment:
+        print(f"❌ Appointment not found: {appointment_id}")
+        response.say("We're sorry, we couldn't find your appointment. Please call our office.", voice='alice')
+        return str(response)
+    
+    print(f"✅ Found appointment for {appointment.client_name}")
+    
     gather = Gather(
         num_digits=1,
         action=f'/api/twilio/confirm-appointment?appointment_id={appointment_id}',
         timeout=10
     )
     
-    if appointment:
-        date_str = appointment.scheduled_date.strftime('%B %d at %I:%M %p') if appointment.scheduled_date else 'your requested time'
-        message = f"""Hello {appointment.client_name}. This is a confirmation call from {LAW_FIRM_NAME} 
-        regarding your {appointment.case_type or 'consultation'} appointment scheduled for {date_str}.
-        
-        Press 1 to confirm this appointment.
-        Press 2 to request a different time.
-        Press 3 to speak with someone now."""
-    else:
-        message = "We're sorry, we couldn't find your appointment. Please call our office."
+    # Build detailed message with appointment info
+    case_type = appointment.case_type or 'consultation'
+    date_time = appointment.scheduled_date.strftime('%A, %B %d at %I:%M %p') if appointment.scheduled_date else 'your requested time'
+    
+    # Parse notes to extract key details
+    notes = appointment.notes or ""
+    injury_type = "not specified"
+    incident_date = "not specified"
+    
+    if "Injury Type:" in notes:
+        try:
+            injury_type = notes.split("Injury Type:")[1].split("\n")[0].strip()
+        except:
+            pass
+    
+    if "Date/Time:" in notes:
+        try:
+            incident_date = notes.split("Date/Time:")[1].split("\n")[0].strip()
+        except:
+            pass
+    
+    message = f"""Hello {appointment.client_name}. This is {LAW_FIRM_NAME} calling to confirm your {case_type} consultation.
+
+We have you scheduled for {date_time}.
+
+Based on your intake, this is regarding a {injury_type} that occurred {incident_date}.
+
+Our attorney will review:
+- Your incident details
+- Medical treatment received
+- Potential case value
+- Next steps for your claim
+
+To confirm this appointment, press 1.
+To request a different time, press 2.
+To speak with someone now, press 3.
+To hear these options again, press 9."""
     
     gather.say(message, voice='alice')
     response.append(gather)
     
-    response.say("We didn't receive a response. We'll send you an email instead. Goodbye.")
+    # Fallback if no response
+    response.say("We didn't receive a response. We'll send you an email instead. Thank you, goodbye.", voice='alice')
     
     return str(response)
+
 
 @app.post("/api/twilio/confirm-appointment")
 async def confirm_appointment_response(
@@ -999,6 +1066,8 @@ async def confirm_appointment_response(
     digits = form_data.get("Digits")
     appointment_id = request.query_params.get("appointment_id")
     
+    print(f"📞 Received response: {digits} for appointment: {appointment_id}")
+    
     appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
     response = VoiceResponse()
     
@@ -1007,106 +1076,194 @@ async def confirm_appointment_response(
         return str(response)
     
     if digits == "1":
-        # Confirm appointment
+        # CONFIRM APPOINTMENT
+        print(f"✅ Appointment CONFIRMED by {appointment.client_name}")
         appointment.status = "confirmed"
         db.commit()
         
+        date_str = appointment.scheduled_date.strftime('%A, %B %d at %I:%M %p') if appointment.scheduled_date else 'your scheduled time'
+        
         response.say(
-            "Perfect! Your appointment is confirmed. You'll receive a confirmation email shortly. Thank you!",
+            f"""Perfect! Your {appointment.case_type or 'consultation'} is confirmed for {date_str}.
+            
+            You'll receive a confirmation email with:
+            - Office address and directions
+            - What to bring to your consultation
+            - Our attorney's direct contact information
+            
+            We look forward to meeting with you. Thank you, goodbye.""",
             voice='alice'
         )
         
-        # Send confirmation email
-        date_str = appointment.scheduled_date.strftime('%B %d, %Y at %I:%M %p') if appointment.scheduled_date else 'TBD'
+        # Send detailed confirmation email
         await send_email(
             to=appointment.client_email,
-            subject="✅ Appointment Confirmed",
+            subject=f"✅ Appointment Confirmed - {LAW_FIRM_NAME}",
             body=f"""Dear {appointment.client_name},
 
-Your consultation is CONFIRMED:
-📅 Date: {date_str}
-📍 Location: [Office Address or Video Call Link]
-⏱️ Duration: 30 minutes
+✅ YOUR APPOINTMENT IS CONFIRMED
 
-What to bring:
-• Any relevant documents
-• List of questions
-• Photo ID
+Date & Time: {date_str}
+Case Type: {appointment.case_type or 'Consultation'}
+Duration: 30-45 minutes
 
-Need to reschedule? Call {LAW_FIRM_PHONE}
+📍 LOCATION:
+{LAW_FIRM_NAME}
+[Office Address Here]
+[Suite Number]
+
+🚗 PARKING:
+[Parking instructions]
+
+📋 WHAT TO BRING:
+✓ Photo ID (driver's license or state ID)
+✓ Any documents related to your case
+✓ Medical records or bills (if applicable)
+✓ Police report (if applicable)
+✓ Insurance information
+✓ List of questions you want to ask
+
+👔 WHAT TO EXPECT:
+Our attorney will:
+- Review your case details
+- Assess the strength of your claim
+- Explain your legal options
+- Discuss potential case value
+- Answer all your questions
+- Outline next steps if you decide to proceed
+
+📱 NEED TO RESCHEDULE?
+Call us at {LAW_FIRM_PHONE}
+Or email {LAW_FIRM_EMAIL}
+
+We look forward to helping you with your {appointment.case_type or 'legal matter'}.
 
 Best regards,
-{LAW_FIRM_NAME}""",
+{LAW_FIRM_NAME}
+{LAW_FIRM_PHONE}""",
             html=f"""
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #2563eb;">✅ Appointment Confirmed</h2>
-                <p>Dear {appointment.client_name},</p>
-                <p><strong>Your consultation is CONFIRMED:</strong></p>
-                <ul>
-                    <li>📅 Date: {date_str}</li>
-                    <li>📍 Location: [Office Address or Video Call Link]</li>
-                    <li>⏱️ Duration: 30 minutes</li>
-                </ul>
-                <h3>What to bring:</h3>
-                <ul>
-                    <li>Any relevant documents</li>
-                    <li>List of questions</li>
-                    <li>Photo ID</li>
-                </ul>
-                <p>Need to reschedule? Call <a href="tel:{LAW_FIRM_PHONE}">{LAW_FIRM_PHONE}</a></p>
-                <p>Best regards,<br>{LAW_FIRM_NAME}</p>
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <div style="background-color: #10b981; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                    <h1 style="margin: 0; font-size: 24px;">✅ Appointment Confirmed</h1>
+                </div>
+                
+                <div style="background-color: #f9fafb; padding: 20px; border: 1px solid #e5e7eb;">
+                    <h2 style="color: #1f2937; margin-top: 0;">Your Consultation Details</h2>
+                    <div style="background-color: white; padding: 15px; border-radius: 6px; margin: 15px 0;">
+                        <p style="margin: 5px 0;"><strong>📅 Date & Time:</strong> {date_str}</p>
+                        <p style="margin: 5px 0;"><strong>⚖️ Case Type:</strong> {appointment.case_type or 'Consultation'}</p>
+                        <p style="margin: 5px 0;"><strong>⏱️ Duration:</strong> 30-45 minutes</p>
+                    </div>
+                    
+                    <h3 style="color: #1f2937;">📍 Location</h3>
+                    <p style="background-color: white; padding: 15px; border-radius: 6px;">
+                        <strong>{LAW_FIRM_NAME}</strong><br>
+                        [Office Address Here]<br>
+                        [Suite Number]<br>
+                        <a href="https://maps.google.com" style="color: #2563eb;">Get Directions</a>
+                    </p>
+                    
+                    <h3 style="color: #1f2937;">📋 What to Bring</h3>
+                    <ul style="background-color: white; padding: 20px; border-radius: 6px;">
+                        <li>Photo ID (driver's license or state ID)</li>
+                        <li>Any documents related to your case</li>
+                        <li>Medical records or bills (if applicable)</li>
+                        <li>Police report (if applicable)</li>
+                        <li>Insurance information</li>
+                        <li>List of questions you want to ask</li>
+                    </ul>
+                    
+                    <h3 style="color: #1f2937;">👔 What to Expect</h3>
+                    <p style="background-color: white; padding: 15px; border-radius: 6px;">
+                        Our attorney will review your case details, assess the strength of your claim, 
+                        explain your legal options, and discuss potential case value. This is your opportunity 
+                        to ask questions and learn about the legal process.
+                    </p>
+                    
+                    <div style="background-color: #dbeafe; padding: 15px; border-radius: 6px; margin-top: 20px; border-left: 4px solid #2563eb;">
+                        <p style="margin: 0;"><strong>📱 Need to reschedule?</strong></p>
+                        <p style="margin: 10px 0 0 0;">
+                            Call <a href="tel:{LAW_FIRM_PHONE}" style="color: #2563eb;">{LAW_FIRM_PHONE}</a><br>
+                            Email <a href="mailto:{LAW_FIRM_EMAIL}" style="color: #2563eb;">{LAW_FIRM_EMAIL}</a>
+                        </p>
+                    </div>
+                </div>
+                
+                <div style="background-color: #1f2937; color: white; padding: 15px; border-radius: 0 0 8px 8px; text-align: center;">
+                    <p style="margin: 0;">We look forward to helping you!</p>
+                    <p style="margin: 5px 0;"><strong>{LAW_FIRM_NAME}</strong></p>
+                    <p style="margin: 5px 0;">{LAW_FIRM_PHONE}</p>
+                </div>
             </div>
             """
         )
         
     elif digits == "2":
+        # REQUEST RESCHEDULE
+        print(f"📅 Reschedule requested by {appointment.client_name}")
         appointment.status = "rescheduling"
         db.commit()
         
         response.say(
-            "No problem. We'll have someone call you within one hour to find a better time. Goodbye.",
+            f"""No problem, {appointment.client_name}. 
+            
+            We'll have someone from our scheduling team call you within one hour to find a better time that works for you.
+            
+            If you need immediate assistance, please call our office at {LAW_FIRM_PHONE}.
+            
+            Thank you, goodbye.""",
             voice='alice'
         )
         
-        # Alert law firm
+        # Alert law firm staff
         await send_email(
             to=LAW_FIRM_EMAIL,
-            subject=f"🔄 Reschedule Request: {appointment.client_name}",
-            body=f"""Reschedule Request
+            subject=f"🔄 RESCHEDULE REQUEST: {appointment.client_name}",
+            body=f"""URGENT: Reschedule Request
 
 Client: {appointment.client_name}
 Phone: {appointment.client_phone}
 Email: {appointment.client_email}
 Original Time: {appointment.scheduled_date.strftime('%B %d, %Y at %I:%M %p') if appointment.scheduled_date else 'Not set'}
+Case Type: {appointment.case_type}
 
-ACTION REQUIRED: Call client within 1 hour to reschedule.
+⏰ ACTION REQUIRED: Call client within 1 hour to reschedule.
 
 Appointment ID: {appointment_id}""",
             html=f"""
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #dc2626;">🔄 Reschedule Request</h2>
-                <p><strong>Client: {appointment.client_name}</strong></p>
+                <h2 style="color: #dc2626;">🔄 RESCHEDULE REQUEST</h2>
+                <div style="background-color: #fee; padding: 15px; border-left: 4px solid #dc2626; margin: 20px 0;">
+                    <strong>⏰ ACTION REQUIRED:</strong> Call client within 1 hour to reschedule
+                </div>
+                <h3>Client Details:</h3>
                 <ul>
-                    <li>Phone: <a href="tel:{appointment.client_phone}">{appointment.client_phone}</a></li>
-                    <li>Email: {appointment.client_email}</li>
-                    <li>Original Time: {appointment.scheduled_date.strftime('%B %d, %Y at %I:%M %p') if appointment.scheduled_date else 'Not set'}</li>
+                    <li><strong>Name:</strong> {appointment.client_name}</li>
+                    <li><strong>Phone:</strong> <a href="tel:{appointment.client_phone}">{appointment.client_phone}</a></li>
+                    <li><strong>Email:</strong> {appointment.client_email}</li>
+                    <li><strong>Case Type:</strong> {appointment.case_type}</li>
+                    <li><strong>Original Time:</strong> {appointment.scheduled_date.strftime('%B %d, %Y at %I:%M %p') if appointment.scheduled_date else 'Not set'}</li>
                 </ul>
-                <p style="background-color: #fee; padding: 10px; border-left: 4px solid #dc2626;">
-                    <strong>ACTION REQUIRED:</strong> Call client within 1 hour to reschedule.
-                </p>
-                <p>Appointment ID: {appointment_id}</p>
+                <p><small>Appointment ID: {appointment_id}</small></p>
             </div>
             """
         )
         
     elif digits == "3":
+        # SPEAK WITH SOMEONE NOW
+        print(f"📞 Transfer requested by {appointment.client_name}")
         response.say(
-            "Transferring you now. Please hold.",
+            "Transferring you to our office now. Please hold.",
             voice='alice'
         )
         response.dial(LAW_FIRM_PHONE)
+        
+    elif digits == "9":
+        # REPEAT OPTIONS
+        return await appointment_confirmation_call(request, db)
+        
     else:
-        response.say("Invalid option. Goodbye.", voice='alice')
+        response.say("I didn't understand that option. Goodbye.", voice='alice')
     
     return str(response)
 
