@@ -565,7 +565,7 @@
                 next_step: "end"
             },
             pi_contact_info: {
-                prompt: "Please share your contact details so our team can review your case and reach out.\n\n1) Full name\n2) Phone number\n3) Email address",
+                prompt: "Please share your contact details so our team can review your case and reach out.\n\nEnter: Full name, phone number, email (separated by commas)\n\nExample: John Smith, 555-123-4567, john@email.com",
                 input_type: "text",
                 next_step: "pi_docs"
             },
@@ -917,24 +917,39 @@
                 const contactInfo = collectedData['pi_contact_info'] || '';
                 const preferredTime = collectedData['pi_schedule'] || '';
                 
-                // Parse contact info (expected format: name, phone, email)
-                const lines = contactInfo.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                // More flexible parsing - handle single line or multi-line input
                 let name = 'Guest User';
                 let phone = null;
                 let email = 'no-email@example.com';
                 
-                // More flexible parsing
+                // Regex patterns
                 const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
-                const phoneRegex = /[\d\(\)\-\+\s]{10,}/;
+                const phoneRegex = /(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
                 
-                for (const line of lines) {
-                    if (emailRegex.test(line) && email === 'no-email@example.com') {
-                        email = line.match(emailRegex)[0];
-                    } else if (phoneRegex.test(line) && !phone) {
-                        phone = line.match(phoneRegex)[0].trim();
-                    } else if (!name || name === 'Guest User') {
-                        name = line;
-                    }
+                // Extract email
+                const emailMatch = contactInfo.match(emailRegex);
+                if (emailMatch) {
+                    email = emailMatch[0];
+                }
+                
+                // Extract phone
+                const phoneMatch = contactInfo.match(phoneRegex);
+                if (phoneMatch) {
+                    phone = phoneMatch[0].trim();
+                }
+                
+                // Extract name - remove email and phone from the string, then get what's left
+                let nameText = contactInfo
+                    .replace(emailRegex, '')
+                    .replace(phoneRegex, '')
+                    .replace(/[,;]/g, ' ')  // Replace commas/semicolons with spaces
+                    .trim()
+                    .split(/\s+/)
+                    .filter(word => word.length > 0)
+                    .join(' ');
+                
+                if (nameText && nameText.length > 2) {
+                    name = nameText;
                 }
                 
                 // Format notes as human-readable text

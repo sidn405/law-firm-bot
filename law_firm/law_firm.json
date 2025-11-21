@@ -15,7 +15,7 @@
             { "value": "family_law", "label": "Family Law", "next_step": "family_intro" },
             { "value": "immigration", "label": "Immigration", "next_step": "imm_intro" },
             { "value": "criminal_defense", "label": "Criminal Defense", "next_step": "crim_intro" },
-            { "value": "workers_comp", "label": "Workers’ Compensation", "next_step": "wc_intro" },
+            { "value": "workers_comp", "label": "Workers' Compensation", "next_step": "wc_intro" },
             { "value": "business_law", "label": "Business / Contract", "next_step": "biz_intro" },
             { "value": "estate_planning", "label": "Estate Planning / Wills", "next_step": "estate_intro" },
             { "value": "other", "label": "Something else", "next_step": "other_intro" }
@@ -30,7 +30,7 @@
       "steps": [
         {
           "id": "pi_intro",
-          "prompt": "I’m sorry you’re going through this. I’ll ask a few quick questions so our team can review your situation.\n\nWhat date did the incident occur?",
+          "prompt": "I'm sorry you're going through this. I'll ask a few quick questions so our team can review your situation.\n\nWhat date did the incident occur?",
           "input_type": "choice",
           "options": [
             { "value": "11/12/2025", "label": "November 12, 2025", "next_step": "pi_injury_type" },
@@ -75,13 +75,13 @@
         },
         {
           "id": "pi_existing_attorney",
-          "prompt": "Thanks for letting us know. Because you’re already represented, we may not be able to take your case, but you’re welcome to contact our office for general questions.",
+          "prompt": "Thanks for letting us know. Because you're already represented, we may not be able to take your case, but you're welcome to contact our office for general questions.",
           "input_type": "none",
           "next_step": "end"
         },
         {
           "id": "pi_contact_info",
-          "prompt": "Please share your contact details so our team can review your case and reach out.\n\n1) Full name\n2) Phone number\n3) Email address",
+          "prompt": "Please share your contact details so our team can review your case and reach out.\n\nEnter: Full name, phone number, email (separated by commas)\n\nExample: John Smith, 555-123-4567, john@email.com",
           "input_type": "text",
           "next_step": "pi_docs"
         },
@@ -102,7 +102,7 @@
         },
         {
           "id": "pi_schedule",
-          "prompt": "Great. Please choose a date and time that works best, and we’ll confirm by SMS/email.",
+          "prompt": "Great. Please choose a date and time that works best, and we'll confirm by SMS/email.",
           "input_type": "date",
           "next_step": "pi_end"
         },
@@ -114,7 +114,7 @@
         },
         {
           "id": "pi_end",
-          "prompt": "Your intake has been submitted. You’ll receive a confirmation shortly. If this is urgent, please call our office at {{office_phone}}.",
+          "prompt": "Your intake has been submitted. You'll receive a confirmation shortly. If this is urgent, please call our office at {{office_phone}}.",
           "input_type": "none"
         }
       ]
@@ -126,13 +126,13 @@
       "steps": [
         {
           "id": "other_intro",
-          "prompt": "Please briefly describe the legal issue you’re dealing with.",
+          "prompt": "Please briefly describe the legal issue you're dealing with.",
           "input_type": "text",
           "next_step": "other_contact_info"
         },
         {
           "id": "other_contact_info",
-          "prompt": "Thank you. Please provide your name, phone number, and email so our team can follow up.",
+          "prompt": "Thank you. Please provide your contact details so our team can follow up.\n\nEnter: Full name, phone number, email (separated by commas)\n\nExample: John Smith, 555-123-4567, john@email.com",
           "input_type": "text",
           "next_step": "other_end"
         },
