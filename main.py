@@ -902,56 +902,81 @@ async def upload_file(
     session_id: str = Form(...),
     case_id: str = Form(default="temp"),
     client_id: str = Form(default="guest"),
+    folder_type: str = Form(default="client_uploads"),  # New!
     db: Session = Depends(get_db)
 ):
-    """Upload document"""
+    """Upload document to S3"""
     
     try:
+        # Read file content
         content = await file.read()
+        
+        # Validate file size
         if len(content) > 10 * 1024 * 1024:
             return {"success": False, "error": "File too large. Maximum size is 10MB."}
         
-        file_id = str(uuid.uuid4())
-        file_ext = Path(file.filename).suffix
-        new_filename = f"{file_id}{file_ext}"
-        file_path = UPLOAD_DIR / new_filename
+        # Upload to S3 instead of local storage
+        s3_result = upload_file_object_to_s3(
+            file_content=content,
+            filename=file.filename,
+            client_id=client_id,
+            case_id=case_id if case_id != "temp" else None,
+            folder_type=folder_type,
+            content_type=file.content_type or "application/octet-stream"
+        )
         
-        with open(file_path, "wb") as f:
-            f.write(content)
-        
+        # Save to database (file_path now stores S3 key)
         document = Document(
             case_id=case_id,
             client_id=client_id,
             filename=file.filename,
-            file_path=str(file_path),
+            file_path=s3_result['s3_key'],  # S3 key instead of local path
             file_type=file.content_type,
             file_size=len(content)
         )
         db.add(document)
         db.commit()
+        db.refresh(document)
         
         return {
             "success": True,
             "document_id": document.id,
-            "filename": file.filename
+            "filename": file.filename,
+            "s3_key": s3_result['s3_key']
         }
+        
     except Exception as e:
+        db.rollback()
         print(f"Upload error: {e}")
         return {"success": False, "error": str(e)}
 
 @app.get("/api/download/{document_id}")
 async def download_file(document_id: str, db: Session = Depends(get_db)):
-    """Download document"""
+    """Get download URL for document from S3"""
     
     document = db.query(Document).filter(Document.id == document_id).first()
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
     
-    return FileResponse(
-        path=document.file_path,
-        filename=document.filename,
-        media_type=document.file_type
-    )
+    try:
+        # Generate temporary download URL (expires in 1 hour)
+        download_url = generate_presigned_download_url(
+            s3_key=document.file_path,
+            expiration=3600
+        )
+        
+        return {
+            "success": True,
+            "download_url": download_url,
+            "filename": document.filename,
+            "file_type": document.file_type,
+            "file_size": document.file_size,
+            "expires_in": 3600
+        }
+        
+    except Exception as e:
+        print(f"Download URL generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/documents/case/{case_id}")
 async def get_case_documents(case_id: str, db: Session = Depends(get_db)):
