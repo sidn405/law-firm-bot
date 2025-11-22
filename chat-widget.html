@@ -610,7 +610,8 @@
                     { value: "workers_comp", label: "Workers' Compensation", next_step: "wc_intro" },
                     { value: "business_law", label: "Business / Contract", next_step: "biz_intro" },
                     { value: "estate_planning", label: "Estate Planning / Wills", next_step: "estate_intro" },
-                    { value: "other", label: "Something else", next_step: "other_intro" }
+                    { value: "other", label: "Something else", next_step: "other_intro" },
+                    { value: "make_payment", label: "💳 Make a Payment", next_step: "payment_flow" }
                 ]
             },
             pi_intro: {
@@ -698,6 +699,11 @@
                 prompt: "Your intake has been submitted. You'll receive a confirmation shortly. If this is urgent, please call our office at (555) 123-4567.",
                 input_type: "none"
             },
+            payment_flow: {
+                prompt: "I'll help you make a payment. Let me start the payment process...",
+                input_type: "none",
+                next_step: null
+            },
             other_intro: {
                 prompt: "Please briefly describe the legal issue you're dealing with.",
                 input_type: "text",
@@ -779,7 +785,12 @@
 
             const content = document.createElement('div');
             content.className = 'message-content';
-            content.textContent = text;
+            // Use innerHTML to render HTML properly for bot messages containing HTML
+            if (sender === 'bot' && (text.includes('<') || text.includes('>'))) {
+                content.innerHTML = text;
+            } else {
+                content.textContent = text;
+            }
 
             const time = document.createElement('div');
             time.className = 'message-time';
@@ -838,6 +849,17 @@
             collectedData[stepId] = option.value;
 
             const nextId = option.next_step || flowSteps[stepId].next_step;
+            
+            // Special handling for payment flow
+            if (nextId === 'payment_flow') {
+                addScriptStep(nextId);
+                // Start payment flow after a short delay
+                setTimeout(() => {
+                    startPaymentFlow();
+                }, 500);
+                return;
+            }
+            
             if (nextId) {
                 addScriptStep(nextId);
             } else {
