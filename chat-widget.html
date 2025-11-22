@@ -280,6 +280,144 @@
             transform: translateX(2px);
         }
 
+        /* NEW: Payment Modal Styles */
+        #payment-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #payment-modal.show {
+            display: flex;
+        }
+        
+        .payment-modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .payment-modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 16px 16px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .payment-modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .payment-modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+        
+        .payment-modal-body {
+            padding: 32px;
+        }
+        
+        /* Stripe embedded checkout container */
+        #stripe-checkout-container {
+            min-height: 400px;
+        }
+        
+        /* Loading spinner */
+        .payment-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+        }
+        
+        .payment-loading .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .payment-loading p {
+            margin-top: 20px;
+            color: #6b7280;
+            font-size: 16px;
+        }
+        
+        /* Success message styles */
+        .success-message {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .success-message h3 {
+            margin: 0 0 12px 0;
+            font-size: 24px;
+        }
+        
+        .success-message p {
+            margin: 8px 0;
+            opacity: 0.95;
+        }
+        
+        .receipt-info {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 16px 0;
+            border-left: 4px solid #10b981;
+        }
+        
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .receipt-row:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
          /* Payment Buttons */
         .payment-quick-btn {
             background: linear-gradient(135deg, #10b981, #059669);
@@ -577,7 +715,24 @@
             </div>
         </div>
     </div>
-    
+    <!-- NEW: Payment Modal -->
+    <div id="payment-modal">
+        <div class="payment-modal-content">
+            <div class="payment-modal-header">
+                <h2 id="payment-modal-title">Complete Payment</h2>
+                <button class="payment-modal-close" onclick="closePaymentModal()">×</button>
+            </div>
+            <div class="payment-modal-body">
+                <div id="stripe-checkout-container">
+                    <!-- Stripe Checkout will be embedded here -->
+                    <div class="payment-loading">
+                        <div class="spinner"></div>
+                        <p>Loading secure payment form...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <script>
         // =====================================================
         // LAW FIRM CHATBOT - FRONTEND LOGIC W/ SCRIPTED INTAKE
@@ -590,6 +745,10 @@
         let currentStep = 'start';
         let intakeActive = true;
         let collectedData = {};
+
+        // Global variables
+        let stripe = null;
+        let currentPaymentData = null;
         
         let paymentFlow = {
             active: false,
@@ -768,6 +927,26 @@
             }
         };
 
+        // ==============================================================================
+        // INITIALIZE STRIPE ON PAGE LOAD
+        // ==============================================================================
+        
+        async function initializeStripe() {
+            try {
+                const response = await fetch(`${API_URL}/api/payments/stripe-config`);
+                const data = await response.json();
+                
+                if (data.success && data.publishable_key) {
+                    stripe = Stripe(data.publishable_key);
+                    console.log('✅ Stripe initialized');
+                    return true;
+                }
+            } catch (error) {
+                console.error('❌ Error initializing Stripe:', error);
+                return false;
+            }
+        }
+
         // --- INITIALIZE ---
         document.addEventListener('DOMContentLoaded', () => {
             sessionId = localStorage.getItem('lawfirm_session_id') || generateSessionId();
@@ -792,10 +971,241 @@
             }
         }
 
+        // ==============================================================================
+        // INITIALIZE STRIPE ON PAGE LOAD
+        // ==============================================================================
+        
+        async function initializeStripe() {
+            try {
+                const response = await fetch(`${API_URL}/api/payments/stripe-config`);
+                const data = await response.json();
+                
+                if (data.success && data.publishable_key) {
+                    stripe = Stripe(data.publishable_key);
+                    console.log('✅ Stripe initialized');
+                    return true;
+                }
+            } catch (error) {
+                console.error('❌ Error initializing Stripe:', error);
+                return false;
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeStripe();
+            
+            // Check if returning from payment
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('payment') === 'success') {
+                const sessionId = urlParams.get('session_id');
+                if (sessionId) {
+                    await handlePaymentSuccess(sessionId);
+                }
+                
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (urlParams.get('payment') === 'cancelled') {
+                addMessage('bot', '❌ Payment was cancelled. If you need to try again, just click "Make a Payment" again.');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+        
+        // ==============================================================================
+        // PROCESS PAYMENT - OPENS EMBEDDED MODAL
+        // ==============================================================================
+        
+        async function processPayment(provider, clientId, amount, description) {
+            if (provider === 'stripe') {
+                await processStripePayment(clientId, amount, description);
+            } else if (provider === 'paypal') {
+                // PayPal implementation can go here
+                alert('PayPal payment coming soon!');
+            }
+        }
+        
+        async function processStripePayment(clientId, amount, description) {
+            try {
+                if (!stripe) {
+                    addMessage('bot', '❌ Payment system not initialized. Please refresh the page.');
+                    return;
+                }
+                
+                showTyping(true);
+                
+                // Create Stripe Checkout Session
+                const response = await fetch(`${API_URL}/api/payments/create-stripe-checkout`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        client_id: clientId,
+                        amount: amount,
+                        description: description,
+                        payment_type: 'retainer',
+                        reference_id: generatePaymentReference()
+                    })
+                });
+                
+                const data = await response.json();
+                showTyping(false);
+                
+                if (data.success && data.session_id) {
+                    // Store payment data for later
+                    currentPaymentData = {
+                        clientId,
+                        amount,
+                        description
+                    };
+                    
+                    // Show payment modal with embedded Stripe Checkout
+                    await openStripeEmbeddedCheckout(data.session_id);
+                    
+                } else {
+                    addMessage('bot', '❌ Sorry, there was an issue creating the payment. Please try again or contact us.');
+                }
+                
+            } catch (error) {
+                console.error('❌ Payment error:', error);
+                showTyping(false);
+                addMessage('bot', '❌ Payment error. Please try again or contact us for assistance.');
+            }
+        }
+        
+        // ==============================================================================
+        // OPEN STRIPE EMBEDDED CHECKOUT IN MODAL
+        // ==============================================================================
+        
+        async function openStripeEmbeddedCheckout(sessionId) {
+            const modal = document.getElementById('payment-modal');
+            const container = document.getElementById('stripe-checkout-container');
+            
+            // Show modal
+            modal.classList.add('show');
+            
+            // Clear previous content
+            container.innerHTML = `
+                <div class="payment-loading">
+                    <div class="spinner"></div>
+                    <p>Loading secure payment form...</p>
+                </div>
+            `;
+            
+            try {
+                // Create embedded checkout
+                const checkout = await stripe.checkout.create({
+                    sessionId: sessionId
+                });
+                
+                // Clear loading message
+                container.innerHTML = '';
+                
+                // Mount Stripe Checkout
+                checkout.mount(container);
+                
+                console.log('✅ Stripe Checkout mounted');
+                
+            } catch (error) {
+                console.error('❌ Error mounting Stripe Checkout:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px;">
+                        <p style="color: #ef4444; font-size: 18px; margin-bottom: 16px;">❌ Error loading payment form</p>
+                        <button onclick="closePaymentModal()" class="btn btn-primary">Close</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // ==============================================================================
+        // HANDLE PAYMENT SUCCESS (Called after Stripe redirects back)
+        // ==============================================================================
+        
+        async function handlePaymentSuccess(sessionId) {
+            try {
+                addMessage('bot', '⏳ Confirming your payment...');
+                
+                // Check payment status
+                const response = await fetch(`${API_URL}/api/payments/${sessionId}/status`);
+                const data = await response.json();
+                
+                if (data.success && data.status === 'completed') {
+                    // Show success message in chat
+                    const successMessage = `
+                        <div class="success-message">
+                            <h3>✅ Payment Successful!</h3>
+                            <p>Thank you for your payment, ${data.client_name}!</p>
+                            <div class="receipt-info">
+                                <div class="receipt-row">
+                                    <span>Amount Paid:</span>
+                                    <span><strong>$${data.amount.toFixed(2)}</strong></span>
+                                </div>
+                                <div class="receipt-row">
+                                    <span>Transaction ID:</span>
+                                    <span style="font-size: 12px;">${data.transaction_id}</span>
+                                </div>
+                            </div>
+                            <p style="margin-top: 16px;">📧 A receipt has been sent to your email.</p>
+                        </div>
+                    `;
+                    
+                    addMessage('bot', successMessage);
+                    
+                    // Ask if they need anything else
+                    setTimeout(() => {
+                        addMessage('bot', 'Is there anything else I can assist you with today?');
+                    }, 1500);
+                    
+                } else {
+                    addMessage('bot', '❌ Payment verification failed. Please contact us if you need assistance.');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error checking payment status:', error);
+                addMessage('bot', '⚠️ Payment may have succeeded, but we couldn\'t confirm it. Please check your email for a receipt, or contact us.');
+            }
+        }
+        
+        // ==============================================================================
+        // MODAL CONTROLS
+        // ==============================================================================
+        
+        function closePaymentModal() {
+            const modal = document.getElementById('payment-modal');
+            modal.classList.remove('show');
+            
+            // Clean up Stripe Checkout
+            const container = document.getElementById('stripe-checkout-container');
+            container.innerHTML = '';
+        }
+        
+        // Close modal on outside click
+        document.getElementById('payment-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePaymentModal();
+            }
+        });
+        
+        // ==============================================================================
+        // HELPER FUNCTIONS
+        // ==============================================================================
+        
+        function generatePaymentReference() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            const segments = [4, 8, 4];
+            return segments.map(len => 
+                Array.from({length: len}, () => 
+                    chars[Math.floor(Math.random() * chars.length)]
+                ).join('')
+            ).join('-');
+        }
+
         function addMessage(sender, text) {
             const messagesContainer = document.getElementById('chat-messages');
             const messageDiv = document.createElement('div');
-            messageDiv.className = `chat-message ${sender}`;
+            messageDiv.className = `chat-message ${sender}-message`;
+            messageDiv.innerHTML = text;  // Use innerHTML to render HTML
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
 
             const avatar = document.createElement('div');
             avatar.className = 'message-avatar';
@@ -823,7 +1233,7 @@
 
             messagesContainer.appendChild(messageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
+        
 
         function addScriptStep(stepId) {
             const step = flowSteps[stepId];

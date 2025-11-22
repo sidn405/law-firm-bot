@@ -14,7 +14,7 @@ openai==1.3.5
 
 # Payment Processing
 stripe==7.4.0
-requests==2.31.0  # For PayPal
+PayPal==1.2.5
 
 # Email
 aiosmtplib==3.0.1
