@@ -2622,7 +2622,7 @@ async def migrate_local_to_s3(db: Session = Depends(get_db)):
             "success": True,
             "migrated_count": len(migrated),
             "failed_count": len(failed),
-            "migrated": migrated,
+            "migrated": migrated,""""""
             "failed": failed
         }
         
