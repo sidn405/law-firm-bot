@@ -3250,14 +3250,16 @@ async def quick_salesforce_test():
             "troubleshooting": troubleshooting
         }
         
-@app.get("/api/twilio/voice-test")
-async def test_voice_endpoint():
-    """Test if voice endpoint is accessible"""
+@app.get("/api/twilio/voice-status")
+async def voice_status():
+    """Check voice endpoint status"""
     return {
-        "success": True,
-        "message": "Voice endpoint is working!",
-        "webhook_url": f"{BASE_URL}/api/twilio/voice",
-        "instructions": "Set this URL in Twilio Console → Phone Numbers → Configure"
+        "status": "operational",
+        "endpoint": "/api/twilio/voice",
+        "full_url": f"{BASE_URL}/api/twilio/voice",
+        "twilio_configured": bool(TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN),
+        "openai_configured": bool(OPENAI_API_KEY),
+        "law_firm_name": LAW_FIRM_NAME
     }
 
 # ============================================
