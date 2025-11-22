@@ -39,6 +39,19 @@ from sqlalchemy.pool import StaticPool
 from bs4 import BeautifulSoup
 from flow_state_manager import FlowStateManager
 
+from s3_storage import (
+    upload_file_to_s3,
+    upload_file_object_to_s3,
+    generate_presigned_upload_url,
+    generate_presigned_download_url,
+    list_client_files,
+    delete_file,
+    test_s3_connection,
+    get_file_metadata
+)
+import shutil
+from tempfile import NamedTemporaryFile
+
 # ============================================
 # CONFIGURATION
 # ============================================
@@ -2145,6 +2158,478 @@ async def test_salesforce_connection():
             "success": False,
             "error": str(e)
         }
+        
+# ============================================
+# S3 STORAGE ENDPOINTS
+# ============================================
+
+@app.get("/api/s3/test")
+async def test_s3():
+    """Test S3 connection"""
+    return test_s3_connection()
+
+
+@app.post("/api/documents/upload")
+async def upload_document(
+    file: UploadFile = File(...),
+    client_id: str = Form(...),
+    case_id: Optional[str] = Form(None),
+    folder_type: str = Form("client_uploads"),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload a document to S3
+    
+    Folder types:
+    - intake_forms
+    - case_documents
+    - client_uploads
+    - signed_agreements
+    - medical_records
+    - photos
+    - other
+    """
+    try:
+        # Read file content
+        file_content = await file.read()
+        
+        # Upload to S3
+        result = upload_file_object_to_s3(
+            file_content=file_content,
+            filename=file.filename,
+            client_id=client_id,
+            case_id=case_id,
+            folder_type=folder_type,
+            content_type=file.content_type or "application/octet-stream"
+        )
+        
+        # Save document record in database
+        document = Document(
+            case_id=case_id or "no-case",
+            client_id=client_id,
+            filename=file.filename,
+            file_path=result['s3_key'],  # Store S3 key instead of local path
+            file_type=file.content_type,
+            file_size=result['size']
+        )
+        db.add(document)
+        db.commit()
+        db.refresh(document)
+        
+        return {
+            "success": True,
+            "message": "File uploaded successfully",
+            "document_id": document.id,
+            "s3_key": result['s3_key'],
+            "url": result['url'],
+            "size": result['size']
+        }
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error uploading document: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/documents/generate-upload-url")
+async def generate_upload_url(
+    filename: str = Form(...),
+    client_id: str = Form(...),
+    case_id: Optional[str] = Form(None),
+    folder_type: str = Form("client_uploads")
+):
+    """
+    Generate presigned URL for direct browser upload to S3
+    This allows the frontend to upload directly to S3 without going through the backend
+    """
+    try:
+        result = generate_presigned_upload_url(
+            filename=filename,
+            client_id=client_id,
+            case_id=case_id,
+            folder_type=folder_type,
+            expiration=3600  # 1 hour
+        )
+        
+        return {
+            "success": True,
+            "upload_url": result['upload_url'],
+            "s3_key": result['s3_key'],
+            "fields": result['fields']
+        }
+        
+    except Exception as e:
+        print(f"Error generating upload URL: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/documents/list/{client_id}")
+async def list_documents(
+    client_id: str,
+    case_id: Optional[str] = None,
+    folder_type: Optional[str] = None
+):
+    """
+    List all documents for a client or case
+    """
+    try:
+        files = list_client_files(
+            client_id=client_id,
+            case_id=case_id,
+            folder_type=folder_type
+        )
+        
+        return {
+            "success": True,
+            "count": len(files),
+            "files": files
+        }
+        
+    except Exception as e:
+        print(f"Error listing documents: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/documents/download/{document_id}")
+async def get_document_download_url(
+    document_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get presigned download URL for a document
+    """
+    try:
+        # Get document from database
+        document = db.query(Document).filter(Document.id == document_id).first()
+        
+        if not document:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        # Generate presigned download URL
+        download_url = generate_presigned_download_url(
+            s3_key=document.file_path,  # file_path stores S3 key
+            expiration=3600  # 1 hour
+        )
+        
+        return {
+            "success": True,
+            "download_url": download_url,
+            "filename": document.filename,
+            "size": document.file_size,
+            "expires_in": 3600
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error generating download URL: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/documents/download-by-key")
+async def get_download_url_by_key(
+    s3_key: str
+):
+    """
+    Get presigned download URL directly by S3 key
+    """
+    try:
+        download_url = generate_presigned_download_url(
+            s3_key=s3_key,
+            expiration=3600
+        )
+        
+        return {
+            "success": True,
+            "download_url": download_url,
+            "expires_in": 3600
+        }
+        
+    except Exception as e:
+        print(f"Error generating download URL: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/documents/{document_id}")
+async def delete_document(
+    document_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a document from S3 and database
+    """
+    try:
+        # Get document from database
+        document = db.query(Document).filter(Document.id == document_id).first()
+        
+        if not document:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        # Delete from S3
+        delete_file(document.file_path)
+        
+        # Delete from database
+        db.delete(document)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Document deleted successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"Error deleting document: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/documents/metadata/{document_id}")
+async def get_document_metadata(
+    document_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get document metadata
+    """
+    try:
+        # Get document from database
+        document = db.query(Document).filter(Document.id == document_id).first()
+        
+        if not document:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        # Get S3 metadata
+        s3_metadata = get_file_metadata(document.file_path)
+        
+        return {
+            "success": True,
+            "document": {
+                "id": document.id,
+                "filename": document.filename,
+                "client_id": document.client_id,
+                "case_id": document.case_id,
+                "file_type": document.file_type,
+                "file_size": document.file_size,
+                "uploaded_at": document.uploaded_at.isoformat(),
+                "s3_key": document.file_path,
+                "s3_metadata": s3_metadata
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error getting document metadata: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/cases/{case_id}/documents")
+async def get_case_documents(
+    case_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get all documents for a specific case
+    """
+    try:
+        documents = db.query(Document).filter(Document.case_id == case_id).all()
+        
+        result = []
+        for doc in documents:
+            # Generate download URL for each
+            download_url = generate_presigned_download_url(doc.file_path, expiration=3600)
+            
+            result.append({
+                "id": doc.id,
+                "filename": doc.filename,
+                "file_type": doc.file_type,
+                "file_size": doc.file_size,
+                "uploaded_at": doc.uploaded_at.isoformat(),
+                "download_url": download_url
+            })
+        
+        return {
+            "success": True,
+            "count": len(result),
+            "documents": result
+        }
+        
+    except Exception as e:
+        print(f"Error getting case documents: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/clients/{client_id}/documents")
+async def get_client_documents(
+    client_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get all documents for a specific client
+    """
+    try:
+        documents = db.query(Document).filter(Document.client_id == client_id).all()
+        
+        result = []
+        for doc in documents:
+            # Generate download URL for each
+            download_url = generate_presigned_download_url(doc.file_path, expiration=3600)
+            
+            result.append({
+                "id": doc.id,
+                "case_id": doc.case_id,
+                "filename": doc.filename,
+                "file_type": doc.file_type,
+                "file_size": doc.file_size,
+                "uploaded_at": doc.uploaded_at.isoformat(),
+                "download_url": download_url
+            })
+        
+        return {
+            "success": True,
+            "count": len(result),
+            "documents": result
+        }
+        
+    except Exception as e:
+        print(f"Error getting client documents: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================
+# BULK OPERATIONS
+# ============================================
+
+@app.post("/api/documents/bulk-upload")
+async def bulk_upload_documents(
+    files: List[UploadFile] = File(...),
+    client_id: str = Form(...),
+    case_id: Optional[str] = Form(None),
+    folder_type: str = Form("client_uploads"),
+    db: Session = Depends(get_db)
+):
+    """
+    Upload multiple documents at once
+    """
+    try:
+        results = []
+        
+        for file in files:
+            # Read file content
+            file_content = await file.read()
+            
+            # Upload to S3
+            s3_result = upload_file_object_to_s3(
+                file_content=file_content,
+                filename=file.filename,
+                client_id=client_id,
+                case_id=case_id,
+                folder_type=folder_type,
+                content_type=file.content_type or "application/octet-stream"
+            )
+            
+            # Save document record
+            document = Document(
+                case_id=case_id or "no-case",
+                client_id=client_id,
+                filename=file.filename,
+                file_path=s3_result['s3_key'],
+                file_type=file.content_type,
+                file_size=s3_result['size']
+            )
+            db.add(document)
+            
+            results.append({
+                "filename": file.filename,
+                "document_id": document.id,
+                "s3_key": s3_result['s3_key'],
+                "size": s3_result['size']
+            })
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"Uploaded {len(results)} files successfully",
+            "files": results
+        }
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error in bulk upload: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================
+# HELPER FUNCTION: Migrate Local Files to S3
+# ============================================
+
+@app.post("/api/admin/migrate-to-s3")
+async def migrate_local_to_s3(db: Session = Depends(get_db)):
+    """
+    Admin endpoint: Migrate existing local files to S3
+    Run this once if you already have files in the uploads folder
+    """
+    try:
+        # Get all documents with local paths
+        documents = db.query(Document).all()
+        
+        migrated = []
+        failed = []
+        
+        for doc in documents:
+            try:
+                # Check if file still uses local path
+                if doc.file_path.startswith("uploads/"):
+                    local_path = Path(doc.file_path)
+                    
+                    if local_path.exists():
+                        # Upload to S3
+                        s3_result = upload_file_to_s3(
+                            file_path=str(local_path),
+                            client_id=doc.client_id,
+                            case_id=doc.case_id,
+                            folder_type="client_uploads",
+                            custom_filename=doc.filename
+                        )
+                        
+                        # Update database record
+                        doc.file_path = s3_result['s3_key']
+                        
+                        migrated.append({
+                            "document_id": doc.id,
+                            "filename": doc.filename,
+                            "s3_key": s3_result['s3_key']
+                        })
+                    else:
+                        failed.append({
+                            "document_id": doc.id,
+                            "filename": doc.filename,
+                            "error": "Local file not found"
+                        })
+            except Exception as e:
+                failed.append({
+                    "document_id": doc.id,
+                    "filename": doc.filename,
+                    "error": str(e)
+                })
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "migrated_count": len(migrated),
+            "failed_count": len(failed),
+            "migrated": migrated,
+            "failed": failed
+        }
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error during migration: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================
 # HEALTH CHECK & TEST ENDPOINTS
