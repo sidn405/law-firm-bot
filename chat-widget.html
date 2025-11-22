@@ -663,12 +663,30 @@
                 next_step: "end"
             },
             pi_contact_info: {
-                prompt: "Please share your contact details so our team can review your case and reach out.\n\nEnter: Full name, phone number, email (separated by commas)\n\nExample: John Smith, 555-123-4567, john@email.com",
+                prompt: `
+                    <div class="contact-info-box" style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 16px; border-radius: 8px; margin: 8px 0;">
+                        <p style="font-size: 14px; color: #1e40af; font-weight: 600; margin-bottom: 8px;">📋 Contact Information</p>
+                        <p style="font-size: 13px; color: #1f2937; margin-bottom: 12px;">Please share your contact details so our team can review your case and reach out.</p>
+                        <p style="font-size: 13px; color: #374151; margin-bottom: 8px;"><strong>Enter:</strong> Full name, phone number, email (separated by commas)</p>
+                        <p style="font-size: 13px; color: #374151; background: white; padding: 8px; border-radius: 4px; font-family: monospace;">
+                            John Smith, 555-123-4567, john@email.com
+                        </p>
+                    </div>
+                `,
                 input_type: "text",
                 next_step: "pi_docs"
             },
             pi_docs: {
-                prompt: "If you have photos, police reports, or medical documents, you can upload them here (optional).\n\nType 'skip' if you don't have any documents right now, or 'done' when you've uploaded them.",
+                prompt: `
+                    <div class="docs-info-box" style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 16px; border-radius: 8px; margin: 8px 0;">
+                        <p style="font-size: 14px; color: #065f46; font-weight: 600; margin-bottom: 8px;">📎 Documents (Optional)</p>
+                        <p style="font-size: 13px; color: #1f2937; margin-bottom: 12px;">If you have photos, police reports, or medical documents, you can upload them here.</p>
+                        <p style="font-size: 13px; color: #374151; background: white; padding: 8px; border-radius: 4px;">
+                            Type <strong>'skip'</strong> if you don't have any documents right now<br>
+                            Type <strong>'done'</strong> when you've uploaded them
+                        </p>
+                    </div>
+                `,
                 input_type: "text",
                 next_step: "pi_consult"
             },
@@ -932,14 +950,26 @@
             
             addMessage('user', "I'd like to make a payment.");
             
-            // Create payment info request message
+            // Generate reference ID for tracking
+            const referenceId = 'PAY-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+            
+            // Create payment info request message with nice styling - using wording from pi_contact_info
             const infoMessage = `
-                <div class="payment-info-box">
-                    <p><strong>To process your payment, please provide the following information in one line:</strong></p>
-                    <p style="margin-top: 10px;">First Name | Last Name | Client ID | Email</p>
-                    <p style="margin-top: 10px; color: #6b7280; font-size: 13px;">Example: John | Doe | CLI12345 | john@email.com</p>
+                <div class="payment-info-box" style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 16px; border-radius: 8px; margin: 8px 0;">
+                    <p style="font-size: 14px; color: #1e40af; font-weight: 600; margin-bottom: 8px;">💳 Payment Request</p>
+                    <p style="font-size: 13px; color: #1f2937; margin-bottom: 12px;">Please share your contact details so our team can process your payment.</p>
+                    <p style="font-size: 13px; color: #374151; margin-bottom: 8px;"><strong>Enter:</strong> Full name, email (separated by commas)</p>
+                    <p style="font-size: 13px; color: #374151; background: white; padding: 8px; border-radius: 4px; font-family: monospace;">
+                        John Smith, john@email.com
+                    </p>
+                    <p style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 11px;">
+                        <strong>Reference:</strong> ${referenceId}
+                    </p>
                 </div>
             `;
+            
+            // Store reference ID for tracking
+            collectedData['payment_reference'] = referenceId;
             
             addMessage('bot', infoMessage);
             
@@ -947,19 +977,28 @@
             document.getElementById('chat-input').focus();
         }
 
-        // Parse payment client info
+        // Parse payment client info - comma-separated format: Full Name, Email
         function parsePaymentInfo(message) {
-            const parts = message.split('|').map(p => p.trim());
+            const parts = message.split(',').map(p => p.trim());
             
-            if (parts.length !== 4) {
+            if (parts.length !== 2) {
                 return null;
             }
             
+            // Parse full name into first and last
+            const nameParts = parts[0].split(' ').filter(n => n.length > 0);
+            if (nameParts.length < 2) {
+                return null; // Need at least first and last name
+            }
+            
+            const firstName = nameParts[0];
+            const lastName = nameParts.slice(1).join(' '); // Handle middle names
+            
             return {
-                first_name: parts[0],
-                last_name: parts[1],
-                client_id: parts[2],
-                email: parts[3]
+                first_name: firstName,
+                last_name: lastName,
+                full_name: parts[0],
+                email: parts[1]
             };
         }
 
@@ -968,16 +1007,16 @@
             showTyping(true);
             
             try {
-                // First, try to verify and get payment info in one call
+                // Try to verify and get payment info
                 const response = await fetch(`${API_URL}/api/payments/client-payment-request`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                     body: new URLSearchParams({
                         first_name: clientInfo.first_name,
                         last_name: clientInfo.last_name,
-                        client_id: clientInfo.client_id,
                         email: clientInfo.email,
-                        payment_type: 'retainer'
+                        payment_type: 'retainer',
+                        reference_id: collectedData['payment_reference'] || 'N/A'
                     })
                 });
                 
@@ -989,19 +1028,23 @@
                     paymentClientData = data.client;
                     
                     const paymentMessage = `
-                        <div class="payment-info-box">
-                            <p>${data.message}</p>
-                            <p style="margin-top: 10px;"><strong>Amount:</strong> $${data.amount.toFixed(2)}</p>
-                            <p><strong>Payment Type:</strong> ${data.payment_type.replace('_', ' ')}</p>
+                        <div class="payment-info-box" style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 16px; border-radius: 8px; margin: 8px 0;">
+                            <p style="font-size: 14px; color: #065f46; font-weight: 600; margin-bottom: 8px;">✓ Client Verified</p>
+                            <p style="font-size: 13px; color: #1f2937; margin-bottom: 12px;">${data.message}</p>
+                            <div style="background: white; padding: 12px; border-radius: 6px; margin: 10px 0;">
+                                <p style="font-size: 13px; color: #374151;"><strong>Amount:</strong> $${data.amount.toFixed(2)}</p>
+                                <p style="font-size: 13px; color: #374151;"><strong>Payment Type:</strong> ${data.payment_type.replace('_', ' ')}</p>
+                                <p style="font-size: 12px; color: #6b7280; margin-top: 8px;"><strong>Reference:</strong> ${collectedData['payment_reference']}</p>
+                            </div>
                         </div>
-                        <div class="payment-button-container">
-                            <button class="payment-method-btn stripe-btn" onclick="processPayment('stripe', '${data.client.id}', ${data.amount}, '${data.description}')">
+                        <div class="payment-button-container" style="display: flex; gap: 10px; margin-top: 12px;">
+                            <button class="payment-method-btn stripe-btn" onclick="processPayment('stripe', '${data.client.id}', ${data.amount}, '${data.description}')" style="flex: 1; padding: 12px 20px; background: #635bff; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M13.5 2C9.9 2 7 4.9 7 8.5S9.9 15 13.5 15 20 12.1 20 8.5 17.1 2 13.5 2zm0 11c-2.5 0-4.5-2-4.5-4.5S11 4 13.5 4 18 6 18 8.5 16 13 13.5 13z"/>
                                 </svg>
                                 Pay with Stripe
                             </button>
-                            <button class="payment-method-btn paypal-btn" onclick="processPayment('paypal', '${data.client.id}', ${data.amount}, '${data.description}')">
+                            <button class="payment-method-btn paypal-btn" onclick="processPayment('paypal', '${data.client.id}', ${data.amount}, '${data.description}')" style="flex: 1; padding: 12px 20px; background: #0070ba; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M19.5 6.5c.5 1.1.5 2.4 0 3.8-.8 2.5-2.8 4.2-5.4 4.2H12l-.8 4.5h-2l.8-4.5H8.5L7 20H5l2-11h7.1c1.8 0 3.3.6 4.2 1.7.5.5.8 1.1 1.2 1.8z"/>
                                 </svg>
@@ -1014,8 +1057,16 @@
                     paymentFlowActive = false;
                     
                 } else {
-                    // Client not found - ask if returning client
-                    addMessage('bot', "I couldn't find a matching client record. Are you a returning client?");
+                    // Client not found - ask if returning client with styled message
+                    const notFoundMessage = `
+                        <div class="payment-info-box" style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin: 8px 0;">
+                            <p style="font-size: 14px; color: #92400e; font-weight: 600; margin-bottom: 8px;">⚠️ Client Record Not Found</p>
+                            <p style="font-size: 13px; color: #1f2937;">I couldn't find a matching client record in our system.</p>
+                            <p style="font-size: 13px; color: #374151; margin-top: 8px;">Are you a returning client?</p>
+                        </div>
+                    `;
+                    
+                    addMessage('bot', notFoundMessage);
                     
                     // Add Yes/No buttons
                     const returningClientButtons = `
@@ -1166,7 +1217,19 @@
                 if (clientInfo) {
                     await verifyAndShowPayment(clientInfo);
                 } else {
-                    addMessage('bot', 'Please provide your information in the correct format: First Name | Last Name | Client ID | Email');
+                    const errorMessage = `
+                        <div class="payment-info-box" style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 16px; border-radius: 8px; margin: 8px 0;">
+                            <p style="font-size: 13px; color: #991b1b; font-weight: 600;">❌ Incorrect Format</p>
+                            <p style="font-size: 13px; color: #1f2937; margin-top: 8px;">Please provide your information in the correct format:</p>
+                            <p style="font-size: 13px; color: #374151; background: white; padding: 8px; border-radius: 4px; font-family: monospace; margin-top: 8px;">
+                                Full Name, Email
+                            </p>
+                            <p style="margin-top: 8px; color: #6b7280; font-size: 12px;">
+                                <strong>Example:</strong> John Smith, john@email.com
+                            </p>
+                        </div>
+                    `;
+                    addMessage('bot', errorMessage);
                 }
                 return;
             }

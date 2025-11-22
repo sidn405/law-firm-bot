@@ -1319,7 +1319,7 @@ from pydantic import BaseModel
 class ClientVerificationRequest(BaseModel):
     first_name: str
     last_name: str
-    client_id: str
+    client_id: Optional[str] = None  # Made optional since clients may not have this
     email: str
 
 class PaymentLinkRequest(BaseModel):
@@ -1335,17 +1335,21 @@ async def verify_client_for_payment(
     db: Session = Depends(get_db)
 ):
     """
-    Verify client exists by matching first name, last name, client_id, and email
+    Verify client exists by matching first name, last name, and email
+    client_id is optional for additional verification
     Returns client info if found, or indicates no match
     """
     try:
-        print(f"🔍 Verifying client: {request.first_name} {request.last_name}, ID: {request.client_id}, Email: {request.email}")
+        print(f"🔍 Verifying client: {request.first_name} {request.last_name}, Email: {request.email}, Client ID: {request.client_id or 'Not provided'}")
         
-        # Search for client matching ALL criteria
-        client = db.query(Client).filter(
-            Client.id == request.client_id,
-            Client.email == request.email.lower()
-        ).first()
+        # Build query - start with email as primary identifier
+        query = db.query(Client).filter(Client.email == request.email.lower())
+        
+        # If client_id provided, add it to filter
+        if request.client_id:
+            query = query.filter(Client.id == request.client_id)
+        
+        client = query.first()
         
         # If found, verify names match (case-insensitive)
         if client:
@@ -1577,22 +1581,26 @@ async def create_paypal_payment_link(
 async def client_payment_request(
     first_name: str = Form(...),
     last_name: str = Form(...),
-    client_id: str = Form(...),
     email: str = Form(...),
+    client_id: str = Form(None),  # Made optional
+    reference_id: str = Form(None),  # For tracking
     amount: float = Form(None),  # Optional: can be set by system
     payment_type: str = Form("retainer"),  # "retainer" or "case_payment"
     db: Session = Depends(get_db)
 ):
     """
     All-in-one endpoint for client payment requests
-    Verifies client and returns payment links
+    Verifies client by name and email (client_id optional)
+    Returns payment links
     """
     try:
+        print(f"💳 Payment request - Reference: {reference_id}, Client: {first_name} {last_name}, Email: {email}")
+        
         # Verify client
         verification_request = ClientVerificationRequest(
             first_name=first_name,
             last_name=last_name,
-            client_id=client_id,
+            client_id=client_id,  # Now optional
             email=email
         )
         
@@ -1603,7 +1611,8 @@ async def client_payment_request(
                 "success": False,
                 "client_found": False,
                 "message": "Client not found. Please verify your information.",
-                "hand_off_to_agent": False  # Frontend will ask "returning client?" question
+                "hand_off_to_agent": False,  # Frontend will ask "returning client?" question
+                "reference_id": reference_id
             }
         
         # Client found - determine amount if not provided
@@ -1626,6 +1635,7 @@ async def client_payment_request(
             "amount": amount,
             "payment_type": payment_type,
             "description": description,
+            "reference_id": reference_id,
             "message": f"Hello {client['name']}! Your {payment_type.replace('_', ' ')} amount is ${amount:.2f}. Please choose your payment method:"
         }
         
