@@ -5,7 +5,7 @@ FastAPI backend with OpenAI, Stripe, PayPal, Twilio, Resend Email, File Manageme
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel, EmailStr
 from fastapi.staticfiles import StaticFiles
 from simple_salesforce import Salesforce, SalesforceLogin
@@ -1336,190 +1336,176 @@ async def handle_sms(Body: str = Form(...), From: str = Form(...), db: Session =
 # Add these enhanced endpoints to your main.py
 
 @app.api_route("/api/twilio/voice", methods=["GET", "POST"])
-async def handle_voice_call_enhanced(request: Request):
-    """Enhanced inbound call handler with menu options"""
-    
-    # Get caller info
-    form = await request.form()
-    caller_number = form.get("From", "Unknown")
-    
-    print(f"📞 Incoming call from: {caller_number}")
-    
-    response = VoiceResponse()
-    
-    # Greeting with menu options
-    gather = Gather(
-        num_digits=1,
-        action='/api/twilio/call-menu',
-        timeout=10
-    )
-    
-    gather.say(
-        f"""Thank you for calling {LAW_FIRM_NAME}.
+async def handle_voice_call_fixed(request: Request):
+    """Handle incoming voice calls - FIXED VERSION"""
+    try:
+        print("📞 Incoming call received!")
         
-        Press 1 to speak with our AI assistant about your case.
-        Press 2 to schedule a consultation.
-        Press 3 to speak with a team member.
-        Press 0 to hear this menu again.""",
-        voice='alice'
-    )
-    
-    response.append(gather)
-    
-    # If no input, default to AI assistant
-    response.redirect('/api/twilio/ai-assistant')
-    
-    return Response(content=str(response), media_type="application/xml")
-
-
-@app.api_route("/api/twilio/call-menu", methods=["GET", "POST"])
-async def handle_call_menu(request: Request):
-    """Process menu selection"""
-    
-    form = await request.form()
-    digits = form.get("Digits")
-    caller_number = form.get("From", "Unknown")
-    
-    response = VoiceResponse()
-    
-    if digits == "1":
-        # AI Assistant
-        response.say("Connecting you to our AI assistant. Please speak your question after the tone.", voice='alice')
-        response.redirect('/api/twilio/ai-assistant')
+        # Get form data from Twilio
+        try:
+            form_data = await request.form()
+            caller = form_data.get("From", "Unknown")
+            call_sid = form_data.get("CallSid", "Unknown")
+            print(f"   Caller: {caller}")
+            print(f"   Call SID: {call_sid}")
+        except Exception as e:
+            print(f"   Warning: Could not parse form data: {e}")
+            caller = "Unknown"
         
-    elif digits == "2":
-        # Schedule consultation
-        response.say(
-            f"""To schedule a consultation, please visit our website or call us back during business hours.
-            
-            Our office is open Monday through Friday, 9 AM to 5 PM.
-            
-            You can also text this number with your preferred appointment time.""",
-            voice='alice'
-        )
+        # Create TwiML response
+        response = VoiceResponse()
         
-    elif digits == "3":
-        # Transfer to human
-        response.say("Transferring you to our office now. Please hold.", voice='alice')
-        response.dial(LAW_FIRM_PHONE)
-        
-    elif digits == "0":
-        # Repeat menu
-        response.redirect('/api/twilio/voice')
-        
-    else:
-        # Invalid option
-        response.say("Invalid option. Let me connect you to our AI assistant.", voice='alice')
-        response.redirect('/api/twilio/ai-assistant')
-    
-    return Response(content=str(response), media_type="application/xml")
-
-
-@app.api_route("/api/twilio/ai-assistant", methods=["GET", "POST"])
-async def handle_ai_assistant(request: Request, db: Session = Depends(get_db)):
-    """AI-powered conversation handler"""
-    
-    form = await request.form()
-    caller_number = form.get("From", "Unknown")
-    call_sid = form.get("CallSid", str(uuid.uuid4()))
-    
-    response = VoiceResponse()
-    
-    # Start conversation
-    gather = Gather(
-        input='speech',
-        action='/api/twilio/process-ai-speech',
-        timeout=5,
-        speech_timeout='auto',
-        language='en-US'
-    )
-    
-    gather.say(
-        "I'm listening. How can I help you with your legal matter today?",
-        voice='alice'
-    )
-    
-    response.append(gather)
-    
-    # Fallback if no speech detected
-    response.say("I didn't hear anything. Let me transfer you to our office.", voice='alice')
-    response.dial(LAW_FIRM_PHONE)
-    
-    return Response(content=str(response), media_type="application/xml")
-
-
-@app.api_route("/api/twilio/process-ai-speech", methods=["GET", "POST"])
-async def process_ai_speech_enhanced(
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    """Process speech and generate AI response"""
-    
-    form = await request.form()
-    speech_result = form.get("SpeechResult", "")
-    caller_number = form.get("From", "Unknown")
-    call_sid = form.get("CallSid", str(uuid.uuid4()))
-    
-    print(f"🎤 Caller said: {speech_result}")
-    
-    # Get or create conversation
-    session_id = f"phone_{call_sid}"
-    conversation = db.query(Conversation).filter(
-        Conversation.session_id == session_id
-    ).first()
-    
-    if not conversation:
-        conversation = Conversation(
-            session_id=session_id,
-            messages=[],
-            channel="phone"
-        )
-        db.add(conversation)
-    
-    # Get knowledge base
-    knowledge_base = await scraper.get_knowledge_base()
-    
-    # Generate AI response
-    ai_response = await chatbot.chat(
-        message=speech_result,
-        conversation_history=conversation.messages,
-        knowledge_base=knowledge_base
-    )
-    
-    # Save conversation
-    conversation.messages.append({"role": "user", "content": speech_result})
-    conversation.messages.append({"role": "assistant", "content": ai_response})
-    db.commit()
-    
-    print(f"🤖 AI responded: {ai_response}")
-    
-    # Build TwiML response
-    twiml = VoiceResponse()
-    
-    # Speak the AI response
-    twiml.say(ai_response, voice='alice')
-    
-    # Check if conversation should end
-    end_phrases = ["goodbye", "that's all", "thank you, bye", "no thank you"]
-    if any(phrase in speech_result.lower() for phrase in end_phrases):
-        twiml.say("Thank you for calling. Have a great day!", voice='alice')
-        twiml.hangup()
-    else:
-        # Continue conversation
+        # Create a gather to collect speech
         gather = Gather(
             input='speech',
-            action='/api/twilio/process-ai-speech',
+            action='/api/twilio/process-speech',
             timeout=5,
-            speech_timeout='auto'
+            speech_timeout='auto',
+            language='en-US'
         )
-        gather.say("Is there anything else I can help you with?", voice='alice')
-        twiml.append(gather)
         
-        # If no response, end call
-        twiml.say("Thank you for calling. Goodbye!", voice='alice')
-        twiml.hangup()
-    
-    return Response(content=str(twiml), media_type="application/xml")
+        # Greeting message
+        greeting = f"Thank you for calling {LAW_FIRM_NAME}. How can I help you today?"
+        gather.say(greeting, voice='alice')
+        
+        response.append(gather)
+        
+        # Fallback if no input
+        response.say("We didn't receive any input. Please call back. Goodbye!", voice='alice')
+        
+        # Return TwiML as XML
+        xml_response = str(response)
+        print(f"✅ Sending TwiML response: {xml_response[:200]}...")
+        
+        return Response(
+            content=xml_response,
+            media_type="application/xml"
+        )
+        
+    except Exception as e:
+        print(f"❌ ERROR in voice endpoint: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        # Return a basic error response
+        error_response = VoiceResponse()
+        error_response.say("Sorry, there was an error. Please call back later.", voice='alice')
+        return Response(
+            content=str(error_response),
+            media_type="application/xml"
+        )
+
+
+@app.api_route("/api/twilio/process-speech", methods=["GET", "POST"])
+async def process_speech_fixed(request: Request, db: Session = Depends(get_db)):
+    """Process speech input - FIXED VERSION"""
+    try:
+        print("🎤 Processing speech...")
+        
+        # Get form data
+        form_data = await request.form()
+        speech_result = form_data.get("SpeechResult", "")
+        caller = form_data.get("From", "Unknown")
+        call_sid = form_data.get("CallSid", str(uuid.uuid4()))
+        
+        print(f"   Speech: {speech_result}")
+        print(f"   Caller: {caller}")
+        
+        # If no speech detected
+        if not speech_result:
+            response = VoiceResponse()
+            response.say("I didn't hear anything. Goodbye!", voice='alice')
+            return Response(content=str(response), media_type="application/xml")
+        
+        # Get or create conversation
+        session_id = f"phone_{call_sid}"
+        conversation = db.query(Conversation).filter(
+            Conversation.session_id == session_id
+        ).first()
+        
+        if not conversation:
+            conversation = Conversation(
+                session_id=session_id,
+                messages=[],
+                channel="phone"
+            )
+            db.add(conversation)
+            db.commit()
+        
+        # Generate AI response
+        ai_response = "Thank you for calling. We've received your message."
+        
+        # Try to get AI response if OpenAI is configured
+        if openai_client:
+            try:
+                print("   Generating AI response...")
+                
+                # Simple AI prompt
+                messages = [
+                    {"role": "system", "content": f"You are a helpful assistant for {LAW_FIRM_NAME}. Keep responses brief (2-3 sentences) and professional."},
+                    {"role": "user", "content": speech_result}
+                ]
+                
+                # Add conversation history
+                for msg in conversation.messages[-4:]:  # Last 2 exchanges
+                    messages.append(msg)
+                
+                messages.append({"role": "user", "content": speech_result})
+                
+                completion = await asyncio.to_thread(
+                    openai_client.chat.completions.create,
+                    model="gpt-4o-mini",
+                    messages=messages,
+                    max_tokens=150,
+                    temperature=0.7
+                )
+                
+                ai_response = completion.choices[0].message.content
+                print(f"   AI Response: {ai_response}")
+                
+            except Exception as e:
+                print(f"   ⚠️ AI error: {e}")
+                ai_response = "Thank you for your question. A team member will call you back shortly."
+        
+        # Save conversation
+        conversation.messages.append({"role": "user", "content": speech_result})
+        conversation.messages.append({"role": "assistant", "content": ai_response})
+        db.commit()
+        
+        # Build response
+        twiml = VoiceResponse()
+        twiml.say(ai_response, voice='alice')
+        
+        # Check if conversation should continue
+        end_phrases = ["goodbye", "that's all", "thank you bye", "no thanks"]
+        if any(phrase in speech_result.lower() for phrase in end_phrases):
+            twiml.say("Thank you for calling. Goodbye!", voice='alice')
+            twiml.hangup()
+        else:
+            # Ask if they need more help
+            gather = Gather(
+                input='speech',
+                action='/api/twilio/process-speech',
+                timeout=5,
+                speech_timeout='auto'
+            )
+            gather.say("Is there anything else I can help you with?", voice='alice')
+            twiml.append(gather)
+            
+            # If no response
+            twiml.say("Thank you for calling. Have a great day!", voice='alice')
+        
+        return Response(content=str(twiml), media_type="application/xml")
+        
+    except Exception as e:
+        print(f"❌ ERROR in process-speech: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        error_response = VoiceResponse()
+        error_response.say("Sorry, there was an error processing your request.", voice='alice')
+        return Response(content=str(error_response), media_type="application/xml")
+
 
 
 @app.get("/api/phone/info")
