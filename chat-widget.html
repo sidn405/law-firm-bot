@@ -728,10 +728,6 @@
         let currentStep = 'start';
         let intakeActive = true;
         let collectedData = {};
-
-        // Global variables
-        let stripe = null;
-        let currentPaymentData = null;
         
         let paymentFlow = {
             active: false,
@@ -935,9 +931,7 @@
             sessionId = localStorage.getItem('lawfirm_session_id') || generateSessionId();
             localStorage.setItem('lawfirm_session_id', sessionId);
 
-            // Always show greeting on page load
-            const chatMessages = document.getElementById('chat-messages');
-            chatMessages.innerHTML = '';
+            document.getElementById('chat-messages').innerHTML = '';
             addScriptStep('start');
         });
 
@@ -953,36 +947,9 @@
             if (chatWindow.classList.contains('open')) {
                 document.getElementById('chat-input').focus();
                 document.getElementById('chat-notification').style.display = 'none';
-                
-                // Show greeting if chat is empty
-                const chatMessages = document.getElementById('chat-messages');
-                if (chatMessages.children.length === 0 || chatMessages.innerHTML.trim() === '') {
-                    addScriptStep('start');
-                }
             }
         }
-           
-        
-        // ==============================================================================
-        // INITIALIZE STRIPE ON PAGE LOAD
-        // ==============================================================================
-        
-        async function initializeStripe() {
-            try {
-                const response = await fetch(`${API_URL}/api/payments/stripe-config`);
-                const data = await response.json();
-                
-                if (data.success && data.publishable_key) {
-                    stripe = Stripe(data.publishable_key);
-                    console.log('✅ Stripe initialized');
-                    return true;
-                }
-            } catch (error) {
-                console.error('❌ Error initializing Stripe:', error);
-                return false;
-            }
-        }
-        
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', async () => {
             await initializeStripe();

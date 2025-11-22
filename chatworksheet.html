@@ -987,27 +987,6 @@
                 }
             }
         }
-           
-        
-        // ==============================================================================
-        // INITIALIZE STRIPE ON PAGE LOAD
-        // ==============================================================================
-        
-        async function initializeStripe() {
-            try {
-                const response = await fetch(`${API_URL}/api/payments/stripe-config`);
-                const data = await response.json();
-                
-                if (data.success && data.publishable_key) {
-                    stripe = Stripe(data.publishable_key);
-                    console.log('✅ Stripe initialized');
-                    return true;
-                }
-            } catch (error) {
-                console.error('❌ Error initializing Stripe:', error);
-                return false;
-            }
-        }
         
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', async () => {
