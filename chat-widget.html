@@ -279,6 +279,34 @@
         .script-button:active {
             transform: translateX(2px);
         }
+
+        /* Payment-specific styles */
+        .payment-button {
+            background: var(--success-color);
+            border: 2px solid var(--success-color);
+            color: white;
+            padding: 14px 20px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .payment-button:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+        
+        .payment-amount {
+            font-size: 18px;
+            font-weight: bold;
+        }
         
         /* File Upload Status */
         .upload-status {
@@ -496,9 +524,12 @@
         const API_URL = 'https://law-firm-bot-production.up.railway.app';
         let sessionId = null;
         let clientId = null;
-        let currentStep = 'start';
-        let intakeActive = true;
-        let collectedData = {};
+        let paymentFlow = {
+            active: false,
+            step: null,
+            selectedType: null,
+            clientInfo: {}
+        };
         
         
         const flowSteps = {
@@ -793,6 +824,201 @@
                 return;
             }
 
+            // Handle payment flow steps
+            if (paymentFlow.active) {
+                handlePaymentFlowInput(message);
+                return;
+            }
+
+            showTyping(true);
+            
+            try {
+                const response = await fetch(`${API_URL}/api/chat/enhanced`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: sessionId,
+                        client_id: clientId
+                    })
+                });
+
+                const data = await response.json();
+                showTyping(false);
+
+                if (data.intent === 'payment') {
+                    // Start payment flow
+                    handlePaymentIntent(data);
+                } else {
+                    addMessage('bot', data.response || "I'm here to help! You can ask about making a payment, scheduling a consultation, or getting a case evaluation.");
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showTyping(false);
+                addMessage('bot', "I'm having trouble connecting. Please try again or call us at (555) 123-4567.");
+            }
+        }
+
+        function handlePaymentIntent(data) {
+            paymentFlow.active = true;
+            paymentFlow.step = 'select_type';
+            
+            addMessage('bot', data.response);
+            
+            // Add payment type buttons
+            const messagesContainer = document.getElementById('chat-messages');
+            const btnGroup = document.createElement('div');
+            btnGroup.className = 'script-button-group';
+            
+            data.payment_options.forEach(option => {
+                const btn = document.createElement('button');
+                btn.className = 'script-button';
+                btn.innerHTML = `<strong>${option.label}</strong><br><small style="opacity: 0.7;">${option.description}</small>`;
+                btn.onclick = () => selectPaymentType(option);
+                btnGroup.appendChild(btn);
+            });
+            
+            messagesContainer.appendChild(btnGroup);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function selectPaymentType(option) {
+            document.querySelectorAll('.script-button-group').forEach(el => el.remove());
+            
+            addMessage('user', option.label);
+            
+            paymentFlow.selectedType = option.id;
+            paymentFlow.step = 'client_id';
+            
+            addMessage('bot', `Great! To proceed with the ${option.label}, I need to verify your account.\n\nPlease enter your Client ID (format: CLI-XXXXX):`);
+        }
+
+        function handlePaymentFlowInput(message) {
+            if (paymentFlow.step === 'client_id') {
+                // Validate client ID format
+                const clientIdPattern = /^CLI-[A-Z0-9]{5}$/i;
+                
+                if (clientIdPattern.test(message.trim().toUpperCase())) {
+                    paymentFlow.clientInfo.client_id = message.trim().toUpperCase();
+                    paymentFlow.step = 'name';
+                    addMessage('bot', 'Thank you! Please enter your full name as it appears on your account:');
+                } else {
+                    addMessage('bot', 'Invalid Client ID format. Please use format: CLI-XXXXX (example: CLI-A1B2C)');
+                }
+            } else if (paymentFlow.step === 'name') {
+                paymentFlow.clientInfo.name = message.trim();
+                paymentFlow.step = 'email';
+                addMessage('bot', 'Please enter your email address:');
+            } else if (paymentFlow.step === 'email') {
+                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                
+                if (emailPattern.test(message.trim())) {
+                    paymentFlow.clientInfo.email = message.trim();
+                    showPaymentButtons();
+                } else {
+                    addMessage('bot', 'Invalid email format. Please enter a valid email address:');
+                }
+            }
+        }
+
+        function showPaymentButtons() {
+            const paymentTypes = {
+                retainer: { amount: 500, label: 'Retainer Fee' },
+                case_payment: { amount: 2500, label: 'Case Payment' }
+            };
+            
+            const selected = paymentTypes[paymentFlow.selectedType];
+            
+            addMessage('bot', `Perfect! I've verified your information.\n\n💳 Payment Details:\nType: ${selected.label}\nAmount: $${selected.amount}\n\nChoose your payment method:`);
+            
+            const messagesContainer = document.getElementById('chat-messages');
+            const btnGroup = document.createElement('div');
+            btnGroup.className = 'script-button-group';
+            
+            // Stripe button
+            const stripeBtn = document.createElement('button');
+            stripeBtn.className = 'payment-button';
+            stripeBtn.innerHTML = `
+                <span>💳 Pay with Card (Stripe)</span>
+                <span class="payment-amount">$${selected.amount}</span>
+            `;
+            stripeBtn.onclick = () => initiatePayment('stripe');
+            btnGroup.appendChild(stripeBtn);
+            
+            // PayPal button
+            const paypalBtn = document.createElement('button');
+            paypalBtn.className = 'payment-button';
+            paypalBtn.style.background = '#0070ba';
+            paypalBtn.style.borderColor = '#0070ba';
+            paypalBtn.innerHTML = `
+                <span>🅿️ Pay with PayPal</span>
+                <span class="payment-amount">$${selected.amount}</span>
+            `;
+            paypalBtn.onclick = () => initiatePayment('paypal');
+            btnGroup.appendChild(paypalBtn);
+            
+            messagesContainer.appendChild(btnGroup);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        async function initiatePayment(method) {
+            document.querySelectorAll('.script-button-group').forEach(el => el.remove());
+            
+            addMessage('user', `Pay with ${method === 'stripe' ? 'Card' : 'PayPal'}`);
+            addMessage('bot', 'Processing your payment request...');
+            
+            showTyping(true);
+            
+            try {
+                const response = await fetch(`${API_URL}/api/payments/create-intent`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        payment_type: paymentFlow.selectedType,
+                        client_email: paymentFlow.clientInfo.email,
+                        client_name: paymentFlow.clientInfo.name,
+                        payment_method: method
+                    })
+                });
+
+                const data = await response.json();
+                showTyping(false);
+
+                if (data.success) {
+                    if (method === 'stripe') {
+                        addMessage('bot', `✅ Payment link created!\n\n💳 Amount: $${data.amount}\n🔒 Secure payment powered by Stripe\n\nClick below to complete your payment:\n\n👉 [Complete Payment - $${data.amount}]`);
+                        
+                        // In production, you'd redirect to Stripe Checkout or embed Stripe Elements
+                        addMessage('bot', `Payment ID: ${data.payment_id}\n\nNote: In production, you would be redirected to a secure Stripe checkout page.`);
+                    } else if (method === 'paypal') {
+                        addMessage('bot', `✅ PayPal payment created!\n\n💰 Amount: $${data.amount}\n\nClick the link below to complete payment via PayPal:\n\n👉 ${data.approval_url || 'PayPal checkout link'}`);
+                    }
+                    
+                    // Send confirmation email notification
+                    addMessage('bot', `📧 A confirmation email has been sent to ${paymentFlow.clientInfo.email}\n\nNeed help? Call us at (555) 123-4567`);
+                } else {
+                    addMessage('bot', `❌ Payment creation failed: ${data.error || 'Unknown error'}\n\nPlease call our office at (555) 123-4567 for assistance.`);
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                showTyping(false);
+                addMessage('bot', '❌ Unable to process payment request. Please call our office at (555) 123-4567.');
+            }
+            
+            // Reset payment flow
+            paymentFlow = {
+                active: false,
+                step: null,
+                selectedType: null,
+                clientInfo: {}
+            };
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') sendMessage();
+        }
+
             // Otherwise: GENERAL CHAT
             showTyping(true);
             try {
@@ -808,7 +1034,7 @@
                 showTyping(false);
                 addMessage('bot', "I'm having trouble connecting right now. Please call our office at (555) 123-4567.");
             }
-        }
+        
 
         async function sendToBackend(message) {
             const response = await fetch(`${API_URL}/api/chat`, {

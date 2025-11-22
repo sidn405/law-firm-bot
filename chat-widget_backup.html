@@ -565,7 +565,7 @@
                 next_step: "end"
             },
             pi_contact_info: {
-                prompt: "Please share your contact details so our team can review your case and reach out.\n\n1) Full name\n2) Phone number\n3) Email address",
+                prompt: "Please share your contact details so our team can review your case and reach out.\n\nEnter: Full name, phone number, email (separated by commas)\n\nExample: John Smith, 555-123-4567, john@email.com",
                 input_type: "text",
                 next_step: "pi_docs"
             },
@@ -917,26 +917,72 @@
                 const contactInfo = collectedData['pi_contact_info'] || '';
                 const preferredTime = collectedData['pi_schedule'] || '';
                 
-                // Parse contact info (expected format: name, phone, email)
-                const lines = contactInfo.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-                const name = lines[0] || 'Guest User';
-                const phone = lines[1] || null;
-                const email = lines[2] || 'no-email@example.com';
+                // More flexible parsing - handle single line or multi-line input
+                let name = 'Guest User';
+                let phone = null;
+                let email = 'no-email@example.com';
                 
-                // Validate email format
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                const validEmail = emailRegex.test(email) ? email : 'no-email@example.com';
+                // Regex patterns
+                const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
+                const phoneRegex = /(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/;
+                
+                // Extract email
+                const emailMatch = contactInfo.match(emailRegex);
+                if (emailMatch) {
+                    email = emailMatch[0];
+                }
+                
+                // Extract phone
+                const phoneMatch = contactInfo.match(phoneRegex);
+                if (phoneMatch) {
+                    phone = phoneMatch[0].trim();
+                }
+                
+                // Extract name - remove email and phone from the string, then get what's left
+                let nameText = contactInfo
+                    .replace(emailRegex, '')
+                    .replace(phoneRegex, '')
+                    .replace(/[,;]/g, ' ')  // Replace commas/semicolons with spaces
+                    .trim()
+                    .split(/\s+/)
+                    .filter(word => word.length > 0)
+                    .join(' ');
+                
+                if (nameText && nameText.length > 2) {
+                    name = nameText;
+                }
+                
+                // Format notes as human-readable text
+                const formattedNotes = `Intake Completed: ${new Date().toLocaleString()}
+
+Case Type: ${(collectedData['start'] || 'personal_injury').replace('_', ' ').toUpperCase()}
+
+Incident Details:
+- Date/Time: ${collectedData['pi_intro'] || 'Not specified'}
+- Injury Type: ${collectedData['pi_injury_type'] || 'Not specified'}
+- Injury Details: ${collectedData['pi_injury_details'] || 'N/A'}
+- Medical Treatment: ${collectedData['pi_medical_treatment'] || 'Not specified'}
+
+Legal Status:
+- Currently Has Attorney: ${collectedData['pi_has_attorney'] || 'Not specified'}
+
+Documents:
+- Documents Submitted: ${collectedData['pi_docs'] || 'Not specified'}
+
+Consultation Preference:
+- Type: ${collectedData['pi_consult'] || 'Not specified'}
+- Preferred Time: ${preferredTime}`;
                 
                 const response = await fetch(`${API_URL}/api/appointments/schedule`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         client_name: name,
-                        client_email: validEmail,
+                        client_email: email,
                         client_phone: phone,
                         preferred_date: preferredTime,
-                        case_type: collectedData['start'] || 'Personal Injury',
-                        notes: JSON.stringify(collectedData)
+                        case_type: (collectedData['start'] || 'Personal Injury').replace('_', ' '),
+                        notes: formattedNotes
                     })
                 });
                 
