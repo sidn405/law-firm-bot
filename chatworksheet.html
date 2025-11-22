@@ -961,7 +961,9 @@
             sessionId = localStorage.getItem('lawfirm_session_id') || generateSessionId();
             localStorage.setItem('lawfirm_session_id', sessionId);
 
-            document.getElementById('chat-messages').innerHTML = '';
+            // Always show greeting on page load
+            const chatMessages = document.getElementById('chat-messages');
+            chatMessages.innerHTML = '';
             addScriptStep('start');
         });
 
@@ -977,6 +979,12 @@
             if (chatWindow.classList.contains('open')) {
                 document.getElementById('chat-input').focus();
                 document.getElementById('chat-notification').style.display = 'none';
+                
+                // Show greeting if chat is empty
+                const chatMessages = document.getElementById('chat-messages');
+                if (chatMessages.children.length === 0 || chatMessages.innerHTML.trim() === '') {
+                    addScriptStep('start');
+                }
             }
         }
            
@@ -1212,11 +1220,7 @@
             const messagesContainer = document.getElementById('chat-messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message ${sender}-message`;
-            messageDiv.innerHTML = text;  // Use innerHTML to render HTML
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
+            
             const avatar = document.createElement('div');
             avatar.className = 'message-avatar';
             avatar.textContent = sender === 'user' ? '👤' : '🤖';
@@ -1243,7 +1247,7 @@
 
             messagesContainer.appendChild(messageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        
+        }
 
         function addScriptStep(stepId) {
             const step = flowSteps[stepId];

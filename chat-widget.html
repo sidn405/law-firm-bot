@@ -728,6 +728,10 @@
         let currentStep = 'start';
         let intakeActive = true;
         let collectedData = {};
+
+        // Global variables
+        let stripe = null;
+        let currentPaymentData = null;
         
         let paymentFlow = {
             active: false,
@@ -906,12 +910,34 @@
             }
         };
 
+        // ==============================================================================
+        // INITIALIZE STRIPE ON PAGE LOAD
+        // ==============================================================================
+        
+        async function initializeStripe() {
+            try {
+                const response = await fetch(`${API_URL}/api/payments/stripe-config`);
+                const data = await response.json();
+                
+                if (data.success && data.publishable_key) {
+                    stripe = Stripe(data.publishable_key);
+                    console.log('✅ Stripe initialized');
+                    return true;
+                }
+            } catch (error) {
+                console.error('❌ Error initializing Stripe:', error);
+                return false;
+            }
+        }
+
         // --- INITIALIZE ---
         document.addEventListener('DOMContentLoaded', () => {
             sessionId = localStorage.getItem('lawfirm_session_id') || generateSessionId();
             localStorage.setItem('lawfirm_session_id', sessionId);
 
-            document.getElementById('chat-messages').innerHTML = '';
+            // Always show greeting on page load
+            const chatMessages = document.getElementById('chat-messages');
+            chatMessages.innerHTML = '';
             addScriptStep('start');
         });
 
@@ -927,14 +953,248 @@
             if (chatWindow.classList.contains('open')) {
                 document.getElementById('chat-input').focus();
                 document.getElementById('chat-notification').style.display = 'none';
+                
+                // Show greeting if chat is empty
+                const chatMessages = document.getElementById('chat-messages');
+                if (chatMessages.children.length === 0 || chatMessages.innerHTML.trim() === '') {
+                    addScriptStep('start');
+                }
             }
+        }
+           
+        
+        // ==============================================================================
+        // INITIALIZE STRIPE ON PAGE LOAD
+        // ==============================================================================
+        
+        async function initializeStripe() {
+            try {
+                const response = await fetch(`${API_URL}/api/payments/stripe-config`);
+                const data = await response.json();
+                
+                if (data.success && data.publishable_key) {
+                    stripe = Stripe(data.publishable_key);
+                    console.log('✅ Stripe initialized');
+                    return true;
+                }
+            } catch (error) {
+                console.error('❌ Error initializing Stripe:', error);
+                return false;
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeStripe();
+            
+            // Check if returning from payment
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('payment') === 'success') {
+                const sessionId = urlParams.get('session_id');
+                if (sessionId) {
+                    await handlePaymentSuccess(sessionId);
+                }
+                
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (urlParams.get('payment') === 'cancelled') {
+                addMessage('bot', '❌ Payment was cancelled. If you need to try again, just click "Make a Payment" again.');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+        
+        // ==============================================================================
+        // PROCESS PAYMENT - OPENS EMBEDDED MODAL
+        // ==============================================================================
+        
+        async function processPayment(provider, clientId, amount, description) {
+            if (provider === 'stripe') {
+                await processStripePayment(clientId, amount, description);
+            } else if (provider === 'paypal') {
+                // PayPal implementation can go here
+                alert('PayPal payment coming soon!');
+            }
+        }
+        
+        async function processStripePayment(clientId, amount, description) {
+            try {
+                if (!stripe) {
+                    addMessage('bot', '❌ Payment system not initialized. Please refresh the page.');
+                    return;
+                }
+                
+                showTyping(true);
+                
+                // Create Stripe Checkout Session
+                const response = await fetch(`${API_URL}/api/payments/create-stripe-checkout`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        client_id: clientId,
+                        amount: amount,
+                        description: description,
+                        payment_type: 'retainer',
+                        reference_id: generatePaymentReference()
+                    })
+                });
+                
+                const data = await response.json();
+                showTyping(false);
+                
+                if (data.success && data.session_id) {
+                    // Store payment data for later
+                    currentPaymentData = {
+                        clientId,
+                        amount,
+                        description
+                    };
+                    
+                    // Show payment modal with embedded Stripe Checkout
+                    await openStripeEmbeddedCheckout(data.session_id);
+                    
+                } else {
+                    addMessage('bot', '❌ Sorry, there was an issue creating the payment. Please try again or contact us.');
+                }
+                
+            } catch (error) {
+                console.error('❌ Payment error:', error);
+                showTyping(false);
+                addMessage('bot', '❌ Payment error. Please try again or contact us for assistance.');
+            }
+        }
+        
+        // ==============================================================================
+        // OPEN STRIPE EMBEDDED CHECKOUT IN MODAL
+        // ==============================================================================
+        
+        async function openStripeEmbeddedCheckout(sessionId) {
+            const modal = document.getElementById('payment-modal');
+            const container = document.getElementById('stripe-checkout-container');
+            
+            // Show modal
+            modal.classList.add('show');
+            
+            // Clear previous content
+            container.innerHTML = `
+                <div class="payment-loading">
+                    <div class="spinner"></div>
+                    <p>Loading secure payment form...</p>
+                </div>
+            `;
+            
+            try {
+                // Create embedded checkout
+                const checkout = await stripe.checkout.create({
+                    sessionId: sessionId
+                });
+                
+                // Clear loading message
+                container.innerHTML = '';
+                
+                // Mount Stripe Checkout
+                checkout.mount(container);
+                
+                console.log('✅ Stripe Checkout mounted');
+                
+            } catch (error) {
+                console.error('❌ Error mounting Stripe Checkout:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px;">
+                        <p style="color: #ef4444; font-size: 18px; margin-bottom: 16px;">❌ Error loading payment form</p>
+                        <button onclick="closePaymentModal()" class="btn btn-primary">Close</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // ==============================================================================
+        // HANDLE PAYMENT SUCCESS (Called after Stripe redirects back)
+        // ==============================================================================
+        
+        async function handlePaymentSuccess(sessionId) {
+            try {
+                addMessage('bot', '⏳ Confirming your payment...');
+                
+                // Check payment status
+                const response = await fetch(`${API_URL}/api/payments/${sessionId}/status`);
+                const data = await response.json();
+                
+                if (data.success && data.status === 'completed') {
+                    // Show success message in chat
+                    const successMessage = `
+                        <div class="success-message">
+                            <h3>✅ Payment Successful!</h3>
+                            <p>Thank you for your payment, ${data.client_name}!</p>
+                            <div class="receipt-info">
+                                <div class="receipt-row">
+                                    <span>Amount Paid:</span>
+                                    <span><strong>$${data.amount.toFixed(2)}</strong></span>
+                                </div>
+                                <div class="receipt-row">
+                                    <span>Transaction ID:</span>
+                                    <span style="font-size: 12px;">${data.transaction_id}</span>
+                                </div>
+                            </div>
+                            <p style="margin-top: 16px;">📧 A receipt has been sent to your email.</p>
+                        </div>
+                    `;
+                    
+                    addMessage('bot', successMessage);
+                    
+                    // Ask if they need anything else
+                    setTimeout(() => {
+                        addMessage('bot', 'Is there anything else I can assist you with today?');
+                    }, 1500);
+                    
+                } else {
+                    addMessage('bot', '❌ Payment verification failed. Please contact us if you need assistance.');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error checking payment status:', error);
+                addMessage('bot', '⚠️ Payment may have succeeded, but we couldn\'t confirm it. Please check your email for a receipt, or contact us.');
+            }
+        }
+        
+        // ==============================================================================
+        // MODAL CONTROLS
+        // ==============================================================================
+        
+        function closePaymentModal() {
+            const modal = document.getElementById('payment-modal');
+            modal.classList.remove('show');
+            
+            // Clean up Stripe Checkout
+            const container = document.getElementById('stripe-checkout-container');
+            container.innerHTML = '';
+        }
+        
+        // Close modal on outside click
+        document.getElementById('payment-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePaymentModal();
+            }
+        });
+        
+        // ==============================================================================
+        // HELPER FUNCTIONS
+        // ==============================================================================
+        
+        function generatePaymentReference() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            const segments = [4, 8, 4];
+            return segments.map(len => 
+                Array.from({length: len}, () => 
+                    chars[Math.floor(Math.random() * chars.length)]
+                ).join('')
+            ).join('-');
         }
 
         function addMessage(sender, text) {
             const messagesContainer = document.getElementById('chat-messages');
             const messageDiv = document.createElement('div');
-            messageDiv.className = `chat-message ${sender}`;
-
+            messageDiv.className = `chat-message ${sender}-message`;
+            
             const avatar = document.createElement('div');
             avatar.className = 'message-avatar';
             avatar.textContent = sender === 'user' ? '👤' : '🤖';
@@ -1175,14 +1435,14 @@
                                 <p style="font-size: 12px; color: #6b7280; margin-top: 8px;"><strong>Reference:</strong> ${collectedData['payment_reference']}</p>
                             </div>
                         </div>
-                        <div class="payment-button-container" style="display: flex; gap: 10px; margin-top: 12px;">
-                            <button class="payment-method-btn stripe-btn" onclick="processPayment('stripe', '${data.client.id}', ${data.amount}, '${data.description}')" style="flex: 1; padding: 12px 20px; background: #635bff; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <div class="payment-button-container">
+                            <button class="payment-method-btn stripe-btn" onclick="processPayment('stripe', '${data.client.id}', ${data.amount}, '${data.description}')">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M13.5 2C9.9 2 7 4.9 7 8.5S9.9 15 13.5 15 20 12.1 20 8.5 17.1 2 13.5 2zm0 11c-2.5 0-4.5-2-4.5-4.5S11 4 13.5 4 18 6 18 8.5 16 13 13.5 13z"/>
                                 </svg>
                                 Pay with Stripe
                             </button>
-                            <button class="payment-method-btn paypal-btn" onclick="processPayment('paypal', '${data.client.id}', ${data.amount}, '${data.description}')" style="flex: 1; padding: 12px 20px; background: #0070ba; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <button class="payment-method-btn paypal-btn" onclick="processPayment('paypal', '${data.client.id}', ${data.amount}, '${data.description}')">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M19.5 6.5c.5 1.1.5 2.4 0 3.8-.8 2.5-2.8 4.2-5.4 4.2H12l-.8 4.5h-2l.8-4.5H8.5L7 20H5l2-11h7.1c1.8 0 3.3.6 4.2 1.7.5.5.8 1.1 1.2 1.8z"/>
                                 </svg>
