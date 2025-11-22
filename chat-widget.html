@@ -280,32 +280,94 @@
             transform: translateX(2px);
         }
 
-        /* Payment-specific styles */
-        .payment-button {
-            background: var(--success-color);
-            border: 2px solid var(--success-color);
-            color: white;
-            padding: 14px 20px;
+         /* Payment Buttons */
+        .payment-quick-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            font-weight: 600;
+        }
+
+        .payment-quick-btn:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+        }
+
+        .payment-button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .payment-method-btn {
+            flex: 1;
+            min-width: 140px;
+            padding: 12px 20px;
+            border: none;
             border-radius: 8px;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
-            display: flex;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
+            gap: 8px;
         }
-        
-        .payment-button:hover {
-            background: #059669;
+
+        .stripe-btn {
+            background: #635bff;
+            color: white;
+        }
+
+        .stripe-btn:hover {
+            background: #5449e0;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 4px 12px rgba(99, 91, 255, 0.3);
         }
-        
-        .payment-amount {
-            font-size: 18px;
-            font-weight: bold;
+
+        .paypal-btn {
+            background: #0070ba;
+            color: white;
+        }
+
+        .paypal-btn:hover {
+            background: #005ea6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 112, 186, 0.3);
+        }
+
+        .payment-info-box {
+            background: #f0f9ff;
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        .payment-info-box strong {
+            color: #1e40af;
+        }
+
+        .payment-input-group {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .payment-input-group input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .payment-input-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
         }
         
         /* File Upload Status */
@@ -473,6 +535,7 @@
                 <button class="quick-action-btn" onclick="quickAction('family_law')">Family Law</button>
                 <button class="quick-action-btn" onclick="quickAction('immigration')">Immigration</button>
                 <button class="quick-action-btn" onclick="quickAction('schedule')">Schedule Consultation</button>
+                <button class="quick-action-btn payment-quick-btn" onclick="quickAction('make_payment')">💳 Make a Payment</button>
             </div>
             
             <!-- Messages -->
@@ -524,13 +587,16 @@
         const API_URL = 'https://law-firm-bot-production.up.railway.app';
         let sessionId = null;
         let clientId = null;
+        let currentStep = 'start';
+        let intakeActive = true;
+        let collectedData = {};
+        
         let paymentFlow = {
             active: false,
             step: null,
             selectedType: null,
             clientInfo: {}
         };
-        
         
         const flowSteps = {
             start: {
@@ -737,6 +803,8 @@
 
             addMessage('bot', step.prompt);
 
+        
+
             // Handle scheduling step
             if (stepId === 'pi_schedule_process') {
                 setTimeout(() => scheduleAppointment(), 1000);
@@ -803,6 +871,264 @@
 
         // --- INPUT / GENERAL CHAT ---
 
+        // Payment flow state
+        let paymentFlowActive = false;
+        let paymentClientData = {};
+
+        // Updated quickAction function - ADD the payment case
+        function quickAction(action) {
+            if (action === 'personal_injury') {
+                const opt = flowSteps.start.options.find(o => o.value === 'personal_injury');
+                if (opt) handleOptionClick('start', opt);
+                return;
+            }
+            if (action === 'family_law') {
+                const opt = flowSteps.start.options.find(o => o.value === 'family_law');
+                if (opt) handleOptionClick('start', opt);
+                return;
+            }
+            if (action === 'immigration') {
+                const opt = flowSteps.start.options.find(o => o.value === 'immigration');
+                if (opt) handleOptionClick('start', opt);
+                return;
+            }
+            if (action === 'schedule') {
+                addMessage('user', "I'd like to schedule a consultation.");
+                sendToBackend("I'd like to schedule a consultation.");
+                return;
+            }
+            if (action === 'make_payment') {
+                startPaymentFlow();
+                return;
+            }
+        }
+
+        // Start payment flow
+        function startPaymentFlow() {
+            paymentFlowActive = true;
+            paymentClientData = {};
+            
+            addMessage('user', "I'd like to make a payment.");
+            
+            // Create payment info request message
+            const infoMessage = `
+                <div class="payment-info-box">
+                    <p><strong>To process your payment, please provide the following information in one line:</strong></p>
+                    <p style="margin-top: 10px;">First Name | Last Name | Client ID | Email</p>
+                    <p style="margin-top: 10px; color: #6b7280; font-size: 13px;">Example: John | Doe | CLI12345 | john@email.com</p>
+                </div>
+            `;
+            
+            addMessage('bot', infoMessage);
+            
+            // Focus input
+            document.getElementById('chat-input').focus();
+        }
+
+        // Parse payment client info
+        function parsePaymentInfo(message) {
+            const parts = message.split('|').map(p => p.trim());
+            
+            if (parts.length !== 4) {
+                return null;
+            }
+            
+            return {
+                first_name: parts[0],
+                last_name: parts[1],
+                client_id: parts[2],
+                email: parts[3]
+            };
+        }
+
+        // Verify client and show payment options
+        async function verifyAndShowPayment(clientInfo) {
+            showTyping(true);
+            
+            try {
+                // First, try to verify and get payment info in one call
+                const response = await fetch(`${API_URL}/api/payments/client-payment-request`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams({
+                        first_name: clientInfo.first_name,
+                        last_name: clientInfo.last_name,
+                        client_id: clientInfo.client_id,
+                        email: clientInfo.email,
+                        payment_type: 'retainer'
+                    })
+                });
+                
+                const data = await response.json();
+                showTyping(false);
+                
+                if (data.client_found) {
+                    // Client verified! Show payment options
+                    paymentClientData = data.client;
+                    
+                    const paymentMessage = `
+                        <div class="payment-info-box">
+                            <p>${data.message}</p>
+                            <p style="margin-top: 10px;"><strong>Amount:</strong> $${data.amount.toFixed(2)}</p>
+                            <p><strong>Payment Type:</strong> ${data.payment_type.replace('_', ' ')}</p>
+                        </div>
+                        <div class="payment-button-container">
+                            <button class="payment-method-btn stripe-btn" onclick="processPayment('stripe', '${data.client.id}', ${data.amount}, '${data.description}')">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M13.5 2C9.9 2 7 4.9 7 8.5S9.9 15 13.5 15 20 12.1 20 8.5 17.1 2 13.5 2zm0 11c-2.5 0-4.5-2-4.5-4.5S11 4 13.5 4 18 6 18 8.5 16 13 13.5 13z"/>
+                                </svg>
+                                Pay with Stripe
+                            </button>
+                            <button class="payment-method-btn paypal-btn" onclick="processPayment('paypal', '${data.client.id}', ${data.amount}, '${data.description}')">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19.5 6.5c.5 1.1.5 2.4 0 3.8-.8 2.5-2.8 4.2-5.4 4.2H12l-.8 4.5h-2l.8-4.5H8.5L7 20H5l2-11h7.1c1.8 0 3.3.6 4.2 1.7.5.5.8 1.1 1.2 1.8z"/>
+                                </svg>
+                                Pay with PayPal
+                            </button>
+                        </div>
+                    `;
+                    
+                    addMessage('bot', paymentMessage);
+                    paymentFlowActive = false;
+                    
+                } else {
+                    // Client not found - ask if returning client
+                    addMessage('bot', "I couldn't find a matching client record. Are you a returning client?");
+                    
+                    // Add Yes/No buttons
+                    const returningClientButtons = `
+                        <div class="script-button-group">
+                            <button class="script-button" onclick="handleReturningClientResponse('yes')">Yes, I'm a returning client</button>
+                            <button class="script-button" onclick="handleReturningClientResponse('no')">No, I'm a new client</button>
+                        </div>
+                    `;
+                    
+                    addMessage('bot', returningClientButtons);
+                }
+                
+            } catch (error) {
+                showTyping(false);
+                console.error('Payment verification error:', error);
+                addMessage('bot', "I'm having trouble verifying your information. Please try again or contact our office.");
+                paymentFlowActive = false;
+            }
+        }
+
+        // Handle returning client response
+        function handleReturningClientResponse(answer) {
+            // Remove buttons
+            document.querySelectorAll('.script-button-group').forEach(el => el.remove());
+            
+            addMessage('user', answer === 'yes' ? "Yes, I'm a returning client" : "No, I'm a new client");
+            
+            // Regardless of answer, hand off to live agent
+            handOffToLiveAgent();
+            paymentFlowActive = false;
+        }
+
+        // Hand off to live agent
+        function handOffToLiveAgent() {
+            const handOffMessage = `
+                <div class="payment-info-box" style="background: #fef3c7; border-color: #f59e0b;">
+                    <p><strong>🙋 Connecting you with a live agent...</strong></p>
+                    <p style="margin-top: 10px;">A member of our team will assist you shortly. Please stay on the line.</p>
+                    <p style="margin-top: 10px; font-size: 13px;">Or call us directly at: <strong>${window.LAW_FIRM_PHONE || '(555) 123-4567'}</strong></p>
+                </div>
+            `;
+            
+            addMessage('bot', handOffMessage);
+            
+            // TODO: Integrate with your live chat system (Intercom, Zendesk, etc.)
+            // For now, just notify backend
+            notifyTeamOfHandoff();
+        }
+
+        // Notify team of handoff
+        async function notifyTeamOfHandoff() {
+            try {
+                await fetch(`${API_URL}/api/notifications/handoff`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        reason: 'payment_client_not_found',
+                        client_info: paymentClientData,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+            } catch (error) {
+                console.error('Failed to notify team:', error);
+            }
+        }
+
+        // Process payment with selected method
+        async function processPayment(provider, clientId, amount, description) {
+            showTyping(true);
+            
+            try {
+                const endpoint = provider === 'stripe' 
+                    ? `${API_URL}/api/payments/create-stripe-link`
+                    : `${API_URL}/api/payments/create-paypal-link`;
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        client_id: clientId,
+                        amount: amount,
+                        description: description,
+                        payment_type: 'retainer'
+                    })
+                });
+                
+                const data = await response.json();
+                showTyping(false);
+                
+                if (data.success && data.payment_url) {
+                    // Open payment URL in new tab
+                    window.open(data.payment_url, '_blank');
+                    
+                    addMessage('bot', `✅ Payment window opened! Please complete your payment in the new tab. The window will close automatically when done.`);
+                    
+                    // Optional: Monitor payment status
+                    monitorPaymentStatus(data.payment_id);
+                } else {
+                    addMessage('bot', `Sorry, there was an issue creating the payment link. Please try again or call our office.`);
+                }
+                
+            } catch (error) {
+                showTyping(false);
+                console.error('Payment processing error:', error);
+                addMessage('bot', "I'm having trouble processing your payment. Please try again or contact our office.");
+            }
+        }
+
+        // Monitor payment status
+        async function monitorPaymentStatus(paymentId) {
+            const checkInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`${API_URL}/api/payments/${paymentId}/status`);
+                    const data = await response.json();
+                    
+                    if (data.status === 'completed' || data.status === 'succeeded') {
+                        clearInterval(checkInterval);
+                        addMessage('bot', '🎉 Payment received! Thank you. Your transaction is complete.');
+                    } else if (data.status === 'failed' || data.status === 'canceled') {
+                        clearInterval(checkInterval);
+                        addMessage('bot', '❌ Payment was not completed. If you need assistance, please contact our office.');
+                    }
+                } catch (error) {
+                    console.error('Error checking payment status:', error);
+                }
+            }, 5000); // Check every 5 seconds
+            
+            // Stop checking after 5 minutes
+            setTimeout(() => clearInterval(checkInterval), 300000);
+        }
+
+        // Modify the existing sendMessage function to handle payment flow
+        // Add this at the beginning of the sendMessage function (around line 809):
+
         async function sendMessage() {
             const input = document.getElementById('chat-input');
             const message = input.value.trim();
@@ -810,6 +1136,18 @@
 
             input.value = '';
             addMessage('user', message);
+
+            // Check if in payment flow
+            if (paymentFlowActive) {
+                const clientInfo = parsePaymentInfo(message);
+                
+                if (clientInfo) {
+                    await verifyAndShowPayment(clientInfo);
+                } else {
+                    addMessage('bot', 'Please provide your information in the correct format: First Name | Last Name | Client ID | Email');
+                }
+                return;
+            }
 
             // If we're in a scripted TEXT step, use it as the answer
             if (intakeActive && flowSteps[currentStep] && flowSteps[currentStep].input_type === 'text') {
@@ -823,190 +1161,6 @@
                 }
                 return;
             }
-        // Handle payment flow steps
-        if (paymentFlow.active) {
-            handlePaymentFlowInput(message);
-            return;
-        }
-        showTyping(true);
-        
-        try {
-            const response = await fetch(`${API_URL}/api/chat/enhanced`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: message,
-                    session_id: sessionId,
-                    client_id: clientId
-                })
-            });
-            const data = await response.json();
-            showTyping(false);
-            if (data.intent === 'payment') {
-                // Start payment flow
-                handlePaymentIntent(data);
-            } else {
-                addMessage('bot', data.response || "I'm here to help! You can ask about making a payment, scheduling a consultation, or getting a case evaluation.");
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            showTyping(false);
-            addMessage('bot', "I'm having trouble connecting. Please try again or call us at (555) 123-4567.");
-        }
-    }
-    function handlePaymentIntent(data) {
-        paymentFlow.active = true;
-        paymentFlow.step = 'select_type';
-        
-        addMessage('bot', data.response);
-        
-        // Add payment type buttons
-        const messagesContainer = document.getElementById('chat-messages');
-        const btnGroup = document.createElement('div');
-        btnGroup.className = 'script-button-group';
-        
-        data.payment_options.forEach(option => {
-            const btn = document.createElement('button');
-            btn.className = 'script-button';
-            btn.innerHTML = `<strong>${option.label}</strong><br><small style="opacity: 0.7;">${option.description}</small>`;
-            btn.onclick = () => selectPaymentType(option);
-            btnGroup.appendChild(btn);
-        });
-        
-        messagesContainer.appendChild(btnGroup);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-    function selectPaymentType(option) {
-        document.querySelectorAll('.script-button-group').forEach(el => el.remove());
-        
-        addMessage('user', option.label);
-        
-        paymentFlow.selectedType = option.id;
-        paymentFlow.step = 'client_id';
-        
-        addMessage('bot', `Great! To proceed with the ${option.label}, I need to verify your account.\n\nPlease enter your Client ID (format: CLI-XXXXX):`);
-    }
-    function handlePaymentFlowInput(message) {
-        if (paymentFlow.step === 'client_id') {
-            // Validate client ID format
-            const clientIdPattern = /^CLI-[A-Z0-9]{5}$/i;
-            
-            if (clientIdPattern.test(message.trim().toUpperCase())) {
-                paymentFlow.clientInfo.client_id = message.trim().toUpperCase();
-                paymentFlow.step = 'name';
-                addMessage('bot', 'Thank you! Please enter your full name as it appears on your account:');
-            } else {
-                addMessage('bot', 'Invalid Client ID format. Please use format: CLI-XXXXX (example: CLI-A1B2C)');
-            }
-        } else if (paymentFlow.step === 'name') {
-            paymentFlow.clientInfo.name = message.trim();
-            paymentFlow.step = 'email';
-            addMessage('bot', 'Please enter your email address:');
-        } else if (paymentFlow.step === 'email') {
-            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            
-            if (emailPattern.test(message.trim())) {
-                paymentFlow.clientInfo.email = message.trim();
-                showPaymentButtons();
-            } else {
-                addMessage('bot', 'Invalid email format. Please enter a valid email address:');
-            }
-        }
-    }
-    function showPaymentButtons() {
-        const paymentTypes = {
-            retainer: { amount: 500, label: 'Retainer Fee' },
-            case_payment: { amount: 2500, label: 'Case Payment' }
-        };
-        
-        const selected = paymentTypes[paymentFlow.selectedType];
-        
-        addMessage('bot', `Perfect! I've verified your information.\n\n💳 Payment Details:\nType: ${selected.label}\nAmount: $${selected.amount}\n\nChoose your payment method:`);
-        
-        const messagesContainer = document.getElementById('chat-messages');
-        const btnGroup = document.createElement('div');
-        btnGroup.className = 'script-button-group';
-        
-        // Stripe button
-        const stripeBtn = document.createElement('button');
-        stripeBtn.className = 'payment-button';
-        stripeBtn.innerHTML = `
-            <span>💳 Pay with Card (Stripe)</span>
-            <span class="payment-amount">$${selected.amount}</span>
-        `;
-        stripeBtn.onclick = () => initiatePayment('stripe');
-        btnGroup.appendChild(stripeBtn);
-        
-        // PayPal button
-        const paypalBtn = document.createElement('button');
-        paypalBtn.className = 'payment-button';
-        paypalBtn.style.background = '#0070ba';
-        paypalBtn.style.borderColor = '#0070ba';
-        paypalBtn.innerHTML = `
-            <span>🅿️ Pay with PayPal</span>
-            <span class="payment-amount">$${selected.amount}</span>
-        `;
-        paypalBtn.onclick = () => initiatePayment('paypal');
-        btnGroup.appendChild(paypalBtn);
-        
-        messagesContainer.appendChild(btnGroup);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-    async function initiatePayment(method) {
-        document.querySelectorAll('.script-button-group').forEach(el => el.remove());
-        
-        addMessage('user', `Pay with ${method === 'stripe' ? 'Card' : 'PayPal'}`);
-        addMessage('bot', 'Processing your payment request...');
-        
-        showTyping(true);
-        
-        try {
-            const response = await fetch(`${API_URL}/api/payments/create-intent`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    session_id: sessionId,
-                    payment_type: paymentFlow.selectedType,
-                    client_email: paymentFlow.clientInfo.email,
-                    client_name: paymentFlow.clientInfo.name,
-                    payment_method: method
-                })
-            });
-            const data = await response.json();
-            showTyping(false);
-            if (data.success) {
-                if (method === 'stripe') {
-                    addMessage('bot', `✅ Payment link created!\n\n💳 Amount: $${data.amount}\n🔒 Secure payment powered by Stripe\n\nClick below to complete your payment:\n\n👉 [Complete Payment - $${data.amount}]`);
-                    
-                    // In production, you'd redirect to Stripe Checkout or embed Stripe Elements
-                    addMessage('bot', `Payment ID: ${data.payment_id}\n\nNote: In production, you would be redirected to a secure Stripe checkout page.`);
-                } else if (method === 'paypal') {
-                    addMessage('bot', `✅ PayPal payment created!\n\n💰 Amount: $${data.amount}\n\nClick the link below to complete payment via PayPal:\n\n👉 ${data.approval_url || 'PayPal checkout link'}`);
-                }
-                
-                // Send confirmation email notification
-                addMessage('bot', `📧 A confirmation email has been sent to ${paymentFlow.clientInfo.email}\n\nNeed help? Call us at (555) 123-4567`);
-            } else {
-                addMessage('bot', `❌ Payment creation failed: ${data.error || 'Unknown error'}\n\nPlease call our office at (555) 123-4567 for assistance.`);
-            }
-        } catch (error) {
-            console.error('Payment error:', error);
-            showTyping(false);
-            addMessage('bot', '❌ Unable to process payment request. Please call our office at (555) 123-4567.');
-        }
-        
-        // Reset payment flow
-        paymentFlow = {
-            active: false,
-            step: null,
-            selectedType: null,
-            clientInfo: {}
-        };
-    }
-    function handleKeyPress(event) {
-        if (event.key === 'Enter') sendMessage();
-    }
-
 
             // Otherwise: GENERAL CHAT
             showTyping(true);
@@ -1023,7 +1177,7 @@
                 showTyping(false);
                 addMessage('bot', "I'm having trouble connecting right now. Please call our office at (555) 123-4567.");
             }
-        
+        }
 
         async function sendToBackend(message) {
             const response = await fetch(`${API_URL}/api/chat`, {

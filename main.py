@@ -1309,6 +1309,362 @@ async def get_payment_status(payment_id: str, db: Session = Depends(get_db)):
         "transaction_id": payment.transaction_id,
         "created_at": payment.created_at.isoformat()
     }
+    
+# ============================================
+# CLIENT PAYMENT VERIFICATION & PROCESSING
+# ============================================
+
+from pydantic import BaseModel
+
+class ClientVerificationRequest(BaseModel):
+    first_name: str
+    last_name: str
+    client_id: str
+    email: str
+
+class PaymentLinkRequest(BaseModel):
+    client_id: str
+    amount: float
+    description: str = "Legal Services Payment"
+    payment_type: str  # "retainer" or "case_payment"
+
+
+@app.post("/api/payments/verify-client")
+async def verify_client_for_payment(
+    request: ClientVerificationRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Verify client exists by matching first name, last name, client_id, and email
+    Returns client info if found, or indicates no match
+    """
+    try:
+        print(f"🔍 Verifying client: {request.first_name} {request.last_name}, ID: {request.client_id}, Email: {request.email}")
+        
+        # Search for client matching ALL criteria
+        client = db.query(Client).filter(
+            Client.id == request.client_id,
+            Client.email == request.email.lower()
+        ).first()
+        
+        # If found, verify names match (case-insensitive)
+        if client:
+            # Parse client name
+            client_name_parts = client.name.lower().split()
+            provided_first = request.first_name.lower()
+            provided_last = request.last_name.lower()
+            
+            # Check if names match
+            name_match = (
+                provided_first in client_name_parts and
+                provided_last in client_name_parts
+            )
+            
+            if name_match:
+                print(f"✅ Client verified: {client.name}")
+                
+                return {
+                    "success": True,
+                    "client_found": True,
+                    "client": {
+                        "id": client.id,
+                        "name": client.name,
+                        "email": client.email,
+                        "phone": client.phone,
+                        "case_type": client.case_type,
+                        "status": client.status
+                    }
+                }
+        
+        print(f"❌ No matching client found")
+        
+        return {
+            "success": True,
+            "client_found": False,
+            "message": "No matching client found. Please verify your information."
+        }
+        
+    except Exception as e:
+        print(f"Error verifying client: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/payments/create-stripe-link")
+async def create_stripe_payment_link(
+    request: PaymentLinkRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Create Stripe checkout session for client payment
+    """
+    try:
+        if not STRIPE_SECRET_KEY:
+            raise HTTPException(status_code=500, detail="Stripe not configured")
+        
+        # Get client info
+        client = db.query(Client).filter(Client.id == request.client_id).first()
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        # Create Stripe checkout session
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': request.description,
+                        'description': f'{LAW_FIRM_NAME} - {request.payment_type.replace("_", " ").title()}',
+                    },
+                    'unit_amount': int(request.amount * 100),  # Convert to cents
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=f'{BASE_URL}/payment-success?session_id={{CHECKOUT_SESSION_ID}}',
+            cancel_url=f'{BASE_URL}/chat-widget.html',
+            client_reference_id=client.id,
+            customer_email=client.email,
+            metadata={
+                'client_id': client.id,
+                'client_name': client.name,
+                'payment_type': request.payment_type,
+                'description': request.description
+            }
+        )
+        
+        # Store payment record
+        payment = Payment(
+            case_id=client.case_type or "payment",
+            amount=request.amount,
+            status="pending",
+            provider="stripe",
+            transaction_id=checkout_session.id,
+            payment_metadata={
+                'client_id': client.id,
+                'payment_type': request.payment_type,
+                'description': request.description,
+                'checkout_url': checkout_session.url
+            }
+        )
+        db.add(payment)
+        db.commit()
+        db.refresh(payment)
+        
+        print(f"✅ Stripe payment link created: {checkout_session.url}")
+        
+        return {
+            "success": True,
+            "payment_url": checkout_session.url,
+            "session_id": checkout_session.id,
+            "payment_id": payment.id,
+            "amount": request.amount,
+            "provider": "stripe"
+        }
+        
+    except Exception as e:
+        print(f"Error creating Stripe payment link: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/payments/create-paypal-link")
+async def create_paypal_payment_link(
+    request: PaymentLinkRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Create PayPal payment link for client payment
+    """
+    try:
+        if not PAYPAL_CLIENT_ID or not PAYPAL_SECRET:
+            raise HTTPException(status_code=500, detail="PayPal not configured")
+        
+        # Get client info
+        client = db.query(Client).filter(Client.id == request.client_id).first()
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        # Get PayPal access token
+        auth_response = requests.post(
+            "https://api-m.paypal.com/v1/oauth2/token",
+            headers={"Accept": "application/json"},
+            auth=(PAYPAL_CLIENT_ID, PAYPAL_SECRET),
+            data={"grant_type": "client_credentials"}
+        )
+        
+        if auth_response.status_code != 200:
+            raise HTTPException(status_code=500, detail="Failed to authenticate with PayPal")
+        
+        access_token = auth_response.json()["access_token"]
+        
+        # Create PayPal order
+        order_data = {
+            "intent": "CAPTURE",
+            "purchase_units": [{
+                "reference_id": client.id,
+                "description": request.description,
+                "amount": {
+                    "currency_code": "USD",
+                    "value": f"{request.amount:.2f}"
+                }
+            }],
+            "application_context": {
+                "return_url": f"{BASE_URL}/payment-success?provider=paypal",
+                "cancel_url": f"{BASE_URL}/chat-widget.html",
+                "brand_name": LAW_FIRM_NAME,
+                "user_action": "PAY_NOW"
+            }
+        }
+        
+        order_response = requests.post(
+            "https://api-m.paypal.com/v2/checkout/orders",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}"
+            },
+            json=order_data
+        )
+        
+        if order_response.status_code != 201:
+            raise HTTPException(status_code=500, detail="Failed to create PayPal order")
+        
+        order = order_response.json()
+        
+        # Get approval URL
+        approval_url = next(
+            (link["href"] for link in order["links"] if link["rel"] == "approve"),
+            None
+        )
+        
+        if not approval_url:
+            raise HTTPException(status_code=500, detail="No approval URL in PayPal response")
+        
+        # Store payment record
+        payment = Payment(
+            case_id=client.case_type or "payment",
+            amount=request.amount,
+            status="pending",
+            provider="paypal",
+            transaction_id=order["id"],
+            payment_metadata={
+                'client_id': client.id,
+                'payment_type': request.payment_type,
+                'description': request.description,
+                'order_id': order["id"]
+            }
+        )
+        db.add(payment)
+        db.commit()
+        db.refresh(payment)
+        
+        print(f"✅ PayPal payment link created: {approval_url}")
+        
+        return {
+            "success": True,
+            "payment_url": approval_url,
+            "order_id": order["id"],
+            "payment_id": payment.id,
+            "amount": request.amount,
+            "provider": "paypal"
+        }
+        
+    except Exception as e:
+        print(f"Error creating PayPal payment link: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/payments/client-payment-request")
+async def client_payment_request(
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    client_id: str = Form(...),
+    email: str = Form(...),
+    amount: float = Form(None),  # Optional: can be set by system
+    payment_type: str = Form("retainer"),  # "retainer" or "case_payment"
+    db: Session = Depends(get_db)
+):
+    """
+    All-in-one endpoint for client payment requests
+    Verifies client and returns payment links
+    """
+    try:
+        # Verify client
+        verification_request = ClientVerificationRequest(
+            first_name=first_name,
+            last_name=last_name,
+            client_id=client_id,
+            email=email
+        )
+        
+        verification_result = await verify_client_for_payment(verification_request, db)
+        
+        if not verification_result["client_found"]:
+            return {
+                "success": False,
+                "client_found": False,
+                "message": "Client not found. Please verify your information.",
+                "hand_off_to_agent": False  # Frontend will ask "returning client?" question
+            }
+        
+        # Client found - determine amount if not provided
+        client = verification_result["client"]
+        
+        if amount is None:
+            # Set default amounts based on payment type
+            if payment_type == "retainer":
+                amount = 500.00  # Default retainer fee
+            else:
+                amount = 250.00  # Default case payment
+        
+        # Create description
+        description = f"{payment_type.replace('_', ' ').title()} - {client['name']}"
+        
+        return {
+            "success": True,
+            "client_found": True,
+            "client": client,
+            "amount": amount,
+            "payment_type": payment_type,
+            "description": description,
+            "message": f"Hello {client['name']}! Your {payment_type.replace('_', ' ')} amount is ${amount:.2f}. Please choose your payment method:"
+        }
+        
+    except Exception as e:
+        print(f"Error processing client payment request: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/payments/client/{client_id}/pending")
+async def get_client_pending_payments(
+    client_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get pending payments for a client
+    """
+    try:
+        payments = db.query(Payment).filter(
+            Payment.payment_metadata['client_id'].astext == client_id,
+            Payment.status == "pending"
+        ).all()
+        
+        result = [{
+            "id": p.id,
+            "amount": p.amount,
+            "provider": p.provider,
+            "description": p.payment_metadata.get('description', 'Payment'),
+            "created_at": p.created_at.isoformat()
+        } for p in payments]
+        
+        return {
+            "success": True,
+            "count": len(result),
+            "payments": result
+        }
+        
+    except Exception as e:
+        print(f"Error getting pending payments: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================
