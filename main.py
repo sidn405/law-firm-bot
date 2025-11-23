@@ -1476,6 +1476,7 @@ async def create_stripe_payment_link(
         # ✅ Add this line HERE (BEFORE the stripe.checkout.Session.create call)
         origin = request.headers.get('origin') or request.headers.get('referer', BASE_URL).rstrip('/')
 
+        # Create Stripe Checkout Session
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
@@ -1489,7 +1490,6 @@ async def create_stripe_payment_link(
                 },
                 'quantity': 1,
             }],
-            
             mode='payment',
             success_url=f'{return_url}?payment=success&session_id={{CHECKOUT_SESSION_ID}}',
             cancel_url=f'{return_url}?payment=cancelled',
@@ -1502,7 +1502,7 @@ async def create_stripe_payment_link(
                 'reference_id': reference_id or 'N/A'
             }
         )
-        # ✅ ADD THIS: See what Stripe actually created
+        
         print(f"âœ… Stripe checkout created: {checkout_session.id}")
         
         

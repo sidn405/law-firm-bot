@@ -929,8 +929,9 @@
         }
         
 
-        // Initialize Stripe on page load
+        // Initialize on page load - UPDATED VERSION
         document.addEventListener('DOMContentLoaded', async function() {
+            // Initialize Stripe
             try {
                 const response = await fetch(`${API_URL}/api/payments/stripe-config`);
                 const data = await response.json();
@@ -943,134 +944,87 @@
                 console.error('❌ Error initializing Stripe:', error);
             }
 
-            // Handle return from payment
+            // ✅ HANDLE RETURN FROM PAYMENT - IMPROVED
             const urlParams = new URLSearchParams(window.location.search);
             const paymentStatus = urlParams.get('payment');
-            const sessionId = urlParams.get('session_id');
+            const stripeSessionId = urlParams.get('session_id');
             
-            if (paymentStatus === 'success' && sessionId) {
-                console.log('✅ Returned from payment:', sessionId);
+            if (paymentStatus === 'success' && stripeSessionId) {
+                console.log('✅ Returned from successful payment:', stripeSessionId);
                 
-                setTimeout(async () => {
-                    try {
-                        // Verify payment
-                        const response = await fetch(`${API_URL}/api/payments/${sessionId}/status`);
-                        const data = await response.json();
-                        
-                        if (data.success && data.status === 'completed') {
-                            // Show success message
-                            const successMessage = `
-                                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 24px; border-radius: 12px; text-align: center; margin: 20px 0;">
-                                    <h3 style="margin: 0 0 12px 0; font-size: 24px;">✅ Payment Successful!</h3>
-                                    <p style="margin: 8px 0; opacity: 0.95;">Thank you for your payment!</p>
-                                    <div style="background: rgba(255, 255, 255, 0.15); padding: 16px; border-radius: 8px; margin: 16px 0;">
-                                        <div style="display: flex; justify-content: space-between; padding: 8px 0;">
-                                            <span>Amount Paid:</span>
-                                            <span style="font-weight: bold;">$${data.amount ? data.amount.toFixed(2) : '500.00'}</span>
-                                        </div>
-                                    </div>
-                                    <p style="margin-top: 16px; font-size: 14px;">📧 A receipt has been sent to your email.</p>
-                                </div>
-                            `;
-                            
-                            addMessage('bot', successMessage);
-                            
-                            // Ask if they need anything else
-                            setTimeout(() => {
-                                addMessage('bot', 'Is there anything else I can assist you with today?');
-                            }, 1500);
-                        }
-                    } catch (error) {
-                        console.error('Error verifying payment:', error);
-                        addMessage('bot', '✅ Your payment has been received! You should receive a confirmation email shortly.');
+                // Check if we initiated this payment
+                const paymentInProgress = localStorage.getItem('payment_in_progress');
+                const clientName = localStorage.getItem('payment_client_name') || 'Valued Client';
+                const paymentAmount = localStorage.getItem('payment_amount') || '500';
+                
+                if (paymentInProgress === 'true') {
+                    console.log('💳 Resuming payment session for:', clientName);
+                    
+                    // Clear flags
+                    localStorage.removeItem('payment_in_progress');
+                    localStorage.removeItem('payment_client_name');
+                    localStorage.removeItem('payment_amount');
+                    
+                    // Auto-open chat
+                    const chatWindow = document.getElementById('lawfirm-chat-window');
+                    if (chatWindow) {
+                        chatWindow.classList.add('open');
                     }
-                }, 1000);
+                    
+                    // Show processing message first
+                    setTimeout(() => {
+                        addMessage('bot', '⏳ Verifying your payment...');
+                    }, 500);
+                    
+                    // Verify payment with backend
+                    setTimeout(async () => {
+                        try {
+                            const response = await fetch(`${API_URL}/api/payments/${stripeSessionId}/status`);
+                            const data = await response.json();
+                            
+                            if (data.success && data.status === 'completed') {
+                                // Success message with details
+                                const successMessage = `
+                                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 24px; border-radius: 12px; text-align: center; margin: 20px 0;">
+                                        <h3 style="margin: 0 0 12px 0; font-size: 24px;">✅ Payment Successful!</h3>
+                                        <p style="margin: 8px 0; opacity: 0.95; font-size: 16px;">Thank you, ${clientName}!</p>
+                                        <div style="background: rgba(255, 255, 255, 0.15); padding: 16px; border-radius: 8px; margin: 16px 0;">
+                                            <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                                                <span style="font-size: 14px;">Amount Paid:</span>
+                                                <span style="font-weight: bold; font-size: 20px;">$${data.amount ? data.amount.toFixed(2) : paymentAmount}</span>
+                                            </div>
+                                        </div>
+                                        <p style="margin-top: 16px; font-size: 14px; opacity: 0.9;">📧 A receipt has been sent to your email.</p>
+                                    </div>
+                                `;
+                                
+                                addMessage('bot', successMessage);
+                                
+                                // Ask if they need anything else
+                                setTimeout(() => {
+                                    addMessage('bot', 'Is there anything else I can assist you with today?');
+                                }, 2000);
+                            } else {
+                                addMessage('bot', '⚠️ There was an issue verifying your payment. Please contact our office if the charge appears on your card.');
+                            }
+                        } catch (error) {
+                            console.error('Error verifying payment:', error);
+                            addMessage('bot', `✅ Your payment has been received, ${clientName}! You should receive a confirmation email shortly.`);
+                            
+                            setTimeout(() => {
+                                addMessage('bot', 'Is there anything else I can help you with?');
+                            }, 2000);
+                        }
+                    }, 1500);
+                }
                 
                 // Clean up URL
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
-        });
 
-        // REPLACE existing processPayment function
-        // ==============================================================================
-        // FRONTEND UPDATE - For Hosted Checkout
-        // Replace your processPayment function in chat-widget.html
-        // ==============================================================================
-
-        async function processPayment(provider, clientId, amount, description) {
-            if (provider === 'stripe') {
-                try {
-                    if (!stripe) {
-                        addMessage('bot', '❌ Payment system not initialized. Please refresh the page.');
-                        return;
-                    }
-                    
-                    showTyping(true);
-                    
-                    // Get current URL (clean)
-                    let currentUrl = window.location.href.split('?')[0].split('#')[0];
-                    currentUrl = currentUrl.replace(/\/$/, '');  // Remove trailing slash
-                    
-                    console.log('📍 Will return to:', currentUrl);
-                    
-                    const response = await fetch(`${API_URL}/api/payments/create-stripe-link`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            client_id: clientId,
-                            amount: amount,
-                            description: description,
-                            payment_type: 'retainer',
-                            reference_id: collectedData['payment_reference'] || 'N/A',
-                            return_url: currentUrl
-                        })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    showTyping(false);
-                    
-                    // ✅ HOSTED CHECKOUT: Redirect to Stripe's page
-                    if (data.success && data.payment_url) {
-                        console.log('✅ Redirecting to Stripe checkout...');
-                        
-                        addMessage('bot', '🔄 Redirecting to secure payment page...');
-                        
-                        // Wait a moment, then redirect
-                        setTimeout(() => {
-                            window.location.href = data.payment_url;
-                        }, 500);
-                    } else {
-                        addMessage('bot', '❌ Sorry, there was an issue creating the payment.');
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ Payment error:', error);
-                    showTyping(false);
-                    addMessage('bot', '❌ Payment error. Please try again or call our office.');
-                }
-                
-            } else if (provider === 'paypal') {
-                alert('PayPal payment coming soon!');
-            }
-        }
-
-        // ============================================================================
-        // REMOVE these functions (not needed for hosted checkout):
-        // - openStripeEmbeddedCheckout()
-        // - closePaymentModal()
-        // 
-        // KEEP the payment return handler in DOMContentLoaded (still needed!)
-        // ============================================================================);
-
-        // --- INITIALIZE ---
-        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize session
             sessionId = localStorage.getItem('lawfirm_session_id') || generateSessionId();
             localStorage.setItem('lawfirm_session_id', sessionId);
-
             document.getElementById('chat-messages').innerHTML = '';
             addScriptStep('start');
         });
@@ -1078,8 +1032,6 @@
         function generateSessionId() {
             return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         }
-
-        // --- UI HELPERS ---
 
         function toggleChat() {
             const chatWindow = document.getElementById('lawfirm-chat-window');
@@ -1101,7 +1053,6 @@
 
             const content = document.createElement('div');
             content.className = 'message-content';
-            // Use innerHTML to render HTML properly for bot messages containing HTML
             if (sender === 'bot' && (text.includes('<') || text.includes('>'))) {
                 content.innerHTML = text;
             } else {
@@ -1130,15 +1081,13 @@
 
             addMessage('bot', step.prompt);
 
-        
-
-            // Handle scheduling step
-            if (stepId === 'pi_schedule_process') {
-                setTimeout(() => scheduleAppointment(), 1000);
+            if (stepId === 'payment_flow') {
+                setTimeout(() => {
+                    startPaymentFlow();
+                }, 500);
                 return;
             }
 
-            // add buttons (if any)
             if (step.options && step.options.length) {
                 const messagesContainer = document.getElementById('chat-messages');
                 const btnGroup = document.createElement('div');
@@ -1158,21 +1107,14 @@
         }
 
         function handleOptionClick(stepId, option) {
-            // Remove existing button groups
             document.querySelectorAll('.script-button-group').forEach(el => el.remove());
-
             addMessage('user', option.label);
             collectedData[stepId] = option.value;
 
             const nextId = option.next_step || flowSteps[stepId].next_step;
             
-            // Special handling for payment flow
             if (nextId === 'payment_flow') {
                 addScriptStep(nextId);
-                // Start payment flow after a short delay
-                setTimeout(() => {
-                    startPaymentFlow();
-                }, 500);
                 return;
             }
             
@@ -1184,74 +1126,24 @@
             }
         }
 
-        // --- QUICK ACTIONS ---
         function quickAction(action) {
-            if (action === 'personal_injury') {
-                const opt = flowSteps.start.options.find(o => o.value === 'personal_injury');
-                if (opt) handleOptionClick('start', opt);
-                return;
-            }
-            if (action === 'family_law') {
-                const opt = flowSteps.start.options.find(o => o.value === 'family_law');
-                if (opt) handleOptionClick('start', opt);
-                return;
-            }
-            if (action === 'immigration') {
-                const opt = flowSteps.start.options.find(o => o.value === 'immigration');
-                if (opt) handleOptionClick('start', opt);
-                return;
-            }
-            if (action === 'schedule') {
-                addMessage('user', "I'd like to schedule a consultation.");
-                sendToBackend("I'd like to schedule a consultation.");
-            }
-        }
-
-        // --- INPUT / GENERAL CHAT ---
-
-        // Payment flow state
-        let paymentFlowActive = false;
-        let paymentClientData = {};
-
-        // Updated quickAction function - ADD the payment case
-        function quickAction(action) {
-            if (action === 'personal_injury') {
-                const opt = flowSteps.start.options.find(o => o.value === 'personal_injury');
-                if (opt) handleOptionClick('start', opt);
-                return;
-            }
-            if (action === 'family_law') {
-                const opt = flowSteps.start.options.find(o => o.value === 'family_law');
-                if (opt) handleOptionClick('start', opt);
-                return;
-            }
-            if (action === 'immigration') {
-                const opt = flowSteps.start.options.find(o => o.value === 'immigration');
-                if (opt) handleOptionClick('start', opt);
-                return;
-            }
-            if (action === 'schedule') {
-                addMessage('user', "I'd like to schedule a consultation.");
-                sendToBackend("I'd like to schedule a consultation.");
-                return;
-            }
             if (action === 'make_payment') {
                 startPaymentFlow();
                 return;
             }
+            // Other actions...
         }
 
-        // Start payment flow
+        // PAYMENT FLOW FUNCTIONS
         function startPaymentFlow() {
             paymentFlowActive = true;
             paymentClientData = {};
             
             addMessage('user', "I'd like to make a payment.");
             
-            // Generate reference ID for tracking
             const referenceId = 'PAY-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+            collectedData['payment_reference'] = referenceId;
             
-            // Create payment info request message with nice styling - using wording from pi_contact_info
             const infoMessage = `
                 <div class="payment-info-box" style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 16px; border-radius: 8px; margin: 8px 0;">
                     <p style="font-size: 14px; color: #1e40af; font-weight: 600; margin-bottom: 8px;">💳 Payment Request</p>
@@ -1266,16 +1158,10 @@
                 </div>
             `;
             
-            // Store reference ID for tracking
-            collectedData['payment_reference'] = referenceId;
-            
             addMessage('bot', infoMessage);
-            
-            // Focus input
             document.getElementById('chat-input').focus();
         }
 
-        // Parse payment client info - comma-separated format: Full Name, Email
         function parsePaymentInfo(message) {
             const parts = message.split(',').map(p => p.trim());
             
@@ -1283,14 +1169,13 @@
                 return null;
             }
             
-            // Parse full name into first and last
             const nameParts = parts[0].split(' ').filter(n => n.length > 0);
             if (nameParts.length < 2) {
-                return null; // Need at least first and last name
+                return null;
             }
             
             const firstName = nameParts[0];
-            const lastName = nameParts.slice(1).join(' '); // Handle middle names
+            const lastName = nameParts.slice(1).join(' ');
             
             return {
                 first_name: firstName,
@@ -1300,12 +1185,10 @@
             };
         }
 
-        // Verify client and show payment options
         async function verifyAndShowPayment(clientInfo) {
             showTyping(true);
             
             try {
-                // Try to verify and get payment info
                 const response = await fetch(`${API_URL}/api/payments/client-payment-request`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -1322,7 +1205,6 @@
                 showTyping(false);
                 
                 if (data.client_found) {
-                    // Client verified! Show payment options
                     paymentClientData = data.client;
                     
                     const paymentMessage = `
@@ -1330,7 +1212,7 @@
                             <p style="font-size: 14px; color: #065f46; font-weight: 600; margin-bottom: 8px;">✓ Client Verified</p>
                             <p style="font-size: 13px; color: #1f2937; margin-bottom: 12px;">${data.message}</p>
                             <div style="background: white; padding: 12px; border-radius: 6px; margin: 10px 0;">
-                                <p style="font-size: 13px; color: #374151;"><strong>Amount:</strong> $${data.amount.toFixed(2)}</p>
+                                <p style="font-size: 13px; color: #374151;"><strong>Amount:</strong> ${data.amount.toFixed(2)}</p>
                                 <p style="font-size: 13px; color: #374151;"><strong>Payment Type:</strong> ${data.payment_type.replace('_', ' ')}</p>
                                 <p style="font-size: 12px; color: #6b7280; margin-top: 8px;"><strong>Reference:</strong> ${collectedData['payment_reference']}</p>
                             </div>
@@ -1342,12 +1224,6 @@
                                 </svg>
                                 Pay with Stripe
                             </button>
-                            <button class="payment-method-btn paypal-btn" onclick="processPayment('paypal', '${data.client.id}', ${data.amount}, '${data.description}')" style="flex: 1; padding: 12px 20px; background: #0070ba; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M19.5 6.5c.5 1.1.5 2.4 0 3.8-.8 2.5-2.8 4.2-5.4 4.2H12l-.8 4.5h-2l.8-4.5H8.5L7 20H5l2-11h7.1c1.8 0 3.3.6 4.2 1.7.5.5.8 1.1 1.2 1.8z"/>
-                                </svg>
-                                Pay with PayPal
-                            </button>
                         </div>
                     `;
                     
@@ -1355,7 +1231,6 @@
                     paymentFlowActive = false;
                     
                 } else {
-                    // Client not found - ask if returning client with styled message
                     const notFoundMessage = `
                         <div class="payment-info-box" style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 8px; margin: 8px 0;">
                             <p style="font-size: 14px; color: #92400e; font-weight: 600; margin-bottom: 8px;">⚠️ Client Record Not Found</p>
@@ -1366,7 +1241,6 @@
                     
                     addMessage('bot', notFoundMessage);
                     
-                    // Add Yes/No buttons
                     const returningClientButtons = `
                         <div class="script-button-group">
                             <button class="script-button" onclick="handleReturningClientResponse('yes')">Yes, I'm a returning client</button>
@@ -1385,33 +1259,104 @@
             }
         }
 
-        // Handle returning client response
         function handleReturningClientResponse(answer) {
-            // Remove buttons
             document.querySelectorAll('.script-button-group').forEach(el => el.remove());
             
             addMessage('user', answer === 'yes' ? "Yes, I'm a returning client" : "No, I'm a new client");
             
-            // Regardless of answer, hand off to live agent
             handOffToLiveAgent();
             paymentFlowActive = false;
         }
 
-        // Hand off to live agent
         function handOffToLiveAgent() {
             const handOffMessage = `
                 <div class="payment-info-box" style="background: #fef3c7; border-color: #f59e0b;">
                     <p><strong>🙋 Connecting you with a live agent...</strong></p>
                     <p style="margin-top: 10px;">A member of our team will assist you shortly. Please stay on the line.</p>
-                    <p style="margin-top: 10px; font-size: 13px;">Or call us directly at: <strong>${window.LAW_FIRM_PHONE || '(555) 123-4567'}</strong></p>
+                    <p style="margin-top: 10px; font-size: 13px;">Or call us directly at: <strong>(555) 123-4567</strong></p>
                 </div>
             `;
             
             addMessage('bot', handOffMessage);
-            
-            // TODO: Integrate with your live chat system (Intercom, Zendesk, etc.)
-            // For now, just notify backend
             notifyTeamOfHandoff();
+        }
+
+        async function notifyTeamOfHandoff() {
+            try {
+                await fetch(`${API_URL}/api/notifications/handoff`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        reason: 'payment_client_not_found',
+                        client_info: paymentClientData,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+            } catch (error) {
+                console.error('Failed to notify team:', error);
+            }
+        }
+
+        // ✅ UPDATED PROCESS PAYMENT - SAVES INFO BEFORE REDIRECT
+        async function processPayment(provider, clientId, amount, description) {
+            if (provider === 'stripe') {
+                try {
+                    if (!stripe) {
+                        addMessage('bot', '❌ Payment system not initialized. Please refresh the page.');
+                        return;
+                    }
+                    
+                    showTyping(true);
+                    
+                    let currentUrl = window.location.href.split('?')[0].split('#')[0];
+                    currentUrl = currentUrl.replace(/\/$/, '');
+                    
+                    console.log('📍 Will return to:', currentUrl);
+                    
+                    const response = await fetch(`${API_URL}/api/payments/create-stripe-link`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            client_id: clientId,
+                            amount: amount,
+                            description: description,
+                            payment_type: 'retainer',
+                            reference_id: collectedData['payment_reference'] || 'N/A',
+                            return_url: currentUrl
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    showTyping(false);
+                    
+                    if (data.success && data.payment_url) {
+                        console.log('✅ Redirecting to Stripe checkout...');
+                        
+                        // ✅ SAVE SESSION INFO BEFORE REDIRECT
+                        localStorage.setItem('payment_in_progress', 'true');
+                        localStorage.setItem('payment_client_name', paymentClientData.full_name || paymentClientData.name || 'Valued Client');
+                        localStorage.setItem('payment_amount', amount.toString());
+                        
+                        addMessage('bot', '🔄 Redirecting to secure payment page...');
+                        
+                        setTimeout(() => {
+                            window.location.href = data.payment_url;
+                        }, 500);
+                    } else {
+                        addMessage('bot', '❌ Sorry, there was an issue creating the payment.');
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Payment error:', error);
+                    showTyping(false);
+                    addMessage('bot', '❌ Payment error. Please try again or call our office.');
+                }
+            }
         }
 
         // Notify team of handoff
