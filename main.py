@@ -1519,6 +1519,53 @@ async def create_stripe_payment_link(
         import traceback
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/api/payments/{session_id}/status")
+async def get_payment_status(
+    session_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Check payment status after return from Stripe
+    """
+    try:
+        # Retrieve Stripe session
+        stripe_session = stripe.checkout.Session.retrieve(session_id)
+        
+        # Get payment from database
+        payment = db.query(Payment).filter(
+            Payment.transaction_id == session_id
+        ).first()
+        
+        if not payment:
+            raise HTTPException(status_code=404, detail="Payment not found")
+        
+        # Get client info
+        client = db.query(Client).filter(Client.id == payment.case_id).first()
+        
+        if stripe_session.payment_status == 'paid':
+            # Update payment status
+            payment.status = 'completed'
+            db.commit()
+            
+            print(f"✅ Payment verified: {session_id}")
+            
+            return {
+                "success": True,
+                "status": "completed",
+                "amount": payment.amount,
+                "transaction_id": session_id,
+                "client_name": client.name if client else "Valued Client"
+            }
+        else:
+            return {
+                "success": False,
+                "status": stripe_session.payment_status
+            }
+            
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/payments/create-stripe-checkout")

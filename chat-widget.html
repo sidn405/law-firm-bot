@@ -942,6 +942,53 @@
             } catch (error) {
                 console.error('❌ Error initializing Stripe:', error);
             }
+
+            // Handle return from payment
+            const urlParams = new URLSearchParams(window.location.search);
+            const paymentStatus = urlParams.get('payment');
+            const sessionId = urlParams.get('session_id');
+            
+            if (paymentStatus === 'success' && sessionId) {
+                console.log('✅ Returned from payment:', sessionId);
+                
+                setTimeout(async () => {
+                    try {
+                        // Verify payment
+                        const response = await fetch(`${API_URL}/api/payments/${sessionId}/status`);
+                        const data = await response.json();
+                        
+                        if (data.success && data.status === 'completed') {
+                            // Show success message
+                            const successMessage = `
+                                <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 24px; border-radius: 12px; text-align: center; margin: 20px 0;">
+                                    <h3 style="margin: 0 0 12px 0; font-size: 24px;">✅ Payment Successful!</h3>
+                                    <p style="margin: 8px 0; opacity: 0.95;">Thank you for your payment!</p>
+                                    <div style="background: rgba(255, 255, 255, 0.15); padding: 16px; border-radius: 8px; margin: 16px 0;">
+                                        <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                                            <span>Amount Paid:</span>
+                                            <span style="font-weight: bold;">$${data.amount ? data.amount.toFixed(2) : '500.00'}</span>
+                                        </div>
+                                    </div>
+                                    <p style="margin-top: 16px; font-size: 14px;">📧 A receipt has been sent to your email.</p>
+                                </div>
+                            `;
+                            
+                            addMessage('bot', successMessage);
+                            
+                            // Ask if they need anything else
+                            setTimeout(() => {
+                                addMessage('bot', 'Is there anything else I can assist you with today?');
+                            }, 1500);
+                        }
+                    } catch (error) {
+                        console.error('Error verifying payment:', error);
+                        addMessage('bot', '✅ Your payment has been received! You should receive a confirmation email shortly.');
+                    }
+                }, 1000);
+                
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
         });
 
         // REPLACE existing processPayment function
