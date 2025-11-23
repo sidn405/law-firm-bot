@@ -1408,8 +1408,6 @@
         }
 
         // Modify the existing sendMessage function to handle payment flow
-        // Add this at the beginning of the sendMessage function (around line 809):
-
         async function sendMessage() {
             const input = document.getElementById('chat-input');
             const message = input.value.trim();
@@ -1417,6 +1415,38 @@
 
             input.value = '';
             addMessage('user', message);
+
+            // ✅ CHECK IF USER IS SAYING GOODBYE/NO
+            const farewellWords = ['no', 'nope', 'no thanks', 'no thank you', "i'm good", "im good", 
+                                'nothing else', 'all set', 'that\'s all', 'thats all', 'goodbye', 
+                                'bye', 'thanks bye', 'no that\'s it', 'no thats it'];
+            
+            const messageLower = message.toLowerCase().trim();
+            
+            // Check if message is a farewell
+            if (farewellWords.some(word => messageLower === word || messageLower.includes(word))) {
+                // Show goodbye message
+                const goodbyeMessage = `
+                    <div style="padding: 20px; text-align: center;">
+                        <p style="font-size: 16px; margin-bottom: 12px;">👋 Thank you for contacting <strong>${LAW_FIRM_NAME || 'us'}</strong>!</p>
+                        <p style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">
+                            We appreciate your time today. If you need anything else, we're here 24/7.
+                        </p>
+                        <p style="color: #6b7280; font-size: 14px;">
+                            📞 ${LAW_FIRM_PHONE || '(555) 123-4567'} | 📧 ${LAW_FIRM_EMAIL || 'contact@lawfirm.com'}
+                        </p>
+                        <p style="margin-top: 16px; font-size: 14px; color: #059669;">
+                            Have a great day! ✨
+                        </p>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    addMessage('bot', goodbyeMessage);
+                }, 500);
+                
+                return; // Don't send to backend
+            }
 
             // Check if in payment flow
             if (paymentFlowActive) {
