@@ -1039,19 +1039,6 @@
             }
         });
 
-        // --- INITIALIZE ---
-        document.addEventListener('DOMContentLoaded', () => {
-            sessionId = localStorage.getItem('lawfirm_session_id') || generateSessionId();
-            localStorage.setItem('lawfirm_session_id', sessionId);
-
-            document.getElementById('chat-messages').innerHTML = '';
-            addScriptStep('start');
-        });
-
-        function generateSessionId() {
-            return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        }
-
         // --- UI HELPERS ---
 
         function toggleChat() {
