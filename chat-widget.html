@@ -1001,6 +1001,9 @@
                     }
                     
                     showTyping(true);
+            
+                    // ✅ ADD THIS LINE
+                    const currentUrl = window.location.origin + window.location.pathname;
                     
                     const response = await fetch(`${API_URL}/api/payments/create-stripe-link`, {
                         method: 'POST',
@@ -1010,7 +1013,8 @@
                             amount: amount,
                             description: description,
                             payment_type: 'retainer',
-                            reference_id: collectedData['payment_reference'] || 'N/A'
+                            reference_id: collectedData['payment_reference'] || 'N/A',
+                            return_url: currentUrl  // ✅ ADD THIS LINE
                         })
                     });
                     

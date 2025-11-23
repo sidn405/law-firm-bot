@@ -1446,9 +1446,12 @@ async def create_stripe_payment_link(
         description = data.get('description')
         payment_type = data.get('payment_type', 'retainer')
         reference_id = data.get('reference_id')
+        # ✅ ADD THIS LINE
+        return_url = data.get('return_url', BASE_URL)
         
         if not STRIPE_SECRET_KEY:
             raise HTTPException(status_code=500, detail="Stripe not configured")
+            
         
         # Get client info
         client = db.query(Client).filter(Client.id == client_id).first()
@@ -1464,6 +1467,7 @@ async def create_stripe_payment_link(
             raise HTTPException(status_code=404, detail="Client not found")
 
         print(f"💳 Creating Stripe checkout for {client.name} - ${amount}")
+        print(f"📍 Return URL: {return_url}")  # ✅ ADD THIS LOG
 
         # ✅ Add this line HERE (BEFORE the stripe.checkout.Session.create call)
         origin = request.headers.get('origin') or request.headers.get('referer', BASE_URL).rstrip('/')
