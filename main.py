@@ -1458,6 +1458,17 @@ async def create_stripe_payment_link(
         print(f"💳 Creating Stripe checkout for {client.name} - ${amount}")
         
         # Create Stripe Checkout Session
+       
+        client = db.query(Client).filter(Client.id == client_id).first()
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+
+        print(f"💳 Creating Stripe checkout for {client.name} - ${amount}")
+
+        # ✅ Add this line HERE (BEFORE the stripe.checkout.Session.create call)
+        origin = request.headers.get('origin') or request.headers.get('referer', BASE_URL).rstrip('/')
+
+        # Create Stripe Checkout Session
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
@@ -1473,7 +1484,7 @@ async def create_stripe_payment_link(
             }],
             mode='payment',
             ui_mode='embedded',  # For embedded modal
-            return_url=f'{BASE_URL}?payment=success&session_id={{CHECKOUT_SESSION_ID}}',
+            return_url=f'{origin}?payment=success&session_id={{CHECKOUT_SESSION_ID}}',  # ✅ Now use origin here
             client_reference_id=client.id,
             customer_email=client.email,
             metadata={
