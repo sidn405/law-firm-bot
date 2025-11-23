@@ -1409,6 +1409,27 @@ async def verify_client_for_payment(
         print(f"Error verifying client: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     
+@app.get("/api/payments/stripe-config")
+async def get_stripe_config():
+    """
+    Returns Stripe publishable key for frontend to initialize Stripe.js
+    This is needed for embedded checkout modal
+    """
+    if not STRIPE_PUBLISHABLE_KEY:
+        raise HTTPException(
+            status_code=500, 
+            detail="Stripe publishable key not configured"
+        )
+    
+    return {
+        "success": True,
+        "publishable_key": STRIPE_PUBLISHABLE_KEY
+    }
+
+
+# -------------------- ENDPOINT #2: Create Stripe Link (REPLACE) --------------------
+# REPLACE lines 1412-1492 with this:
+
 @app.post("/api/payments/create-stripe-link")
 async def create_stripe_payment_link(
     request: Request,
@@ -1463,15 +1484,21 @@ async def create_stripe_payment_link(
             }
         )
         
-        # Store payment record
+        # ✅ FIXED: Store payment with correct Payment model fields
         payment = Payment(
-            client_id=client.id,
+            case_id=client_id,  # ✅ case_id not client_id
             amount=amount,
-            payment_type=payment_type,
-            description=description,
-            reference_id=reference_id,
-            stripe_session_id=checkout_session.id,
-            status='pending'
+            status='pending',
+            provider='stripe',  # ✅ Added provider
+            transaction_id=checkout_session.id,  # ✅ transaction_id not stripe_session_id
+            payment_metadata={  # ✅ JSON field for extra data
+                'payment_type': payment_type,
+                'description': description,
+                'reference_id': reference_id,
+                'client_name': client.name,
+                'client_email': client.email,
+                'client_secret': checkout_session.client_secret
+            }
         )
         db.add(payment)
         db.commit()
@@ -1489,6 +1516,8 @@ async def create_stripe_payment_link(
         raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
     except Exception as e:
         print(f"❌ Error creating checkout: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 
