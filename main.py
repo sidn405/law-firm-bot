@@ -1901,48 +1901,40 @@ async def check_payment_status(
     db: Session = Depends(get_db)
 ):
     """
-    Check payment status and send receipt email if completed
-    Called by frontend after Stripe redirects back
+    Check payment status after Stripe redirect
     """
     try:
         # Retrieve Stripe session
         session = stripe.checkout.Session.retrieve(session_id)
         
-        # Update payment record in database
+        # ✅ FIXED: Use transaction_id not stripe_session_id
         payment = db.query(Payment).filter(
-            Payment.stripe_session_id == session_id
+            Payment.transaction_id == session_id
         ).first()
         
         if not payment:
+            print(f"❌ Payment not found for session: {session_id}")
             raise HTTPException(status_code=404, detail="Payment not found")
         
-        # Get client info
-        client = db.query(Client).filter(Client.id == payment.client_id).first()
+        # ✅ FIXED: Use case_id to get client
+        client = db.query(Client).filter(Client.id == payment.case_id).first()
         
         if session.payment_status == 'paid':
             # Update payment status
             payment.status = 'completed'
-            payment.completed_at = datetime.utcnow()
             db.commit()
             
-            print(f"✅ Payment completed: {session_id}")
+            print(f"✅ Payment verified and completed: {session_id}")
             
-            # Send receipt email
-            await send_receipt_email(
-                client_email=client.email,
-                client_name=client.name,
-                amount=payment.amount,
-                transaction_id=session_id,
-                payment_type=payment.payment_type,
-                description=payment.description
-            )
+            # ✅ FIXED: Get data from payment_metadata
+            metadata = payment.payment_metadata or {}
             
             return {
                 "success": True,
                 "status": "completed",
                 "amount": payment.amount,
                 "transaction_id": session_id,
-                "client_name": client.name
+                "client_name": client.name if client else metadata.get('client_name', 'Valued Client')
             }
         else:
             return {
@@ -1951,8 +1943,13 @@ async def check_payment_status(
                 "message": "Payment not completed"
             }
             
+    except stripe.error.StripeError as e:
+        print(f"❌ Stripe error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
     except Exception as e:
         print(f"❌ Error checking payment status: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 # ==============================================================================
