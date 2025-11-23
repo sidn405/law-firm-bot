@@ -1852,6 +1852,9 @@ async def check_payment_status(
         # ✅ FIXED: Use case_id to get client
         client = db.query(Client).filter(Client.id == payment.case_id).first()
         
+        # ✅ FIXED: Get data from payment_metadata
+        metadata = payment.payment_metadata or {}
+        
         if session.payment_status == 'paid':
             # Update payment status
             payment.status = 'completed'
@@ -1859,8 +1862,27 @@ async def check_payment_status(
             
             print(f"✅ Payment verified and completed: {session_id}")
             
-            # ✅ FIXED: Get data from payment_metadata
-            metadata = payment.payment_metadata or {}
+            # ✅ SEND RECEIPT EMAIL
+            try:
+                client_email = client.email if client else metadata.get('client_email', '')
+                client_name = client.name if client else metadata.get('client_name', 'Valued Client')
+                
+                if client_email:
+                    await send_receipt_email(
+                        client_email=client_email,
+                        client_name=client_name,
+                        amount=payment.amount,
+                        transaction_id=session_id,
+                        payment_type=metadata.get('payment_type', 'Payment'),
+                        description=metadata.get('description', 'Legal Services')
+                    )
+                    print(f"📧 Receipt email sent to {client_email}")
+                else:
+                    print(f"⚠️ No email address found")
+                    
+            except Exception as email_error:
+                print(f"⚠️ Email send failed: {str(email_error)}")
+                # Don't fail the request if email fails
             
             return {
                 "success": True,
