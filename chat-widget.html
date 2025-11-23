@@ -1416,6 +1416,45 @@
             input.value = '';
             addMessage('user', message);
 
+            // ✅ SMART FAREWELL DETECTION - Only at end of conversation
+            const farewellWords = ['goodbye', 'bye', 'thanks bye', 'thank you bye', 'see you', 'have a good day'];
+            const messageLower = message.toLowerCase().trim();
+
+            // Check if this is an actual farewell (not just "no" to a question)
+            const isActualFarewell = farewellWords.some(word => messageLower.includes(word));
+
+            // Check if user is responding "no" to the "anything else" question
+            const lastBotMessage = document.querySelector('.message.bot:last-of-type .message-content')?.textContent || '';
+            const isEndOfConversation = lastBotMessage.includes('anything else') || 
+                                    lastBotMessage.includes('Is there anything else');
+
+            // Only trigger farewell if:
+            // 1. User explicitly says goodbye/bye, OR
+            // 2. User says "no" specifically to the "anything else" question
+            if (isActualFarewell || (messageLower === 'no' && isEndOfConversation)) {
+                const goodbyeMessage = `
+                    <div style="padding: 20px; text-align: center;">
+                        <p style="font-size: 16px; margin-bottom: 12px;">👋 Thank you for contacting <strong>${typeof LAW_FIRM_NAME !== 'undefined' ? LAW_FIRM_NAME : 'us'}</strong>!</p>
+                        <p style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">
+                            We appreciate your time today. If you need anything else, we're here 24/7.
+                        </p>
+                        <p style="color: #6b7280; font-size: 14px;">
+                            📞 ${typeof LAW_FIRM_PHONE !== 'undefined' ? LAW_FIRM_PHONE : '(555) 123-4567'} | 📧 ${typeof LAW_FIRM_EMAIL !== 'undefined' ? LAW_FIRM_EMAIL : 'contact@lawfirm.com'}
+                        </p>
+                        <p style="margin-top: 16px; font-size: 14px; color: #059669;">
+                            Have a great day! ✨
+                        </p>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    addMessage('bot', goodbyeMessage);
+                }, 500);
+                
+                return; // Don't send to backend
+            }
+
+
             // Check if in payment flow
             if (paymentFlowActive) {
                 const clientInfo = parsePaymentInfo(message);
@@ -1439,6 +1478,8 @@
                 }
                 return;
             }
+            // Add this debug line here
+            console.log('📤 Sending message to backend API:', message);
 
             // If we're in a scripted TEXT step, use it as the answer
             if (intakeActive && flowSteps[currentStep] && flowSteps[currentStep].input_type === 'text') {
