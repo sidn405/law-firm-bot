@@ -992,58 +992,10 @@
         });
 
         // REPLACE existing processPayment function
-        async function processPayment(provider, clientId, amount, description) {
-            if (provider === 'stripe') {
-                try {
-                    if (!stripe) {
-                        addMessage('bot', '❌ Payment system not initialized. Please refresh the page.');
-                        return;
-                    }
-                    
-                    showTyping(true);
-            
-                    // ✅ ADD THIS LINE
-                    // Get full current URL (including path)
-                    const currentUrl = window.location.href.split('?')[0].split('#')[0];
-                    console.log('📍 Current URL:', currentUrl);
-                    console.log('📍 Will return to:', currentUrl);
-                    
-                    const response = await fetch(`${API_URL}/api/payments/create-stripe-link`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            client_id: clientId,
-                            amount: amount,
-                            description: description,
-                            payment_type: 'retainer',
-                            reference_id: collectedData['payment_reference'] || 'N/A',
-                            return_url: currentUrl  // ✅ ADD THIS LINE
-                        })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
-                    }
-                    
-                    const data = await response.json();
-                    showTyping(false);
-                    
-                    if (data.success && data.client_secret) {
-                        await openStripeEmbeddedCheckout(data.client_secret);
-                    } else {
-                        addMessage('bot', '❌ Sorry, there was an issue creating the payment.');
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ Payment error:', error);
-                    showTyping(false);
-                    addMessage('bot', '❌ Payment error. Please try again or call our office.');
-                }
-                
-            } else if (provider === 'paypal') {
-                alert('PayPal payment coming soon!');
-            }
-        }
+        if (data.success && data.payment_url) {
+    addMessage('bot', '🔄 Redirecting to secure payment page...');
+    setTimeout(() => window.location.href = data.payment_url, 500);
+}
 
         // ADD these new functions
         async function openStripeEmbeddedCheckout(clientSecret) {

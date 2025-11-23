@@ -1491,8 +1491,8 @@ async def create_stripe_payment_link(
                 'quantity': 1,
             }],
             mode='payment',
-            ui_mode='embedded',  # For embedded modal
-            return_url=f'{origin}?payment=success&session_id={{CHECKOUT_SESSION_ID}}',  # ✅ Now use origin here
+            success_url=f'{return_url}?payment=success&session_id={{CHECKOUT_SESSION_ID}}',
+            cancel_url=f'{return_url}?payment=cancelled',
             client_reference_id=client.id,
             customer_email=client.email,
             metadata={
@@ -1529,7 +1529,7 @@ async def create_stripe_payment_link(
         return {
             "success": True,
             "session_id": checkout_session.id,
-            "client_secret": checkout_session.client_secret
+            "payment_url": checkout_session.url  # ✅ Return URL not client_secret
         }
         
     except stripe.error.StripeError as e:
