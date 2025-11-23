@@ -1408,6 +1408,88 @@ async def verify_client_for_payment(
     except Exception as e:
         print(f"Error verifying client: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/api/payments/create-stripe-link")
+async def create_stripe_payment_link(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Create Stripe Checkout Session (embedded mode)
+    Called by frontend after client verification
+    """
+    try:
+        data = await request.json()
+        client_id = data.get('client_id')
+        amount = data.get('amount')
+        description = data.get('description')
+        payment_type = data.get('payment_type', 'retainer')
+        reference_id = data.get('reference_id')
+        
+        if not STRIPE_SECRET_KEY:
+            raise HTTPException(status_code=500, detail="Stripe not configured")
+        
+        # Get client info
+        client = db.query(Client).filter(Client.id == client_id).first()
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        print(f"💳 Creating Stripe checkout for {client.name} - ${amount}")
+        
+        # Create Stripe Checkout Session
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': description,
+                        'description': f'{LAW_FIRM_NAME} - {payment_type.replace("_", " ").title()}',
+                    },
+                    'unit_amount': int(amount * 100),  # Convert to cents
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            ui_mode='embedded',  # For embedded modal
+            return_url=f'{BASE_URL}?payment=success&session_id={{CHECKOUT_SESSION_ID}}',
+            client_reference_id=client.id,
+            customer_email=client.email,
+            metadata={
+                'client_id': client.id,
+                'client_name': client.name,
+                'payment_type': payment_type,
+                'reference_id': reference_id or 'N/A'
+            }
+        )
+        
+        # Store payment record
+        payment = Payment(
+            client_id=client.id,
+            amount=amount,
+            payment_type=payment_type,
+            description=description,
+            reference_id=reference_id,
+            stripe_session_id=checkout_session.id,
+            status='pending'
+        )
+        db.add(payment)
+        db.commit()
+        
+        print(f"✅ Stripe checkout session created: {checkout_session.id}")
+        
+        return {
+            "success": True,
+            "session_id": checkout_session.id,
+            "client_secret": checkout_session.client_secret
+        }
+        
+    except stripe.error.StripeError as e:
+        print(f"❌ Stripe error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
+    except Exception as e:
+        print(f"❌ Error creating checkout: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/payments/create-stripe-checkout")
