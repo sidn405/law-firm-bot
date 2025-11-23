@@ -1039,6 +1039,19 @@
             }
         });
 
+        // --- INITIALIZE ---
+        document.addEventListener('DOMContentLoaded', () => {
+            sessionId = localStorage.getItem('lawfirm_session_id') || generateSessionId();
+            localStorage.setItem('lawfirm_session_id', sessionId);
+
+            document.getElementById('chat-messages').innerHTML = '';
+            addScriptStep('start');
+        });
+
+        function generateSessionId() {
+            return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
         // --- UI HELPERS ---
 
         function toggleChat() {
@@ -1389,48 +1402,6 @@
                 });
             } catch (error) {
                 console.error('Failed to notify team:', error);
-            }
-        }
-
-        // Process payment with selected method
-        async function processPayment(provider, clientId, amount, description) {
-            showTyping(true);
-            
-            try {
-                const endpoint = provider === 'stripe' 
-                    ? `${API_URL}/api/payments/create-stripe-link`
-                    : `${API_URL}/api/payments/create-paypal-link`;
-                
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        client_id: clientId,
-                        amount: amount,
-                        description: description,
-                        payment_type: 'retainer'
-                    })
-                });
-                
-                const data = await response.json();
-                showTyping(false);
-                
-                if (data.success && data.payment_url) {
-                    // Open payment URL in new tab
-                    window.open(data.payment_url, '_blank');
-                    
-                    addMessage('bot', `✅ Payment window opened! Please complete your payment in the new tab. The window will close automatically when done.`);
-                    
-                    // Optional: Monitor payment status
-                    monitorPaymentStatus(data.payment_id);
-                } else {
-                    addMessage('bot', `Sorry, there was an issue creating the payment link. Please try again or call our office.`);
-                }
-                
-            } catch (error) {
-                showTyping(false);
-                console.error('Payment processing error:', error);
-                addMessage('bot', "I'm having trouble processing your payment. Please try again or contact our office.");
             }
         }
 
