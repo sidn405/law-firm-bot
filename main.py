@@ -1447,7 +1447,11 @@ async def create_stripe_payment_link(
         payment_type = data.get('payment_type', 'retainer')
         reference_id = data.get('reference_id')
         # ✅ ADD THIS LINE
+        # Get return URL from frontend
         return_url = data.get('return_url', BASE_URL)
+
+        # ✅ ADD THIS LINE: Remove trailing slash
+        return_url = return_url.rstrip('/')
         
         if not STRIPE_SECRET_KEY:
             raise HTTPException(status_code=500, detail="Stripe not configured")
@@ -1467,7 +1471,7 @@ async def create_stripe_payment_link(
             raise HTTPException(status_code=404, detail="Client not found")
 
         print(f"💳 Creating Stripe checkout for {client.name} - ${amount}")
-        print(f"📍 Return URL: {return_url}")  # ✅ ADD THIS LOG
+        print(f"📍 Return URL (cleaned): {return_url}")
 
         # ✅ Add this line HERE (BEFORE the stripe.checkout.Session.create call)
         origin = request.headers.get('origin') or request.headers.get('referer', BASE_URL).rstrip('/')
@@ -1498,6 +1502,8 @@ async def create_stripe_payment_link(
                 'reference_id': reference_id or 'N/A'
             }
         )
+        # ✅ ADD THIS: See what Stripe actually created
+        print(f"🔍 Stripe's return_url: {checkout_session.return_url}")
         
         # ✅ FIXED: Store payment with correct Payment model fields
         payment = Payment(
