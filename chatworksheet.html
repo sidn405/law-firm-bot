@@ -1012,61 +1012,79 @@
         // PROCESS PAYMENT - OPENS EMBEDDED MODAL
         // ==============================================================================
         
+        // ==============================================================================
+        // FRONTEND UPDATE - For Hosted Checkout
+        // Replace your processPayment function in chat-widget.html
+        // ==============================================================================
+
         async function processPayment(provider, clientId, amount, description) {
             if (provider === 'stripe') {
-                await processStripePayment(clientId, amount, description);
+                try {
+                    if (!stripe) {
+                        addMessage('bot', '❌ Payment system not initialized. Please refresh the page.');
+                        return;
+                    }
+                    
+                    showTyping(true);
+                    
+                    // Get current URL (clean)
+                    let currentUrl = window.location.href.split('?')[0].split('#')[0];
+                    currentUrl = currentUrl.replace(/\/$/, '');  // Remove trailing slash
+                    
+                    console.log('📍 Will return to:', currentUrl);
+                    
+                    const response = await fetch(`${API_URL}/api/payments/create-stripe-link`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            client_id: clientId,
+                            amount: amount,
+                            description: description,
+                            payment_type: 'retainer',
+                            reference_id: collectedData['payment_reference'] || 'N/A',
+                            return_url: currentUrl
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    showTyping(false);
+                    
+                    // ✅ HOSTED CHECKOUT: Redirect to Stripe's page
+                    if (data.success && data.payment_url) {
+                        console.log('✅ Redirecting to Stripe checkout...');
+                        
+                        addMessage('bot', '🔄 Redirecting to secure payment page...');
+                        
+                        // Wait a moment, then redirect
+                        setTimeout(() => {
+                            window.location.href = data.payment_url;
+                        }, 500);
+                    } else {
+                        addMessage('bot', '❌ Sorry, there was an issue creating the payment.');
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Payment error:', error);
+                    showTyping(false);
+                    addMessage('bot', '❌ Payment error. Please try again or call our office.');
+                }
+                
             } else if (provider === 'paypal') {
-                // PayPal implementation can go here
                 alert('PayPal payment coming soon!');
             }
         }
-        
-        async function processStripePayment(clientId, amount, description) {
-            try {
-                if (!stripe) {
-                    addMessage('bot', '❌ Payment system not initialized. Please refresh the page.');
-                    return;
-                }
-                
-                showTyping(true);
-                
-                // Create Stripe Checkout Session
-                const response = await fetch(`${API_URL}/api/payments/create-stripe-checkout`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        client_id: clientId,
-                        amount: amount,
-                        description: description,
-                        payment_type: 'retainer',
-                        reference_id: generatePaymentReference()
-                    })
-                });
-                
-                const data = await response.json();
-                showTyping(false);
-                
-                if (data.success && data.session_id) {
-                    // Store payment data for later
-                    currentPaymentData = {
-                        clientId,
-                        amount,
-                        description
-                    };
-                    
-                    // Show payment modal with embedded Stripe Checkout
-                    await openStripeEmbeddedCheckout(data.session_id);
-                    
-                } else {
-                    addMessage('bot', '❌ Sorry, there was an issue creating the payment. Please try again or contact us.');
-                }
-                
-            } catch (error) {
-                console.error('❌ Payment error:', error);
-                showTyping(false);
-                addMessage('bot', '❌ Payment error. Please try again or contact us for assistance.');
-            }
-        }
+
+// ============================================================================
+// REMOVE these functions (not needed for hosted checkout):
+// - openStripeEmbeddedCheckout()
+// - closePaymentModal()
+// 
+// KEEP the payment return handler in DOMContentLoaded (still needed!)
+// ============================================================================
         
         // ==============================================================================
         // OPEN STRIPE EMBEDDED CHECKOUT IN MODAL
