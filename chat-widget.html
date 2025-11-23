@@ -1224,8 +1224,6 @@
                                 </svg>
                                 Pay with Stripe
                             </button>
-                        </div>
-                        </button>
                             <button class="payment-method-btn paypal-btn" onclick="processPayment('paypal', '${data.client.id}', ${data.amount}, '${data.description}')">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M19.5 6.5c.5 1.1.5 2.4 0 3.8-.8 2.5-2.8 4.2-5.4 4.2H12l-.8 4.5h-2l.8-4.5H8.5L7 20H5l2-11h7.1c1.8 0 3.3.6 4.2 1.7.5.5.8 1.1 1.2 1.8z"/>
@@ -1233,6 +1231,7 @@
                                 Pay with PayPal
                             </button>
                         </div>
+                        
                     `;
                     
                     addMessage('bot', paymentMessage);
