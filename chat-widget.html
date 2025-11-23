@@ -1416,42 +1416,49 @@
             input.value = '';
             addMessage('user', message);
 
-            // ✅ SMART FAREWELL DETECTION - Only at end of conversation
-            const farewellWords = ['goodbye', 'bye', 'thanks bye', 'thank you bye', 'see you', 'have a good day'];
+            // ✅ CHECK IF USER IS SAYING GOODBYE/NO
+            const farewellWords = ['no', 'nope', 'no thanks', 'no thank you', "i'm good", "im good", 
+                                'nothing else', 'all set', 'that\'s all', 'thats all', 'goodbye', 
+                                'bye', 'thanks bye', 'no that\'s it', 'no thats it'];
+
             const messageLower = message.toLowerCase().trim();
 
-            // Check if this is an actual farewell (not just "no" to a question)
-            const isActualFarewell = farewellWords.some(word => messageLower.includes(word));
+            console.log('🔍 DEBUG - Message:', message);
+            console.log('🔍 DEBUG - Message Lower:', messageLower);
+            console.log('🔍 DEBUG - Is Farewell?', farewellWords.some(word => messageLower === word || messageLower.includes(word)));
 
-            // Check if user is responding "no" to the "anything else" question
-            const lastBotMessage = document.querySelector('.message.bot:last-of-type .message-content')?.textContent || '';
-            const isEndOfConversation = lastBotMessage.includes('anything else') || 
-                                    lastBotMessage.includes('Is there anything else');
-
-            // Only trigger farewell if:
-            // 1. User explicitly says goodbye/bye, OR
-            // 2. User says "no" specifically to the "anything else" question
-            if (isActualFarewell || (messageLower === 'no' && isEndOfConversation)) {
-                const goodbyeMessage = `
-                    <div style="padding: 20px; text-align: center;">
-                        <p style="font-size: 16px; margin-bottom: 12px;">👋 Thank you for contacting <strong>${typeof LAW_FIRM_NAME !== 'undefined' ? LAW_FIRM_NAME : 'us'}</strong>!</p>
-                        <p style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">
-                            We appreciate your time today. If you need anything else, we're here 24/7.
-                        </p>
-                        <p style="color: #6b7280; font-size: 14px;">
-                            📞 ${typeof LAW_FIRM_PHONE !== 'undefined' ? LAW_FIRM_PHONE : '(555) 123-4567'} | 📧 ${typeof LAW_FIRM_EMAIL !== 'undefined' ? LAW_FIRM_EMAIL : 'contact@lawfirm.com'}
-                        </p>
-                        <p style="margin-top: 16px; font-size: 14px; color: #059669;">
-                            Have a great day! ✨
-                        </p>
-                    </div>
-                `;
+            // Check if message is a farewell
+            if (farewellWords.some(word => messageLower === word || messageLower.includes(word))) {
+                console.log('✅ Farewell detected! Showing goodbye message...');
                 
-                setTimeout(() => {
-                    addMessage('bot', goodbyeMessage);
-                }, 500);
-                
-                return; // Don't send to backend
+                try {
+                    // Show goodbye message
+                    const goodbyeMessage = `
+                        <div style="padding: 20px; text-align: center;">
+                            <p style="font-size: 16px; margin-bottom: 12px;">👋 Thank you for contacting <strong>${typeof LAW_FIRM_NAME !== 'undefined' ? LAW_FIRM_NAME : 'us'}</strong>!</p>
+                            <p style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">
+                                We appreciate your time today. If you need anything else, we're here 24/7.
+                            </p>
+                            <p style="color: #6b7280; font-size: 14px;">
+                                📞 ${typeof LAW_FIRM_PHONE !== 'undefined' ? LAW_FIRM_PHONE : '(555) 123-4567'} | 📧 ${typeof LAW_FIRM_EMAIL !== 'undefined' ? LAW_FIRM_EMAIL : 'contact@lawfirm.com'}
+                            </p>
+                            <p style="margin-top: 16px; font-size: 14px; color: #059669;">
+                                Have a great day! ✨
+                            </p>
+                        </div>
+                    `;
+                    
+                    console.log('✅ Goodbye message created, adding to chat...');
+                    
+                    setTimeout(() => {
+                        addMessage('bot', goodbyeMessage);
+                        console.log('✅ Goodbye message added!');
+                    }, 500);
+                    
+                    return; // Don't send to backend
+                } catch (error) {
+                    console.error('❌ ERROR in farewell block:', error);
+                }
             }
 
             // Check if in payment flow
