@@ -1003,7 +1003,10 @@
                     showTyping(true);
             
                     // ✅ ADD THIS LINE
-                    const currentUrl = window.location.origin + window.location.pathname;
+                    // Get full current URL (including path)
+                    const currentUrl = window.location.href.split('?')[0].split('#')[0];
+                    console.log('📍 Current URL:', currentUrl);
+                    console.log('📍 Will return to:', currentUrl);
                     
                     const response = await fetch(`${API_URL}/api/payments/create-stripe-link`, {
                         method: 'POST',
