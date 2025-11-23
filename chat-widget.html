@@ -716,6 +716,24 @@
             </div>
         </div>
     </div>
+
+    <!-- Payment Modal -->
+    <div id="payment-modal">
+        <div class="payment-modal-content">
+            <div class="payment-modal-header">
+                <h2 id="payment-modal-title">Complete Payment</h2>
+                <button class="payment-modal-close" onclick="closePaymentModal()">×</button>
+            </div>
+            <div class="payment-modal-body">
+                <div id="stripe-checkout-container">
+                    <div class="payment-loading">
+                        <div class="spinner"></div>
+                        <p>Loading secure payment form...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <script>
         // =====================================================
@@ -1633,110 +1651,6 @@ Consultation Preference:
                 
                 addMessage('bot', `I've saved all your information! Our scheduling team will contact you at ${phone} within 2 hours to confirm your consultation.\n\nPreferred time: ${preferredTime}\n\nFor immediate assistance, call (555) 123-4567`);
             }
-        }
-
-        <!-- Payment Modal -->
-        <div id="payment-modal">
-            <div class="payment-modal-content">
-                <div class="payment-modal-header">
-                    <h2 id="payment-modal-title">Complete Payment</h2>
-                    <button class="payment-modal-close" onclick="closePaymentModal()">×</button>
-                </div>
-                <div class="payment-modal-body">
-                    <div id="stripe-checkout-container">
-                        <div class="payment-loading">
-                            <div class="spinner"></div>
-                            <p>Loading secure payment form...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        async function initializeStripe() {
-            try {
-                const response = await fetch(`${API_URL}/api/payments/stripe-config`);
-                const data = await response.json();
-                
-                if (data.success && data.publishable_key) {
-                    stripe = Stripe(data.publishable_key);
-                    console.log('✅ Stripe initialized');
-                }
-            } catch (error) {
-                console.error('❌ Error initializing Stripe:', error);
-            }
-        }
-
-        // Call on page load
-        document.addEventListener('DOMContentLoaded', initializeStripe);
-
-        // Update your processPayment function
-        async function processPayment(provider, clientId, amount, description) {
-            if (provider === 'stripe') {
-                try {
-                    if (!stripe) {
-                        addMessage('bot', '❌ Payment system not initialized. Please refresh the page.');
-                        return;
-                    }
-                    
-                    showTyping(true);
-                    
-                    const response = await fetch(`${API_URL}/api/payments/create-stripe-link`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            client_id: clientId,
-                            amount: amount,
-                            description: description,
-                            payment_type: 'retainer',
-                            reference_id: collectedData['payment_reference'] || 'N/A'
-                        })
-                    });
-                    
-                    const data = await response.json();
-                    showTyping(false);
-                    
-                    if (data.success && data.client_secret) {
-                        await openStripeEmbeddedCheckout(data.client_secret);
-                    } else {
-                        addMessage('bot', '❌ Sorry, there was an issue creating the payment.');
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ Payment error:', error);
-                    showTyping(false);
-                    addMessage('bot', '❌ Payment error. Please try again.');
-                }
-            } else if (provider === 'paypal') {
-                alert('PayPal payment coming soon!');
-            }
-        }
-
-        async function openStripeEmbeddedCheckout(clientSecret) {
-            const modal = document.getElementById('payment-modal');
-            const container = document.getElementById('stripe-checkout-container');
-            
-            modal.classList.add('show');
-            
-            try {
-                const checkout = await stripe.initEmbeddedCheckout({
-                    clientSecret: clientSecret
-                });
-                
-                container.innerHTML = '';
-                checkout.mount(container);
-                
-                console.log('✅ Stripe Checkout mounted');
-                
-            } catch (error) {
-                console.error('❌ Error mounting Stripe:', error);
-                container.innerHTML = '<p style="color: #ef4444;">Error loading payment form</p>';
-            }
-        }
-
-        function closePaymentModal() {
-            document.getElementById('payment-modal').classList.remove('show');
-            document.getElementById('stripe-checkout-container').innerHTML = '';
         }
     </script>
 </body>
