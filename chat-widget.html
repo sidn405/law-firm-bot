@@ -1478,21 +1478,35 @@
                 }
                 return;
             }
-            // Add this debug line here
-            console.log('📤 Sending message to backend API:', message);
-
+            // ✅ COMPREHENSIVE DEBUG LOGGING
+            console.log('=== SEND MESSAGE DEBUG ===');
+            console.log('Message:', message);
+            console.log('intakeActive:', intakeActive);
+            console.log('currentStep:', currentStep);
+            console.log('flowSteps[currentStep]:', flowSteps[currentStep]);
+            
             // If we're in a scripted TEXT step, use it as the answer
             if (intakeActive && flowSteps[currentStep] && flowSteps[currentStep].input_type === 'text') {
+                console.log('✅ IN TEXT INPUT MODE');
+                console.log('Saving to collectedData[' + currentStep + ']');
+                
                 collectedData[currentStep] = message;
                 const nextId = flowSteps[currentStep].next_step;
+                
+                console.log('Next step ID:', nextId);
+                
                 if (nextId) {
+                    console.log('✅ Moving to next step:', nextId);
                     addScriptStep(nextId);
                 } else {
+                    console.log('⚠️ No next step - ending intake');
                     intakeActive = false;
                     addMessage('bot', "Thank you. Your information has been received.");
                 }
                 return;
             }
+            
+            console.log('❌ NOT in text input mode - proceeding to backend');
 
             // Otherwise: GENERAL CHAT
             showTyping(true);
