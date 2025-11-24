@@ -1106,26 +1106,26 @@
                 messagesContainer.appendChild(btnGroup);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
-        }
-
-        // ✅ AUTO-ADVANCE FOR "NONE" STEPS
-        if (step.input_type === 'none' && step.next_step) {
-            console.log('🔄 Auto-advancing from', stepId, 'to', step.next_step);
-            setTimeout(() => {
-                addScriptStep(step.next_step);
-            }, 1500);
-            return; // Important: return here to prevent the code below from running
-        }
-        
-        // ✅ FINAL STEP - ASK "ANYTHING ELSE?"
-        if (step.input_type === 'none' && !step.next_step) {
-            console.log('✅ Final step reached:', stepId);
-            setTimeout(() => {
-                addMessage('bot', 'Is there anything else I can assist you with today?');
-                intakeActive = false;
-            }, 2000);
-        }
-
+            
+            // ✅ AUTO-ADVANCE FOR "NONE" STEPS - INSIDE THE FUNCTION!
+            if (step.input_type === 'none' && step.next_step) {
+                console.log('🔄 Auto-advancing from', stepId, 'to', step.next_step);
+                setTimeout(() => {
+                    addScriptStep(step.next_step);
+                }, 1500);
+                return;
+            }
+            
+            // ✅ FINAL STEP - ASK "ANYTHING ELSE?"
+            if (step.input_type === 'none' && !step.next_step) {
+                console.log('✅ Final step reached:', stepId);
+                setTimeout(() => {
+                    addMessage('bot', 'Is there anything else I can assist you with today?');
+                    intakeActive = false;
+                }, 2000);
+            }
+        }  // ← FUNCTION ENDS HERE - AFTER THE AUTO-ADVANCE CODE!
+    
         function handleOptionClick(stepId, option) {
             document.querySelectorAll('.script-button-group').forEach(el => el.remove());
             addMessage('user', option.label);
