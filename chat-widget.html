@@ -732,6 +732,7 @@
         let stripe = null;
         let paymentFlowActive = false;
         let paymentClientData = {};
+        let awaitingFarewellResponse = false;
         
         let paymentFlow = {
             active: false,
@@ -1122,6 +1123,7 @@
                 setTimeout(() => {
                     addMessage('bot', 'Is there anything else I can assist you with today?');
                     intakeActive = false;
+                    awaitingFarewellResponse = true;
                 }, 2000);
             }
         }  // ← FUNCTION ENDS HERE - AFTER THE AUTO-ADVANCE CODE!
@@ -1436,37 +1438,25 @@
             input.value = '';
             addMessage('user', message);
 
-            // ✅ SMART FAREWELL DETECTION - More robust version
+            // ✅ SMART FAREWELL DETECTION
             const farewellWords = ['goodbye', 'bye', 'thanks bye', 'thank you bye', 'see you', 'have a good day'];
             const messageLower = message.toLowerCase().trim();
 
-            // Check if this is an actual farewell (not just "no" to a question)
+            // Check if this is an actual farewell
             const isActualFarewell = farewellWords.some(word => messageLower.includes(word));
 
-            // Check if user is responding "no" to the "anything else" question
-            // Use a more flexible check
-            const allBotMessages = document.querySelectorAll('.message.bot .message-content');
-            let isEndOfConversation = false;
-
-            if (allBotMessages.length > 0) {
-                const lastBotMessageElement = allBotMessages[allBotMessages.length - 1];
-                const lastBotText = (lastBotMessageElement.textContent || lastBotMessageElement.innerText || '').toLowerCase();
-                
-                console.log('🔍 Last bot message:', lastBotText);
-                console.log('🔍 Contains "anything else"?', lastBotText.includes('anything else'));
-                
-                isEndOfConversation = lastBotText.includes('anything else');
-            }
-
+            console.log('🔍 awaitingFarewellResponse:', awaitingFarewellResponse);
             console.log('🔍 isActualFarewell:', isActualFarewell);
-            console.log('🔍 isEndOfConversation:', isEndOfConversation);
             console.log('🔍 messageLower:', messageLower);
 
-            // Only trigger farewell if:
+            // Trigger farewell if:
             // 1. User explicitly says goodbye/bye, OR
-            // 2. User says "no" specifically to the "anything else" question
-            if (isActualFarewell || (messageLower === 'no' && isEndOfConversation)) {
+            // 2. User says "no" and we're awaiting a response to "anything else?"
+            if (isActualFarewell || (messageLower === 'no' && awaitingFarewellResponse)) {
                 console.log('✅ FAREWELL TRIGGERED!');
+                
+                // Reset flag
+                awaitingFarewellResponse = false;
                 
                 const goodbyeMessage = `
                     <div style="padding: 20px; text-align: center;">
