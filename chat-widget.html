@@ -807,11 +807,11 @@
             },
             pi_contact_info: {
                 prompt: `
-                    <div class="contact-info-box" style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 16px; border-radius: 8px; margin: 8px 0;">
-                        <p style="font-size: 14px; color: #1e40af; font-weight: 600; margin-bottom: 8px;">📋 Contact Information</p>
-                        <p style="font-size: 13px; color: #1f2937; margin-bottom: 12px;">Please share your contact details so our team can review your case and reach out.</p>
-                        <p style="font-size: 13px; color: #374151; margin-bottom: 8px;"><strong>Enter:</strong> Full name, phone number, email (separated by commas)</p>
-                        <p style="font-size: 13px; color: #374151; background: white; padding: 8px; border-radius: 4px; font-family: monospace;">
+                    <div class="contact-info-box" style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 12px; border-radius: 8px; margin: 8px 0;">
+                        <p style="font-size: 14px; color: #1e40af; font-weight: 600; margin-bottom: 6px;">📋 Contact Information</p>
+                        <p style="font-size: 13px; color: #1f2937; margin-bottom: 8px; line-height: 1.4;">Please share your contact details so our team can review your case and reach out.</p>
+                        <p style="font-size: 13px; color: #374151; margin-bottom: 6px;"><strong>Enter:</strong> Full name, phone number, email (separated by commas)</p>
+                        <p style="font-size: 13px; color: #374151; background: white; padding: 6px 8px; border-radius: 4px; font-family: monospace; margin-bottom: 0;">
                             John Smith, 555-123-4567, john@email.com
                         </p>
                     </div>
@@ -821,10 +821,10 @@
             },
             pi_docs: {
                 prompt: `
-                    <div class="docs-info-box" style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 16px; border-radius: 8px; margin: 8px 0;">
-                        <p style="font-size: 14px; color: #065f46; font-weight: 600; margin-bottom: 8px;">📎 Documents (Optional)</p>
-                        <p style="font-size: 13px; color: #1f2937; margin-bottom: 12px;">If you have photos, police reports, or medical documents, you can upload them here.</p>
-                        <p style="font-size: 13px; color: #374151; background: white; padding: 8px; border-radius: 4px;">
+                    <div class="docs-info-box" style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px; border-radius: 8px; margin: 8px 0;">
+                        <p style="font-size: 14px; color: #065f46; font-weight: 600; margin-bottom: 6px;">📎 Documents (Optional)</p>
+                        <p style="font-size: 13px; color: #1f2937; margin-bottom: 8px; line-height: 1.4;">If you have photos, police reports, or medical documents, you can upload them here.</p>
+                        <p style="font-size: 13px; color: #374151; background: white; padding: 6px 8px; border-radius: 4px; margin-bottom: 0; line-height: 1.5;">
                             Type <strong>'skip'</strong> if you don't have any documents right now<br>
                             Type <strong>'done'</strong> when you've uploaded them
                         </p>
@@ -988,16 +988,16 @@
                             if (data.success && data.status === 'completed') {
                                 // Success message with details
                                 const successMessage = `
-                                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 24px; border-radius: 12px; text-align: center; margin: 20px 0;">
-                                        <h3 style="margin: 0 0 12px 0; font-size: 24px;">✅ Payment Successful!</h3>
-                                        <p style="margin: 8px 0; opacity: 0.95; font-size: 16px;">Thank you, ${clientName}!</p>
-                                        <div style="background: rgba(255, 255, 255, 0.15); padding: 16px; border-radius: 8px; margin: 16px 0;">
-                                            <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                                    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 16px; border-radius: 12px; text-align: center; margin: 12px 0;">
+                                        <h3 style="margin: 0 0 8px 0; font-size: 22px;">✅ Payment Successful!</h3>
+                                        <p style="margin: 6px 0; opacity: 0.95; font-size: 16px;">Thank you, ${clientName}!</p>
+                                        <div style="background: rgba(255, 255, 255, 0.15); padding: 12px; border-radius: 8px; margin: 12px 0;">
+                                            <div style="display: flex; justify-content: space-between; padding: 4px 0;">
                                                 <span style="font-size: 14px;">Amount Paid:</span>
                                                 <span style="font-weight: bold; font-size: 20px;">$${data.amount ? data.amount.toFixed(2) : paymentAmount}</span>
                                             </div>
                                         </div>
-                                        <p style="margin-top: 16px; font-size: 14px; opacity: 0.9;">📧 A receipt has been sent to your email.</p>
+                                        <p style="margin-top: 10px; margin-bottom: 0; font-size: 14px; opacity: 0.9;">📧 A receipt has been sent to your email.</p>
                                     </div>
                                 `;
                                 
@@ -1459,15 +1459,15 @@
                 awaitingFarewellResponse = false;
                 
                 const goodbyeMessage = `
-                    <div style="padding: 20px; text-align: center;">
-                        <p style="font-size: 16px; margin-bottom: 12px;">👋 Thank you for contacting <strong>${typeof LAW_FIRM_NAME !== 'undefined' ? LAW_FIRM_NAME : 'us'}</strong>!</p>
-                        <p style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">
+                    <div style="padding: 16px; text-align: center;">
+                        <p style="font-size: 16px; margin-bottom: 8px;">👋 Thank you for contacting <strong>${typeof LAW_FIRM_NAME !== 'undefined' ? LAW_FIRM_NAME : 'us'}</strong>!</p>
+                        <p style="color: #6b7280; font-size: 14px; margin-bottom: 6px; line-height: 1.4;">
                             We appreciate your time today. If you need anything else, we're here 24/7.
                         </p>
-                        <p style="color: #6b7280; font-size: 14px;">
+                        <p style="color: #6b7280; font-size: 14px; margin-bottom: 8px; line-height: 1.4;">
                             📞 ${typeof LAW_FIRM_PHONE !== 'undefined' ? LAW_FIRM_PHONE : '(555) 123-4567'} | 📧 ${typeof LAW_FIRM_EMAIL !== 'undefined' ? LAW_FIRM_EMAIL : 'contact@lawfirm.com'}
                         </p>
-                        <p style="margin-top: 16px; font-size: 14px; color: #059669;">
+                        <p style="margin-top: 8px; margin-bottom: 0; font-size: 14px; color: #059669;">
                             Have a great day! ✨
                         </p>
                     </div>
