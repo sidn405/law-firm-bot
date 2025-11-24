@@ -1108,20 +1108,21 @@
             }
         }
 
-        // ✅ ADD THIS BLOCK HERE
-        // Auto-advance if input_type is "none" and there's a next step
+        // ✅ AUTO-ADVANCE FOR "NONE" STEPS
         if (step.input_type === 'none' && step.next_step) {
+            console.log('🔄 Auto-advancing from', stepId, 'to', step.next_step);
             setTimeout(() => {
                 addScriptStep(step.next_step);
-            }, 1500); // Wait 1.5 seconds before showing next message
+            }, 1500);
+            return; // Important: return here to prevent the code below from running
         }
         
-        // ✅ ADD THIS TOO - Ask "anything else?" at the end of intake
+        // ✅ FINAL STEP - ASK "ANYTHING ELSE?"
         if (step.input_type === 'none' && !step.next_step) {
-            // This is the final step - ask if they need anything else
+            console.log('✅ Final step reached:', stepId);
             setTimeout(() => {
                 addMessage('bot', 'Is there anything else I can assist you with today?');
-                intakeActive = false; // End the scripted intake flow
+                intakeActive = false;
             }, 2000);
         }
 
