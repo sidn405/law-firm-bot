@@ -1436,7 +1436,7 @@
             input.value = '';
             addMessage('user', message);
 
-            // ✅ SMART FAREWELL DETECTION - Only at end of conversation
+            // ✅ SMART FAREWELL DETECTION - More robust version
             const farewellWords = ['goodbye', 'bye', 'thanks bye', 'thank you bye', 'see you', 'have a good day'];
             const messageLower = message.toLowerCase().trim();
 
@@ -1444,14 +1444,30 @@
             const isActualFarewell = farewellWords.some(word => messageLower.includes(word));
 
             // Check if user is responding "no" to the "anything else" question
-            const lastBotMessage = document.querySelector('.message.bot:last-of-type .message-content')?.textContent || '';
-            const isEndOfConversation = lastBotMessage.includes('anything else') || 
-                                    lastBotMessage.includes('Is there anything else');
+            // Use a more flexible check
+            const allBotMessages = document.querySelectorAll('.message.bot .message-content');
+            let isEndOfConversation = false;
+
+            if (allBotMessages.length > 0) {
+                const lastBotMessageElement = allBotMessages[allBotMessages.length - 1];
+                const lastBotText = (lastBotMessageElement.textContent || lastBotMessageElement.innerText || '').toLowerCase();
+                
+                console.log('🔍 Last bot message:', lastBotText);
+                console.log('🔍 Contains "anything else"?', lastBotText.includes('anything else'));
+                
+                isEndOfConversation = lastBotText.includes('anything else');
+            }
+
+            console.log('🔍 isActualFarewell:', isActualFarewell);
+            console.log('🔍 isEndOfConversation:', isEndOfConversation);
+            console.log('🔍 messageLower:', messageLower);
 
             // Only trigger farewell if:
             // 1. User explicitly says goodbye/bye, OR
             // 2. User says "no" specifically to the "anything else" question
             if (isActualFarewell || (messageLower === 'no' && isEndOfConversation)) {
+                console.log('✅ FAREWELL TRIGGERED!');
+                
                 const goodbyeMessage = `
                     <div style="padding: 20px; text-align: center;">
                         <p style="font-size: 16px; margin-bottom: 12px;">👋 Thank you for contacting <strong>${typeof LAW_FIRM_NAME !== 'undefined' ? LAW_FIRM_NAME : 'us'}</strong>!</p>
