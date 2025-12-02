@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Legal Intake Assistant Demo – LawBot 360</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta
+    name="description"
+    content="See a live demo of an AI-powered legal intake assistant that captures, qualifies, and schedules new clients 24/7 for your law firm."
+  />
+
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --navy: #0f1b3d;
+      --navy-light: #1b2a4f;
+      --accent: #e5b75b;
+      --accent-soft: #fff6df;
+      --text: #1e2433;
+      --muted: #697086;
+      --border: #dde1ea;
+      --white: #ffffff;
+      --shadow-soft: 0 18px 40px rgba(15, 27, 61, 0.12);
+      --radius-lg: 18px;
+      --radius-md: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      padding: 32px 16px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1400px;
+      display: flex;
+      gap: 24px;
+    }
+
+    /* LEFT SIDE – SALES COPY */
+    .main {
+      flex: 1 1 0;
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 32px 32px 28px;
+      box-shadow: var(--shadow-soft);
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .pill {
+      background: var(--accent-soft);
+      border-radius: 999px;
+      padding: 4px 10px;
+      color: #8a6a26;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .hero {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .hero h1 {
+      font-size: 30px;
+      line-height: 1.2;
+      color: var(--navy);
+    }
+
+    .hero p {
+      max-width: 620px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .cta-row {
+      margin-top: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #2043a8, #18285f);
+      color: var(--white);
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(22, 41, 112, 0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--navy);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-secondary span.icon {
+      font-size: 16px;
+    }
+
+    .trust-row {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .trust-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #25c06d;
+      box-shadow: 0 0 0 4px rgba(37, 192, 109, 0.16);
+    }
+
+    .two-column {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.2fr);
+      gap: 18px;
+      align-items: flex-start;
+    }
+
+    .card {
+      background: #f8f9fc;
+      border-radius: var(--radius-md);
+      padding: 16px 16px 14px;
+      border: 1px solid rgba(221, 225, 234, 0.8);
+    }
+
+    .card h3 {
+      font-size: 15px;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+
+    .card p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .card ul {
+      list-style: none;
+      padding-left: 0;
+      margin: 0;
+    }
+
+    .card ul li {
+      font-size: 13px;
+      color: var(--text);
+      display: flex;
+      gap: 8px;
+      margin-bottom: 4px;
+      align-items: flex-start;
+    }
+
+    .card ul li span.bullet {
+      font-size: 14px;
+      line-height: 1.5;
+      color: #1f7a4d;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .section-heading {
+      font-size: 18px;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+
+    .benefit-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .benefit {
+      background: #f8f9fb;
+      border-radius: 12px;
+      padding: 10px 11px;
+      border: 1px solid rgba(221, 225, 234, 0.9);
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .benefit strong {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--navy);
+      font-size: 13px;
+    }
+
+    .note {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .faq {
+      margin-top: 8px;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+      font-size: 13px;
+    }
+
+    .faq-item + .faq-item {
+      margin-top: 8px;
+    }
+
+    .faq q {
+      font-weight: 600;
+      color: var(--navy);
+    }
+
+    .faq p {
+      margin-top: 2px;
+      color: var(--muted);
+    }
+
+    .footer {
+      margin-top: auto;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--muted);
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .footer a {
+      color: var(--navy);
+      font-weight: 500;
+    }
+
+    /* RIGHT SIDE – CHAT WIDGET */
+    .chat-panel {
+      width: 400px;
+      max-width: 100%;
+      background: transparent;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .chat-shell {
+      width: 100%;
+      max-width: 400px;
+      height: calc(100vh - 64px);
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+      border: 1px solid rgba(15, 27, 61, 0.16);
+      position: sticky;
+      top: 32px;
+    }
+
+    /* This is where your existing chatbot mounts */
+    #chat-widget-root {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .shell {
+        flex-direction: column;
+      }
+      .chat-panel {
+        width: 100%;
+      }
+      .chat-shell {
+        position: relative;
+        top: 0;
+        height: 520px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .main {
+        padding: 20px 16px 18px;
+      }
+      .hero h1 {
+        font-size: 24px;
+      }
+      .benefit-grid {
+        grid-template-columns: 1fr;
+      }
+      .two-column {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="shell">
+      <!-- LEFT: SALES CONTENT -->
+      <main class="main">
+        <div class="badge-row">
+          <div class="pill">Live Demo</div>
+          <span>AI Legal Intake Assistant • LawBot 360</span>
+        </div>
+
+        <section class="hero">
+          <h1>See a 24/7 AI Legal Intake Assistant in Action.</h1>
+          <p>
+            This demo shows how your firm can greet visitors, qualify cases,
+            collect key details, and book consultations automatically – without
+            adding any staff.
+          </p>
+          <div class="cta-row">
+            <button class="btn-primary" onclick="scrollToChat()">
+              Try the Live Demo
+              <span>↘</span>
+            </button>
+            <a
+              class="btn-secondary"
+              href="https://4dgaming.games"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span class="icon">🌐</span>
+              Learn more about 4D AI Agency
+            </a>
+          </div>
+          <div class="trust-row">
+            <span class="trust-dot"></span>
+            <span>Fully scripted demo • No obligation • Built for real law firms</span>
+          </div>
+        </section>
+
+        <section>
+          <div class="two-column">
+            <div class="card">
+              <h3>What this assistant does for your firm</h3>
+              <p>
+                The bot follows a structured intake script for personal injury
+                and other practice areas, while still handling off-topic
+                questions safely and honestly.
+              </p>
+              <ul>
+                <li>
+                  <span class="bullet">✔</span>
+                  <span>Greets visitors and routes them by practice area (PI, family, immigration, etc.).</span>
+                </li>
+                <li>
+                  <span class="bullet">✔</span>
+                  <span>Collects contact details and key facts about the incident.</span>
+                </li>
+                <li>
+                  <span class="bullet">✔</span>
+                  <span>Offers consultation information without guessing or giving generic legal advice.</span>
+                </li>
+                <li>
+                  <span class="bullet">✔</span>
+                  <span>Escalates to a human when the visitor asks to speak to someone or the bot isn’t sure.</span>
+                </li>
+              </ul>
+              <p class="note">
+                <strong>Important:</strong> This demo does not replace an
+                attorney and is for demonstration purposes only.
+              </p>
+            </div>
+
+            <div class="card">
+              <h3>Why firms add an AI intake assistant</h3>
+              <ul>
+                <li>
+                  <span class="bullet">⏱</span>
+                  <span>Instant response, even after hours and on weekends.</span>
+                </li>
+                <li>
+                  <span class="bullet">📋</span>
+                  <span>Structured intake that your team can review before calling back.</span>
+                </li>
+                <li>
+                  <span class="bullet">📞</span>
+                  <span>Fewer missed calls and fewer repetitive “first call” questions.</span>
+                </li>
+                <li>
+                  <span class="bullet">🔒</span>
+                  <span>Built with accuracy, safety, and attorney oversight in mind.</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-title">Benefits at a Glance</div>
+          <div class="section-heading">
+            Turn website visitors into qualified consultations.
+          </div>
+          <div class="benefit-grid">
+            <div class="benefit">
+              <strong>Increase signed cases</strong>
+              Capture and qualify more leads that would otherwise bounce or call
+              after hours.
+            </div>
+            <div class="benefit">
+              <strong>Reduce intake workload</strong>
+              Let the assistant gather details so your team spends time on
+              serious cases only.
+            </div>
+            <div class="benefit">
+              <strong>Consistent, compliant messaging</strong>
+              The assistant never improvises pricing or legal advice – it sticks
+              to your approved content.
+            </div>
+          </div>
+        </section>
+
+        <section class="faq">
+          <div class="section-title">Common Questions</div>
+
+          <div class="faq-item">
+            <q>Is this connected to a real law firm?</q>
+            <p>
+              No. This is a demo environment to show how the experience works.
+              In a real deployment, the bot is branded with your firm’s name,
+              logo, and approved content.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <q>Will it give legal advice?</q>
+            <p>
+              The assistant is designed to provide general information and guide
+              intake – not legal advice. It can offer to connect the visitor
+              with your staff when questions go beyond its scope.
+            </p>
+          </div>
+
+          <div class="faq-item">
+            <q>What happens if the bot doesn’t know something?</q>
+            <p>
+              It will say it is not sure and offer to connect the visitor with a
+              human contact instead of guessing. Accuracy and honesty are built
+              into the scripts.
+            </p>
+          </div>
+        </section>
+
+        <footer class="footer">
+          <span>
+            Demo only – no information entered here creates an attorney–client
+            relationship.
+          </span>
+          <span>
+            Built by
+            <a href="https://4dgaming.games" target="_blank" rel="noopener noreferrer">
+              4D AI Agency
+            </a>
+          </span>
+        </footer>
+      </main>
+
+      <!-- RIGHT: CHAT WIDGET -->
+      <aside class="chat-panel" id="chat-panel">
+        <div class="chat-shell" id="chat-shell">
+          <div id="chat-widget-root">
+            <!-- Your existing chatbot mounts into this element -->
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    function scrollToChat() {
+      const panel = document.getElementById("chat-panel");
+      if (!panel) return;
+      panel.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  </script>
+
+  <!-- TODO: include your existing chat widget script here.
+       Make sure it targets #chat-widget-root or update the ID below to
+       match whatever your current code expects. Example:
+
+  <script src="/static/js/chat-widget.js"></script>
+  <script>
+    initChatWidget({ mountId: "chat-widget-root" });
+  </script>
+
+  -->
+</body>
+</html>
