@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>AI Legal Intake Assistant Demo – LawBot 360</title>
+  <script src="https://js.stripe.com/v3/"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta
     name="description"
@@ -296,34 +297,6 @@
       font-weight: 500;
     }
 
-    /* RIGHT SIDE – CHAT WIDGET */
-    .chat-panel {
-      width: 400px;
-      max-width: 100%;
-      background: transparent;
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    .chat-shell {
-      width: 100%;
-      max-width: 400px;
-      height: calc(100vh - 64px);
-      background: var(--white);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-soft);
-      overflow: hidden;
-      border: 1px solid rgba(15, 27, 61, 0.16);
-      position: sticky;
-      top: 32px;
-    }
-
-    /* This is where your existing chatbot mounts */
-    #chat-widget-root {
-      width: 100%;
-      height: 100%;
-    }
-
     /* Responsive */
     @media (max-width: 1024px) {
       .shell {
@@ -517,36 +490,7 @@
             </a>
           </span>
         </footer>
-      </main>
-
-      <!-- RIGHT: CHAT WIDGET -->
-      <aside class="chat-panel" id="chat-panel">
-        <div class="chat-shell" id="chat-shell">
-          <div id="chat-widget-root">
-            <!-- Your existing chatbot mounts into this element -->
-          </div>
-        </div>
-      </aside>
-    </div>
-  </div>
-
-  <script>
-    function scrollToChat() {
-      const panel = document.getElementById("chat-panel");
-      if (!panel) return;
-      panel.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
+      </main>  
   </script>
-
-  <!-- TODO: include your existing chat widget script here.
-       Make sure it targets #chat-widget-root or update the ID below to
-       match whatever your current code expects. Example:
-
-  <script src="/static/js/chat-widget.js"></script>
-  <script>
-    initChatWidget({ mountId: "chat-widget-root" });
-  </script>
-
-  -->
 </body>
 </html>
