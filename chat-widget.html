@@ -26,6 +26,261 @@
             padding: 0;
             box-sizing: border-box;
         }
+
+        /* ====== DEMO LANDING PAGE LAYOUT (FULL WIDTH) ====== */
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f4f5f7;
+            color: #111827;
+            line-height: 1.5;
+        }
+
+        /* Wrapper so page looks like a real product page */
+        .lf-demo-page {
+            min-height: 100vh;
+            padding: 40px 16px 140px; /* extra bottom padding so chat button doesn't cover text */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .lf-demo-shell {
+            width: 100%;
+            max-width: 960px;
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 18px 40px rgba(15, 27, 61, 0.12);
+            padding: 28px 24px 24px;
+        }
+
+        /* Header / badge / hero */
+        .lf-demo-badge-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 10px;
+        }
+
+        .lf-demo-pill {
+            background: #fef3c7;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #92400e;
+        }
+
+        .lf-demo-hero-title {
+            font-size: 28px;
+            line-height: 1.25;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        .lf-demo-hero-subtitle {
+            font-size: 15px;
+            color: #6b7280;
+            max-width: 640px;
+        }
+
+        .lf-demo-cta-row {
+            margin-top: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .lf-demo-btn-primary {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            color: white;
+            border-radius: 999px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+        }
+
+        .lf-demo-btn-secondary {
+            background: transparent;
+            border-radius: 999px;
+            border: 1px solid #e5e7eb;
+            padding: 9px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1f2937;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lf-demo-trust-row {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .lf-demo-trust-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+        }
+
+        /* Sections */
+        .lf-demo-section {
+            margin-top: 24px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 20px;
+        }
+
+        .lf-demo-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #9ca3af;
+            margin-bottom: 4px;
+        }
+
+        .lf-demo-section-heading {
+            font-size: 18px;
+            color: #111827;
+            margin-bottom: 10px;
+        }
+
+        /* Two-column “What it does / Why firms use it” */
+        .lf-demo-two-col {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.1fr);
+            gap: 18px;
+        }
+
+        .lf-demo-card {
+            background: #f9fafb;
+            border-radius: 14px;
+            border: 1px solid #e5e7eb;
+            padding: 14px 14px 12px;
+            font-size: 13px;
+        }
+
+        .lf-demo-card h3 {
+            font-size: 15px;
+            margin-bottom: 6px;
+            color: #111827;
+        }
+
+        .lf-demo-card p {
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .lf-demo-card ul {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+        }
+
+        .lf-demo-card li {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 4px;
+            color: #111827;
+        }
+
+        .lf-demo-card li span.lf-bullet {
+            color: #16a34a;
+        }
+
+        /* Benefits grid */
+        .lf-demo-benefit-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .lf-demo-benefit {
+            background: #f9fafb;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            padding: 10px 11px;
+            font-size: 13px;
+            color: #111827;
+        }
+
+        .lf-demo-benefit strong {
+            display: block;
+            margin-bottom: 3px;
+            color: #111827;
+        }
+
+        /* FAQ */
+        .lf-demo-faq-item + .lf-demo-faq-item {
+            margin-top: 10px;
+        }
+
+        .lf-demo-faq-q {
+            font-weight: 600;
+            color: #111827;
+            font-size: 14px;
+        }
+
+        .lf-demo-faq-a {
+            margin-top: 2px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        /* Footer note */
+        .lf-demo-footer {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .lf-demo-footer a {
+            color: #1d4ed8;
+            font-weight: 500;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .lf-demo-two-col {
+                grid-template-columns: 1fr;
+            }
+            .lf-demo-benefit-grid {
+                grid-template-columns: 1fr;
+            }
+            .lf-demo-shell {
+                padding: 20px 16px 18px;
+            }
+            .lf-demo-hero-title {
+                font-size: 23px;
+            }
+        }
+
         
         #lawfirm-chatbot-container {
             position: fixed;
@@ -34,6 +289,8 @@
             z-index: 9999;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
         }
+
+        
         
         /* Chat Button */
         #lawfirm-chat-button {
@@ -639,6 +896,123 @@
     </style>
 </head>
 <body>
+    <!-- DEMO LANDING PAGE CONTENT -->
+    <div class="lf-demo-page">
+        <div class="lf-demo-shell">
+            <div class="lf-demo-badge-row">
+                <div class="lf-demo-pill">Live Demo</div>
+                <span>AI Legal Intake & Payment Assistant • LawBot 360</span>
+            </div>
+
+            <h1 class="lf-demo-hero-title">
+                See a 24/7 AI Legal Intake Assistant in action.
+            </h1>
+            <p class="lf-demo-hero-subtitle">
+                This demo shows how your firm can greet visitors, qualify cases, collect key details,
+                offer online payments, and book consultations automatically — without adding staff.
+            </p>
+
+            <div class="lf-demo-cta-row">
+                <button class="lf-demo-btn-primary" type="button" onclick="openChatFromCTA()">
+                    Try the live chat demo
+                    <span>↘</span>
+                </button>
+                <a class="lf-demo-btn-secondary" href="https://4dgaming.games" target="_blank" rel="noopener noreferrer">
+                    <span>🌐</span>
+                    Learn more about 4D AI Agency
+                </a>
+            </div>
+
+            <div class="lf-demo-trust-row">
+                <div class="lf-demo-trust-dot"></div>
+                <span>Scripted demo • No obligation • Built for real law firms</span>
+            </div>
+
+            <!-- What it does / Why firms use it -->
+            <section class="lf-demo-section">
+                <div class="lf-demo-two-col">
+                    <div class="lf-demo-card">
+                        <h3>What this assistant does for your firm</h3>
+                        <p>
+                            The bot follows a structured intake script for personal injury and other practice areas, 
+                            while still handling off-topic questions safely and honestly.
+                        </p>
+                        <ul>
+                            <li><span class="lf-bullet">✔</span><span>Greets visitors and routes them by practice area (PI, family, immigration, etc.).</span></li>
+                            <li><span class="lf-bullet">✔</span><span>Collects contact details and key facts about the incident.</span></li>
+                            <li><span class="lf-bullet">✔</span><span>Offers consultation information without guessing or giving legal advice.</span></li>
+                            <li><span class="lf-bullet">✔</span><span>Escalates to a human when the visitor asks to speak to someone or the bot isn’t sure.</span></li>
+                        </ul>
+                    </div>
+                    <div class="lf-demo-card">
+                        <h3>Why firms add an AI intake assistant</h3>
+                        <ul>
+                            <li><span class="lf-bullet">⏱</span><span>Instant response, even after hours and on weekends.</span></li>
+                            <li><span class="lf-bullet">📋</span><span>Structured intake that your team can review before calling back.</span></li>
+                            <li><span class="lf-bullet">📞</span><span>Fewer missed calls and fewer repetitive “first call” questions.</span></li>
+                            <li><span class="lf-bullet">🔒</span><span>Built with accuracy, safety, and attorney oversight in mind.</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Benefits -->
+            <section class="lf-demo-section">
+                <div class="lf-demo-section-title">Benefits at a glance</div>
+                <div class="lf-demo-section-heading">
+                    Turn website visitors into qualified consultations (and paid retainers).
+                </div>
+                <div class="lf-demo-benefit-grid">
+                    <div class="lf-demo-benefit">
+                        <strong>Increase signed cases</strong>
+                        Capture and qualify more leads that would otherwise bounce or call after hours.
+                    </div>
+                    <div class="lf-demo-benefit">
+                        <strong>Reduce intake workload</strong>
+                        Let the assistant gather details so your team spends time on serious cases only.
+                    </div>
+                    <div class="lf-demo-benefit">
+                        <strong>Online payments built in</strong>
+                        Clients can pay retainers securely through Stripe while staying inside the chat.
+                    </div>
+                </div>
+            </section>
+
+            <!-- FAQ -->
+            <section class="lf-demo-section">
+                <div class="lf-demo-section-title">Common questions</div>
+
+                <div class="lf-demo-faq-item">
+                    <div class="lf-demo-faq-q">Is this connected to a real law firm?</div>
+                    <div class="lf-demo-faq-a">
+                        No. This is a demo environment to show how the experience works. In a real deployment, 
+                        the bot is branded with your firm’s name, logo, and approved content.
+                    </div>
+                </div>
+
+                <div class="lf-demo-faq-item">
+                    <div class="lf-demo-faq-q">Will it give legal advice?</div>
+                    <div class="lf-demo-faq-a">
+                        The assistant is designed to provide general information and guide intake — not legal advice. 
+                        It offers to connect the visitor with your staff when questions go beyond its scope.
+                    </div>
+                </div>
+
+                <div class="lf-demo-faq-item">
+                    <div class="lf-demo-faq-q">What happens if the bot doesn’t know something?</div>
+                    <div class="lf-demo-faq-a">
+                        It will say it’s not sure and offer to connect the visitor with a human instead of guessing. 
+                        Accuracy and honesty are built into the scripts.
+                    </div>
+                </div>
+            </section>
+
+            <div class="lf-demo-footer">
+                <span>Demo only — no information entered here creates an attorney–client relationship.</span>
+                <span>Built by <a href="https://4dgaming.games" target="_blank" rel="noopener noreferrer">4D AI Agency</a></span>
+            </div>
+        </div>
+    </div>
     <!-- Chat Container -->
     <div id="lawfirm-chatbot-container">
         <!-- Chat Button -->
