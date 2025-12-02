@@ -993,18 +993,12 @@
                 <div class="lf-demo-faq-item">
                     <div class="lf-demo-faq-q">Will it give legal advice?</div>
                     <div class="lf-demo-faq-a">
+                        No. This is a demo environment to show how the experience works. In a real deployment,
                         The assistant is designed to provide general information and guide intake — not legal advice. 
                         It offers to connect the visitor with your staff when questions go beyond its scope.
                     </div>
                 </div>
 
-                <div class="lf-demo-faq-item">
-                    <div class="lf-demo-faq-q">What happens if the bot doesn’t know something?</div>
-                    <div class="lf-demo-faq-a">
-                        It will say it’s not sure and offer to connect the visitor with a human instead of guessing. 
-                        Accuracy and honesty are built into the scripts.
-                    </div>
-                </div>
             </section>
 
             <div class="lf-demo-footer">
@@ -1304,7 +1298,16 @@
                 return false;
             }
         }
-        
+        function openChatFromCTA() {
+            const chatWindow = document.getElementById('lawfirm-chat-window');
+            if (!chatWindow) return;
+            if (!chatWindow.classList.contains('open')) {
+                chatWindow.classList.add('open');
+            }
+            const input = document.getElementById('chat-input');
+            if (input) input.focus();
+        }
+
 
         // Initialize on page load - UPDATED VERSION
         document.addEventListener('DOMContentLoaded', async function() {
