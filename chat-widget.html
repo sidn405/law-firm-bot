@@ -1041,6 +1041,7 @@
                 <button class="quick-action-btn" onclick="quickAction('personal_injury')">Personal Injury</button>
                 <button class="quick-action-btn" onclick="quickAction('family_law')">Family Law</button>
                 <button class="quick-action-btn" onclick="quickAction('immigration')">Immigration</button>
+                <button class="quick-action-btn" onclick="quickAction('criminal_defense')">Criminal Defense</button>
                 <button class="quick-action-btn" onclick="quickAction('schedule')">Schedule Consultation</button>
                 <button class="quick-action-btn payment-quick-btn" onclick="quickAction('make_payment')">💳 Make a Payment</button>
             </div>
@@ -2140,7 +2141,33 @@
                 startPaymentFlow();
                 return;
             }
-            // Other actions...
+            // Map quick actions to flow steps
+            const actionMap = {
+                'personal_injury': 'pi_intro',
+                'family_law': 'family_intro',
+                'immigration': 'imm_intro',
+                'criminal_defense': 'crim_intro',
+                'schedule': 'pi_consult'  // Or create a general scheduling step
+            };
+            
+            const stepId = actionMap[action];
+            
+            if (stepId) {
+                // Add user message showing what they clicked
+                const labels = {
+                    'personal_injury': 'Personal Injury',
+                    'family_law': 'Family Law',
+                    'immigration': 'Immigration',
+                    'criminal_defense': 'Criminal Defense',
+                    'schedule': 'Schedule Consultation'
+                };
+                
+                addMessage('user', labels[action]);
+                
+                // Navigate to the appropriate flow
+                intakeActive = true;
+                addScriptStep(stepId);
+            }
         }
 
         // PAYMENT FLOW FUNCTIONS
