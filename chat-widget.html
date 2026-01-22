@@ -363,21 +363,45 @@
         .hero-cta {
             display: inline-flex;
             align-items: center;
-            gap: 12px;
+            justify-content: center;
+            gap: 10px;
+            
+            /* WHITE BUTTON */
             background: white;
-            color: #1e40af;
+            color: #2c5aa0;
+            
             padding: 16px 32px;
-            border-radius: 999px;
-            font-size: 18px;
+            border-radius: 50px;
+            border: none; /* Remove default button border */
+            font-size: 16px;
             font-weight: 700;
             text-decoration: none;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            transition: transform 0.2s, box-shadow 0.2s;
+            
+            /* Make it look clickable */
+            cursor: pointer; /* ← THIS IS KEY - shows hand cursor */
+            
+            /* Shadow and effects */
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.25s ease;
         }
 
         .hero-cta:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            background: #f0f4ff;
+            cursor: pointer; /* Keep hand cursor on hover */
+        }
+
+        /* Add active state (when clicking) */
+        .hero-cta:active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Add focus state (for keyboard navigation) */
+        .hero-cta:focus {
+            outline: 3px solid rgba(255, 255, 255, 0.5);
+            outline-offset: 3px;
         }
 
         .hero-stats {
@@ -1300,12 +1324,7 @@
             <button class="hero-cta" type="button" onclick="openChatFromCTA()">
                 <span>🎮</span>
                 <span>Try Live Demo Now</span>
-            </button>
-            <a class="lf-demo-btn-secondary" href="https://4dgaming.games" target="_blank" rel="noopener noreferrer">
-                <span>🌐</span>
-                Learn more about 4D AI Agency
-            </a>
-            
+            </button>                       
             <div class="hero-stats">
                 <div class="stat-item">
                     <span class="stat-number">40-70%</span>
