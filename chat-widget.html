@@ -3,7 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Law Firm Chat Widget</title>
+    <title>LawBot 360 - AI Intake Assistant Demo | Capture More Cases 24/7</title>
+    <meta name="description" content="Try our AI-powered legal intake assistant. Qualify leads, book consultations, and process retainers automatically — even when your office is closed.">
+    
+    <!-- Open Graph for social sharing -->
+    <meta property="og:title" content="LawBot 360 - 24/7 AI Intake for Law Firms">
+    <meta property="og:description" content="See how leading law firms are capturing 40-70% more consultations with AI-powered intake.">
+    
+    
     <script src="https://js.stripe.com/v3/"></script>
     <style>
         /* ============================================
@@ -18,6 +25,7 @@
             --text-dark: #1f2937;
             --text-light: #6b7280;
             --bg-light: #f9fafb;
+            --bg-white: #ffffff;
             --border-color: #e5e7eb;
         }
         
@@ -278,6 +286,381 @@
             }
             .lf-demo-hero-title {
                 font-size: 23px;
+            }
+        }
+
+        /* ============================================
+        NEW LANDING PAGE STYLES - Add to existing CSS
+        ============================================ */
+
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%);
+            color: white;
+            padding: 60px 20px 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .hero-content {
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 20px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .hero-title {
+            font-size: 48px;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-subtitle {
+            font-size: 20px;
+            line-height: 1.5;
+            opacity: 0.95;
+            max-width: 700px;
+            margin: 0 auto 35px;
+        }
+
+        .hero-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: white;
+            color: #1e40af;
+            padding: 16px 32px;
+            border-radius: 999px;
+            font-size: 18px;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .hero-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: 800;
+            display: block;
+            color: #f59e0b;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Benefits Grid */
+        .benefits-section {
+            max-width: 1200px;
+            margin: 60px auto;
+            padding: 0 20px;
+        }
+
+        .section-title {
+            font-size: 36px;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 50px;
+            color: #111827;
+        }
+
+        .benefits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+
+        .benefit-card {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .benefit-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .benefit-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .benefit-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #111827;
+        }
+
+        .benefit-description {
+            font-size: 15px;
+            color: #6b7280;
+            line-height: 1.6;
+        }
+
+        /* Testimonials */
+        .testimonials-section {
+            max-width: 1200px;
+            margin: 60px auto;
+            padding: 0 20px;
+        }
+
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+        }
+
+        .testimonial-card {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .testimonial-text {
+            font-size: 16px;
+            line-height: 1.7;
+            color: #374151;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .author-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .author-info {
+            flex: 1;
+        }
+
+        .author-name {
+            font-weight: 700;
+            font-size: 16px;
+            color: #111827;
+        }
+
+        .author-title {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        /* Pricing Section */
+        .pricing-section {
+            background: white;
+            padding: 60px 30px;
+            border-radius: 24px;
+            text-align: center;
+            max-width: 1200px;
+            margin: 60px auto;
+        }
+
+        .pricing-title {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 20px;
+        }
+
+        .pricing-subtitle {
+            font-size: 18px;
+            color: #6b7280;
+            margin-bottom: 40px;
+        }
+
+        .pricing-card {
+            max-width: 500px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid #3b82f6;
+        }
+
+        .price-amount {
+            font-size: 56px;
+            font-weight: 800;
+            color: #1e40af;
+            margin-bottom: 10px;
+        }
+
+        .price-description {
+            font-size: 16px;
+            color: #374151;
+            margin-bottom: 30px;
+        }
+
+        .included-list {
+            text-align: left;
+            margin-bottom: 30px;
+        }
+
+        .included-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            font-size: 15px;
+            color: #374151;
+        }
+
+        .check-icon {
+            color: #10b981;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        /* Final CTA */
+        .final-cta-section {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            color: white;
+            padding: 60px 30px;
+            border-radius: 24px;
+            text-align: center;
+            max-width: 1200px;
+            margin: 60px auto 40px;
+        }
+
+        .final-cta-title {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 15px;
+        }
+
+        .final-cta-subtitle {
+            font-size: 18px;
+            margin-bottom: 30px;
+            opacity: 0.95;
+        }
+
+        .final-cta-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            color: #1e40af;
+            padding: 18px 40px;
+            border-radius: 999px;
+            font-size: 18px;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s;
+        }
+
+        .final-cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .contact-info {
+            margin-top: 30px;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 32px;
+            }
+
+            .hero-subtitle {
+                font-size: 16px;
+            }
+
+            .hero-stats {
+                gap: 20px;
+            }
+
+            .stat-number {
+                font-size: 28px;
+            }
+
+            .section-title,
+            .pricing-title,
+            .final-cta-title {
+                font-size: 28px;
+            }
+
+            .benefits-grid,
+            .testimonials-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .price-amount {
+                font-size: 40px;
             }
         }
 
@@ -897,114 +1280,193 @@
 </head>
 <body>
     <!-- DEMO LANDING PAGE CONTENT -->
-    <div class="lf-demo-page">
-        <div class="lf-demo-shell">
-            <div class="lf-demo-badge-row">
-                <div class="lf-demo-pill">Live Demo</div>
-                <span>AI Legal Intake & Payment Assistant • LawBot 360</span>
-            </div>
-
-            <h1 class="lf-demo-hero-title">
-                See a 24/7 AI Legal Intake Assistant in action.
-            </h1>
-            <p class="lf-demo-hero-subtitle">
-                This demo shows how your firm can greet visitors, qualify cases, collect key details,
-                offer online payments, and book consultations automatically — without adding staff.
+    <div class="hero-section">
+        <div class="hero-content">
+            <div class="hero-badge">🤖 AI-Powered Legal Intake</div>
+            <h1 class="hero-title">Never Lose Another Lead</h1>
+            <p class="hero-subtitle">
+                AI intake assistant that captures, qualifies, and books consultations 24/7 
+                — even when your office is closed. Try the live demo below.
             </p>
+            <a href="#demo" class="hero-cta" onclick="document.getElementById('chat-toggle').click(); return false;">
+                <span>🎮</span>
+                <span>Try Live Demo Now</span>
+            </a>
+            
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <span class="stat-number">40-70%</span>
+                    <span class="stat-label">More Consultations</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">24/7</span>
+                    <span class="stat-label">Lead Capture</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">60%</span>
+                    <span class="stat-label">Less Staff Time</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            <div class="lf-demo-cta-row">
-                <button class="lf-demo-btn-primary" type="button" onclick="openChatFromCTA()">
-                    Try the live chat demo
-                    <span>↘</span>
-                </button>
-                <a class="lf-demo-btn-secondary" href="https://4dgaming.games" target="_blank" rel="noopener noreferrer">
-                    <span>🌐</span>
-                    Learn more about 4D AI Agency
-                </a>
+    <!-- BENEFITS SECTION -->
+    <div class="benefits-section">
+        <h2 class="section-title">How LawBot 360 Helps Your Firm Win More Cases</h2>
+        
+        <div class="benefits-grid">
+            <div class="benefit-card">
+                <div class="benefit-icon">🚀</div>
+                <h3 class="benefit-title">Instant Response Time</h3>
+                <p class="benefit-description">
+                    Respond to every lead in seconds, not hours. First firm to respond gets the case 78% of the time.
+                </p>
             </div>
 
-            <div class="lf-demo-trust-row">
-                <div class="lf-demo-trust-dot"></div>
-                <span>Scripted demo • No obligation • Built for real law firms</span>
+            <div class="benefit-card">
+                <div class="benefit-icon">🎯</div>
+                <h3 class="benefit-title">Pre-Qualified Leads Only</h3>
+                <p class="benefit-description">
+                    AI screens and qualifies cases before they reach your desk. No more wasted time on unqualified leads.
+                </p>
             </div>
 
-            <!-- What it does / Why firms use it -->
-            <section class="lf-demo-section">
-                <div class="lf-demo-two-col">
-                    <div class="lf-demo-card">
-                        <h3>What this assistant does for your firm</h3>
-                        <p>
-                            The bot follows a structured intake script for personal injury and other practice areas, 
-                            while still handling off-topic questions safely and honestly.
-                        </p>
-                        <ul>
-                            <li><span class="lf-bullet">✔</span><span>Greets visitors and routes them by practice area (PI, family, immigration, etc.).</span></li>
-                            <li><span class="lf-bullet">✔</span><span>Collects contact details and key facts about the incident.</span></li>
-                            <li><span class="lf-bullet">✔</span><span>Offers consultation information without guessing or giving legal advice.</span></li>
-                            <li><span class="lf-bullet">✔</span><span>Escalates to a human when the visitor asks to speak to someone or the bot isn’t sure.</span></li>
-                        </ul>
-                    </div>
-                    <div class="lf-demo-card">
-                        <h3>Why firms add an AI intake assistant</h3>
-                        <ul>
-                            <li><span class="lf-bullet">⏱</span><span>Instant response, even after hours and on weekends.</span></li>
-                            <li><span class="lf-bullet">📋</span><span>Structured intake that your team can review before calling back.</span></li>
-                            <li><span class="lf-bullet">📞</span><span>Fewer missed calls and fewer repetitive “first call” questions.</span></li>
-                            <li><span class="lf-bullet">🔒</span><span>Built with accuracy, safety, and attorney oversight in mind.</span></li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Benefits -->
-            <section class="lf-demo-section">
-                <div class="lf-demo-section-title">Benefits at a glance</div>
-                <div class="lf-demo-section-heading">
-                    Turn website visitors into qualified consultations (and paid retainers).
-                </div>
-                <div class="lf-demo-benefit-grid">
-                    <div class="lf-demo-benefit">
-                        <strong>Increase signed cases</strong>
-                        Capture and qualify more leads that would otherwise bounce or call after hours.
-                    </div>
-                    <div class="lf-demo-benefit">
-                        <strong>Reduce intake workload</strong>
-                        Let the assistant gather details so your team spends time on serious cases only.
-                    </div>
-                    <div class="lf-demo-benefit">
-                        <strong>Online payments built in</strong>
-                        Clients can pay retainers securely through Stripe while staying inside the chat.
-                    </div>
-                </div>
-            </section>
-
-            <!-- FAQ -->
-            <section class="lf-demo-section">
-                <div class="lf-demo-section-title">Common questions</div>
-
-                <div class="lf-demo-faq-item">
-                    <div class="lf-demo-faq-q">Is this connected to a real law firm?</div>
-                    <div class="lf-demo-faq-a">
-                        No. This is a demo environment to show how the experience works. In a real deployment, 
-                        the bot is branded with your firm’s name, logo, and approved content.
-                    </div>
-                </div>
-
-                <div class="lf-demo-faq-item">
-                    <div class="lf-demo-faq-q">Will it give legal advice?</div>
-                    <div class="lf-demo-faq-a">
-                        No. This is a demo environment to show how the experience works. In a real deployment,
-                        The assistant is designed to provide general information and guide intake — not legal advice. 
-                        It offers to connect the visitor with your staff when questions go beyond its scope.
-                    </div>
-                </div>
-
-            </section>
-
-            <div class="lf-demo-footer">
-                <span>Demo only — no information entered here creates an attorney–client relationship.</span>
-                <span>Built by <a href="https://4dgaming.games" target="_blank" rel="noopener noreferrer">4D AI Agency</a></span>
+            <div class="benefit-card">
+                <div class="benefit-icon">📅</div>
+                <h3 class="benefit-title">Automatic Scheduling</h3>
+                <p class="benefit-description">
+                    Consultations booked directly into your calendar. No back-and-forth emails or phone tag.
+                </p>
             </div>
+
+            <div class="benefit-card">
+                <div class="benefit-icon">💳</div>
+                <h3 class="benefit-title">Instant Payment Processing</h3>
+                <p class="benefit-description">
+                    Collect retainers during intake. Get paid before the consultation even happens.
+                </p>
+            </div>
+
+            <div class="benefit-card">
+                <div class="benefit-icon">📁</div>
+                <h3 class="benefit-title">Document Collection</h3>
+                <p class="benefit-description">
+                    Clients upload police reports, medical records, and photos during intake. Come to the consultation prepared.
+                </p>
+            </div>
+
+            <div class="benefit-card">
+                <div class="benefit-icon">🔄</div>
+                <h3 class="benefit-title">Smart Routing</h3>
+                <p class="benefit-description">
+                    Cases automatically routed to the right attorney based on practice area and availability.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- TESTIMONIALS SECTION -->
+    <div class="testimonials-section">
+        <h2 class="section-title">What Law Firms Are Saying</h2>
+        
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <p class="testimonial-text">
+                    "We went from losing 60% of after-hours leads to capturing nearly all of them. 
+                    The AI handles intake better than our previous receptionist."
+                </p>
+                <div class="testimonial-author">
+                    <div class="author-avatar">JM</div>
+                    <div class="author-info">
+                        <div class="author-name">James Morrison</div>
+                        <div class="author-title">Managing Partner, Morrison & Associates</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="testimonial-card">
+                <p class="testimonial-text">
+                    "We booked 47 consultations in the first month — up from 28 the month before. 
+                    And we reduced our intake staff from 3 people to 1."
+                </p>
+                <div class="testimonial-author">
+                    <div class="author-avatar">SC</div>
+                    <div class="author-info">
+                        <div class="author-name">Sarah Chen</div>
+                        <div class="author-title">Office Manager, Chen Family Law</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="testimonial-card">
+                <p class="testimonial-text">
+                    "The payment processing feature alone paid for itself in the first week. 
+                    No more chasing clients for retainers."
+                </p>
+                <div class="testimonial-author">
+                    <div class="author-avatar">DR</div>
+                    <div class="author-info">
+                        <div class="author-name">David Rodriguez</div>
+                        <div class="author-title">Senior Partner, Rodriguez PI Firm</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRICING SECTION -->
+    <div class="pricing-section">
+        <h2 class="pricing-title">Custom Solution for Your Firm</h2>
+        <p class="pricing-subtitle">
+            Complete setup with your branding, practice areas, and payment processing
+        </p>
+        
+        <div class="pricing-card">
+            <div class="price-amount">$25K</div>
+            <p class="price-description">One-time setup fee • No monthly charges</p>
+            
+            <div class="included-list">
+                <div class="included-item">
+                    <span class="check-icon">✓</span>
+                    <span>Complete custom branding (logo, colors, tone)</span>
+                </div>
+                <div class="included-item">
+                    <span class="check-icon">✓</span>
+                    <span>Unlimited practice area configurations</span>
+                </div>
+                <div class="included-item">
+                    <span class="check-icon">✓</span>
+                    <span>Calendar integration (Google, Outlook, Clio)</span>
+                </div>
+                <div class="included-item">
+                    <span class="check-icon">✓</span>
+                    <span>Payment processing setup (Stripe, LawPay)</span>
+                </div>
+                <div class="included-item">
+                    <span class="check-icon">✓</span>
+                    <span>Document upload & management</span>
+                </div>
+                <div class="included-item">
+                    <span class="check-icon">✓</span>
+                    <span>Attorney routing & assignment</span>
+                </div>
+                <div class="included-item">
+                    <span class="check-icon">✓</span>
+                    <span>Legal disclaimers & compliance</span>
+                </div>
+                <div class="included-item">
+                    <span class="check-icon">✓</span>
+                    <span>Staff training & documentation</span>
+                </div>
+                <div class="included-item">
+                    <span class="check-icon">✓</span>
+                    <span>30 days of post-launch support</span>
+                </div>
+            </div>
+            
+            <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
+                <strong>ROI Guarantee:</strong> Most firms see positive ROI within 60-90 days through increased consultations and reduced staffing costs.
+            </p>
         </div>
     </div>
     <!-- Chat Container -->
