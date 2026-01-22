@@ -3,31 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LawBot 360 - AI Intake Assistant Demo | Capture More Cases 24/7</title>
-    <meta name="description" content="Try our AI-powered legal intake assistant. Qualify leads, book consultations, and process retainers automatically — even when your office is closed.">
-    
-    <!-- Open Graph for social sharing -->
-    <meta property="og:title" content="LawBot 360 - 24/7 AI Intake for Law Firms">
-    <meta property="og:description" content="See how leading law firms are capturing 40-70% more consultations with AI-powered intake.">
-    <meta property="og:image" content="https://4dgaming.games/images/lawbot-og.png">
-    
+    <title>Law Firm Chat Widget</title>
     <script src="https://js.stripe.com/v3/"></script>
     <style>
         /* ============================================
-           LAWBOT 360 - LANDING PAGE + CHATBOT
+           LAW FIRM CHATBOT - PROFESSIONAL DESIGN -
            ============================================ */
         
         :root {
             --primary-color: #1e40af;
-            --primary-light: #3b82f6;
-            --secondary-color: #10b981;
-            --accent-color: #f59e0b;
+            --secondary-color: #3b82f6;
+            --success-color: #10b981;
             --danger-color: #ef4444;
-            --text-dark: #111827;
-            --text-medium: #374151;
+            --text-dark: #1f2937;
             --text-light: #6b7280;
             --bg-light: #f9fafb;
-            --bg-white: #ffffff;
             --border-color: #e5e7eb;
         }
         
@@ -37,729 +27,1061 @@
             box-sizing: border-box;
         }
 
+        /* ====== DEMO LANDING PAGE LAYOUT (FULL WIDTH) ====== */
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(180deg, #f0f4f8 0%, #ffffff 100%);
-            color: var(--text-dark);
-            line-height: 1.6;
-        }
-
-        /* ============================================
-           HERO SECTION
-           ============================================ */
-
-        .hero-section {
-            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%);
-            color: white;
-            padding: 60px 20px 80px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>');
-            opacity: 0.3;
-        }
-
-        .hero-content {
-            max-width: 900px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 1;
-        }
-
-        .hero-badge {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 8px 20px;
-            border-radius: 999px;
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 0.05em;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-        }
-
-        .hero-title {
-            font-size: 48px;
-            font-weight: 800;
-            line-height: 1.2;
-            margin-bottom: 20px;
-            letter-spacing: -0.02em;
-        }
-
-        .hero-subtitle {
-            font-size: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f4f5f7;
+            color: #111827;
             line-height: 1.5;
-            opacity: 0.95;
-            max-width: 700px;
-            margin: 0 auto 35px;
         }
 
-        .hero-cta {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            background: white;
-            color: var(--primary-color);
-            padding: 16px 32px;
-            border-radius: 999px;
-            font-size: 18px;
-            font-weight: 700;
-            text-decoration: none;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            transition: transform 0.2s, box-shadow 0.2s;
-            animation: pulse 2s infinite;
-        }
-
-        .hero-cta:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.03); }
-        }
-
-        .hero-stats {
+        /* Wrapper so page looks like a real product page */
+        .lf-demo-page {
+            min-height: 100vh;
+            padding: 40px 16px 140px; /* extra bottom padding so chat button doesn't cover text */
             display: flex;
             justify-content: center;
-            gap: 40px;
-            margin-top: 40px;
-            flex-wrap: wrap;
+            align-items: flex-start;
         }
 
-        .stat-item {
-            text-align: center;
+        .lf-demo-shell {
+            width: 100%;
+            max-width: 960px;
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 18px 40px rgba(15, 27, 61, 0.12);
+            padding: 28px 24px 24px;
         }
 
-        .stat-number {
-            font-size: 36px;
-            font-weight: 800;
-            display: block;
-            color: var(--accent-color);
-        }
-
-        .stat-label {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        /* ============================================
-           TRUST SECTION
-           ============================================ */
-
-        .trust-section {
-            background: white;
-            padding: 40px 20px;
-            text-align: center;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .trust-label {
-            font-size: 13px;
-            color: var(--text-light);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-bottom: 20px;
-        }
-
-        .trust-logos {
+        /* Header / badge / hero */
+        .lf-demo-badge-row {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 40px;
-            flex-wrap: wrap;
-            opacity: 0.6;
-        }
-
-        .trust-item {
-            font-size: 14px;
-            color: var(--text-medium);
-            font-weight: 600;
-        }
-
-        /* ============================================
-           MAIN CONTENT AREA
-           ============================================ */
-
-        .content-wrapper {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 60px 20px 120px;
-        }
-
-        .section-title {
-            font-size: 36px;
-            font-weight: 800;
-            text-align: center;
-            margin-bottom: 50px;
-            color: var(--text-dark);
-        }
-
-        /* ============================================
-           BENEFITS GRID
-           ============================================ */
-
-        .benefits-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 30px;
-            margin-bottom: 80px;
-        }
-
-        .benefit-card {
-            background: white;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .benefit-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .benefit-icon {
-            width: 56px;
-            height: 56px;
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            margin-bottom: 20px;
-        }
-
-        .benefit-title {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 12px;
-            color: var(--text-dark);
-        }
-
-        .benefit-description {
-            font-size: 15px;
-            color: var(--text-light);
-            line-height: 1.6;
-        }
-
-        /* ============================================
-           DEMO SECTION
-           ============================================ */
-
-        .demo-section {
-            background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
-            padding: 60px 30px;
-            border-radius: 24px;
-            margin-bottom: 80px;
-            text-align: center;
-        }
-
-        .demo-title {
-            font-size: 32px;
-            font-weight: 800;
-            margin-bottom: 15px;
-            color: var(--primary-color);
-        }
-
-        .demo-subtitle {
-            font-size: 18px;
-            color: var(--text-medium);
-            margin-bottom: 30px;
-        }
-
-        .demo-cta {
-            display: inline-flex;
-            align-items: center;
             gap: 10px;
-            background: var(--primary-color);
-            color: white;
-            padding: 18px 40px;
-            border-radius: 999px;
-            font-size: 18px;
-            font-weight: 700;
-            text-decoration: none;
-            box-shadow: 0 8px 25px rgba(30, 64, 175, 0.3);
-            transition: all 0.2s;
-        }
-
-        .demo-cta:hover {
-            background: var(--primary-light);
-            transform: translateY(-2px);
-            box-shadow: 0 12px 35px rgba(30, 64, 175, 0.4);
-        }
-
-        /* ============================================
-           TESTIMONIALS
-           ============================================ */
-
-        .testimonials-section {
-            margin-bottom: 80px;
-        }
-
-        .testimonials-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 30px;
-        }
-
-        .testimonial-card {
-            background: white;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-        }
-
-        .testimonial-text {
-            font-size: 16px;
-            line-height: 1.7;
-            color: var(--text-medium);
-            margin-bottom: 20px;
-            font-style: italic;
-        }
-
-        .testimonial-author {
-            display: flex;
             align-items: center;
-            gap: 15px;
-        }
-
-        .author-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 700;
-            font-size: 20px;
-        }
-
-        .author-info {
-            flex: 1;
-        }
-
-        .author-name {
-            font-weight: 700;
-            font-size: 16px;
-            color: var(--text-dark);
-        }
-
-        .author-title {
-            font-size: 14px;
-            color: var(--text-light);
-        }
-
-        /* ============================================
-           PRICING SECTION
-           ============================================ */
-
-        .pricing-section {
-            background: white;
-            padding: 60px 30px;
-            border-radius: 24px;
-            text-align: center;
-            margin-bottom: 80px;
-        }
-
-        .pricing-title {
-            font-size: 32px;
-            font-weight: 800;
-            margin-bottom: 20px;
-        }
-
-        .pricing-subtitle {
-            font-size: 18px;
-            color: var(--text-light);
-            margin-bottom: 40px;
-        }
-
-        .pricing-card {
-            max-width: 500px;
-            margin: 0 auto;
-            background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
-            padding: 40px;
-            border-radius: 20px;
-            border: 2px solid var(--primary-light);
-        }
-
-        .price-amount {
-            font-size: 56px;
-            font-weight: 800;
-            color: var(--primary-color);
+            font-size: 13px;
+            color: #6b7280;
             margin-bottom: 10px;
         }
 
-        .price-description {
-            font-size: 16px;
-            color: var(--text-medium);
-            margin-bottom: 30px;
+        .lf-demo-pill {
+            background: #fef3c7;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #92400e;
         }
 
-        .included-list {
-            text-align: left;
-            margin-bottom: 30px;
+        .lf-demo-hero-title {
+            font-size: 28px;
+            line-height: 1.25;
+            color: #0f172a;
+            margin-bottom: 8px;
         }
 
-        .included-item {
+        .lf-demo-hero-subtitle {
+            font-size: 15px;
+            color: #6b7280;
+            max-width: 640px;
+        }
+
+        .lf-demo-cta-row {
+            margin-top: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .lf-demo-btn-primary {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            color: white;
+            border-radius: 999px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+        }
+
+        .lf-demo-btn-secondary {
+            background: transparent;
+            border-radius: 999px;
+            border: 1px solid #e5e7eb;
+            padding: 9px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1f2937;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .lf-demo-trust-row {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .lf-demo-trust-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+        }
+
+        /* Sections */
+        .lf-demo-section {
+            margin-top: 24px;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 20px;
+        }
+
+        .lf-demo-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #9ca3af;
+            margin-bottom: 4px;
+        }
+
+        .lf-demo-section-heading {
+            font-size: 18px;
+            color: #111827;
+            margin-bottom: 10px;
+        }
+
+        /* Two-column “What it does / Why firms use it” */
+        .lf-demo-two-col {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.1fr);
+            gap: 18px;
+        }
+
+        .lf-demo-card {
+            background: #f9fafb;
+            border-radius: 14px;
+            border: 1px solid #e5e7eb;
+            padding: 14px 14px 12px;
+            font-size: 13px;
+        }
+
+        .lf-demo-card h3 {
+            font-size: 15px;
+            margin-bottom: 6px;
+            color: #111827;
+        }
+
+        .lf-demo-card p {
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .lf-demo-card ul {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+        }
+
+        .lf-demo-card li {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 4px;
+            color: #111827;
+        }
+
+        .lf-demo-card li span.lf-bullet {
+            color: #16a34a;
+        }
+
+        /* Benefits grid */
+        .lf-demo-benefit-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .lf-demo-benefit {
+            background: #f9fafb;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            padding: 10px 11px;
+            font-size: 13px;
+            color: #111827;
+        }
+
+        .lf-demo-benefit strong {
+            display: block;
+            margin-bottom: 3px;
+            color: #111827;
+        }
+
+        /* FAQ */
+        .lf-demo-faq-item + .lf-demo-faq-item {
+            margin-top: 10px;
+        }
+
+        .lf-demo-faq-q {
+            font-weight: 600;
+            color: #111827;
+            font-size: 14px;
+        }
+
+        .lf-demo-faq-a {
+            margin-top: 2px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        /* Footer note */
+        .lf-demo-footer {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .lf-demo-footer a {
+            color: #1d4ed8;
+            font-weight: 500;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .lf-demo-two-col {
+                grid-template-columns: 1fr;
+            }
+            .lf-demo-benefit-grid {
+                grid-template-columns: 1fr;
+            }
+            .lf-demo-shell {
+                padding: 20px 16px 18px;
+            }
+            .lf-demo-hero-title {
+                font-size: 23px;
+            }
+        }
+
+        
+        #lawfirm-chatbot-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+
+        
+        
+        /* Chat Button */
+        #lawfirm-chat-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        #lawfirm-chat-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(30, 64, 175, 0.4);
+        }
+        
+        #lawfirm-chat-button svg {
+            width: 28px;
+            height: 28px;
+            fill: white;
+        }
+        
+        /* Notification Badge */
+        .chat-notification {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger-color);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        /* Chat Window */
+        #lawfirm-chat-window {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 400px;
+            height: 600px;
+            max-height: calc(100vh - 120px);
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+        
+        #lawfirm-chat-window.open {
+            display: flex;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Header */
+        .chat-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .chat-header-info {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px 0;
-            font-size: 15px;
-            color: var(--text-medium);
         }
-
-        .check-icon {
-            color: var(--secondary-color);
-            font-weight: 700;
-            font-size: 18px;
-        }
-
-        /* ============================================
-           CTA SECTION
-           ============================================ */
-
-        .final-cta-section {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-            color: white;
-            padding: 60px 30px;
-            border-radius: 24px;
-            text-align: center;
-        }
-
-        .final-cta-title {
-            font-size: 36px;
-            font-weight: 800;
-            margin-bottom: 15px;
-        }
-
-        .final-cta-subtitle {
-            font-size: 18px;
-            margin-bottom: 30px;
-            opacity: 0.95;
-        }
-
-        .final-cta-button {
-            display: inline-flex;
+        
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
             align-items: center;
-            gap: 10px;
-            background: white;
-            color: var(--primary-color);
-            padding: 18px 40px;
-            border-radius: 999px;
-            font-size: 18px;
-            font-weight: 700;
-            text-decoration: none;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            transition: all 0.2s;
+            justify-content: center;
+            font-size: 20px;
         }
-
-        .final-cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .contact-info {
-            margin-top: 30px;
+        
+        .chat-title {
             font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .chat-subtitle {
+            font-size: 12px;
             opacity: 0.9;
         }
-
-        /* ============================================
-           MOBILE RESPONSIVE
-           ============================================ */
-
-        @media (max-width: 768px) {
-            .hero-title {
-                font-size: 32px;
-            }
-
-            .hero-subtitle {
-                font-size: 16px;
-            }
-
-            .hero-stats {
-                gap: 20px;
-            }
-
-            .stat-number {
-                font-size: 28px;
-            }
-
-            .section-title {
-                font-size: 28px;
-            }
-
-            .benefits-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .demo-title,
-            .pricing-title,
-            .final-cta-title {
-                font-size: 24px;
-            }
-
-            .price-amount {
-                font-size: 40px;
-            }
+        
+        .chat-close {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 5px;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        
+        .chat-close:hover {
+            opacity: 1;
+        }
+        
+        /* Quick Actions */
+        .chat-quick-actions {
+            padding: 15px;
+            background: var(--bg-light);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+        }
+        
+        .quick-action-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        
+        .quick-action-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        /* Messages */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .chat-message {
+            display: flex;
+            gap: 10px;
+            max-width: 80%;
+        }
+        
+        .chat-message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+        
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        
+        .message-content {
+            background: var(--bg-light);
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+        
+        .chat-message.user .message-content {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+        
+        /* Script Flow Buttons */
+        .script-button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 0 10px;
+            margin-top: 8px;
+        }
+        
+        .script-button {
+            background: white;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        
+        .script-button:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateX(4px);
+        }
+        
+        .script-button:active {
+            transform: translateX(2px);
         }
 
-        /* ============================================
-           CHAT WIDGET STYLES (Keep existing)
-           ============================================ */
+        /* NEW: Payment Modal Styles */
+        #payment-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
         
-        /* Include all your existing chat widget styles here */
-        /* I'll keep them from the original file */
+        #payment-modal.show {
+            display: flex;
+        }
         
+        .payment-modal-content {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .payment-modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 16px 16px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .payment-modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        
+        .payment-modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+        
+        .payment-modal-body {
+            padding: 32px;
+        }
+        
+        /* Stripe embedded checkout container */
+        #stripe-checkout-container {
+            min-height: 400px;
+        }
+        
+        /* Loading spinner */
+        .payment-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+        }
+        
+        .payment-loading .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .payment-loading p {
+            margin-top: 20px;
+            color: #6b7280;
+            font-size: 16px;
+        }
+        
+        /* Success message styles */
+        .success-message {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .success-message h3 {
+            margin: 0 0 12px 0;
+            font-size: 24px;
+        }
+        
+        .success-message p {
+            margin: 8px 0;
+            opacity: 0.95;
+        }
+        
+        .receipt-info {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 16px 0;
+            border-left: 4px solid #10b981;
+        }
+        
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .receipt-row:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+         /* Payment Buttons */
+        .payment-quick-btn {
+            background: linear-gradient(135deg, #10b981, #059669);
+            font-weight: 600;
+        }
+
+        .payment-quick-btn:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+        }
+
+        .payment-button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .payment-method-btn {
+            flex: 1;
+            min-width: 140px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .stripe-btn {
+            background: #635bff;
+            color: white;
+        }
+
+        .stripe-btn:hover {
+            background: #5449e0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 91, 255, 0.3);
+        }
+
+        .paypal-btn {
+            background: #0070ba;
+            color: white;
+        }
+
+        .paypal-btn:hover {
+            background: #005ea6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 112, 186, 0.3);
+        }
+
+        .payment-info-box {
+            background: #f0f9ff;
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        .payment-info-box strong {
+            color: #1e40af;
+        }
+
+        .payment-input-group {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .payment-input-group input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .payment-input-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        
+        /* File Upload Status */
+        .upload-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--bg-light);
+            border-radius: 12px;
+            font-size: 13px;
+            margin: 8px 0;
+        }
+        
+        .upload-status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .upload-status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .upload-status.uploading {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        /* Typing Indicator */
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+        }
+        
+        .typing-indicator.active {
+            display: flex;
+        }
+        
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-light);
+            animation: bounce 1.4s infinite;
+        }
+        
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        
+        /* Input Area */
+        .chat-input-area {
+            padding: 15px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        .chat-input:focus {
+            border-color: var(--primary-color);
+        }
+        
+        .upload-btn, .chat-send-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            color: var(--primary-color);
+            transition: all 0.2s;
+        }
+        
+        .upload-btn:hover, .chat-send-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .chat-send-btn {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* File Upload */
+        #file-input {
+            display: none;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 480px) {
+            #lawfirm-chat-window {
+                width: 100%;
+                height: 100%;
+                max-height: 100vh;
+                bottom: 0;
+                right: 0;
+                border-radius: 0;
+            }
+            
+            #lawfirm-chatbot-container {
+                bottom: 10px;
+                right: 10px;
+            }
+        }
     </style>
 </head>
 <body>
-    <!-- HERO SECTION -->
-    <div class="hero-section">
-        <div class="hero-content">
-            <div class="hero-badge">🤖 AI-Powered Legal Intake</div>
-            <h1 class="hero-title">Never Lose Another Lead</h1>
-            <p class="hero-subtitle">
-                AI intake assistant that captures, qualifies, and books consultations 24/7 
-                — even when your office is closed. Try the live demo below.
+    <!-- DEMO LANDING PAGE CONTENT -->
+    <div class="lf-demo-page">
+        <div class="lf-demo-shell">
+            <div class="lf-demo-badge-row">
+                <div class="lf-demo-pill">Live Demo</div>
+                <span>AI Legal Intake & Payment Assistant • LawBot 360</span>
+            </div>
+
+            <h1 class="lf-demo-hero-title">
+                See a 24/7 AI Legal Intake Assistant in action.
+            </h1>
+            <p class="lf-demo-hero-subtitle">
+                This demo shows how your firm can greet visitors, qualify cases, collect key details,
+                offer online payments, and book consultations automatically — without adding staff.
             </p>
-            <a href="#demo" class="hero-cta">
-                <span>🎮</span>
-                <span>Try Live Demo Now</span>
-            </a>
-            
-            <div class="hero-stats">
-                <div class="stat-item">
-                    <span class="stat-number">40-70%</span>
-                    <span class="stat-label">More Consultations</span>
+
+            <div class="lf-demo-cta-row">
+                <button class="lf-demo-btn-primary" type="button" onclick="openChatFromCTA()">
+                    Try the live chat demo
+                    <span>↘</span>
+                </button>
+                <a class="lf-demo-btn-secondary" href="https://4dgaming.games" target="_blank" rel="noopener noreferrer">
+                    <span>🌐</span>
+                    Learn more about 4D AI Agency
+                </a>
+            </div>
+
+            <div class="lf-demo-trust-row">
+                <div class="lf-demo-trust-dot"></div>
+                <span>Scripted demo • No obligation • Built for real law firms</span>
+            </div>
+
+            <!-- What it does / Why firms use it -->
+            <section class="lf-demo-section">
+                <div class="lf-demo-two-col">
+                    <div class="lf-demo-card">
+                        <h3>What this assistant does for your firm</h3>
+                        <p>
+                            The bot follows a structured intake script for personal injury and other practice areas, 
+                            while still handling off-topic questions safely and honestly.
+                        </p>
+                        <ul>
+                            <li><span class="lf-bullet">✔</span><span>Greets visitors and routes them by practice area (PI, family, immigration, etc.).</span></li>
+                            <li><span class="lf-bullet">✔</span><span>Collects contact details and key facts about the incident.</span></li>
+                            <li><span class="lf-bullet">✔</span><span>Offers consultation information without guessing or giving legal advice.</span></li>
+                            <li><span class="lf-bullet">✔</span><span>Escalates to a human when the visitor asks to speak to someone or the bot isn’t sure.</span></li>
+                        </ul>
+                    </div>
+                    <div class="lf-demo-card">
+                        <h3>Why firms add an AI intake assistant</h3>
+                        <ul>
+                            <li><span class="lf-bullet">⏱</span><span>Instant response, even after hours and on weekends.</span></li>
+                            <li><span class="lf-bullet">📋</span><span>Structured intake that your team can review before calling back.</span></li>
+                            <li><span class="lf-bullet">📞</span><span>Fewer missed calls and fewer repetitive “first call” questions.</span></li>
+                            <li><span class="lf-bullet">🔒</span><span>Built with accuracy, safety, and attorney oversight in mind.</span></li>
+                        </ul>
+                    </div>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-number">24/7</span>
-                    <span class="stat-label">Lead Capture</span>
+            </section>
+
+            <!-- Benefits -->
+            <section class="lf-demo-section">
+                <div class="lf-demo-section-title">Benefits at a glance</div>
+                <div class="lf-demo-section-heading">
+                    Turn website visitors into qualified consultations (and paid retainers).
                 </div>
-                <div class="stat-item">
-                    <span class="stat-number">60%</span>
-                    <span class="stat-label">Less Staff Time</span>
+                <div class="lf-demo-benefit-grid">
+                    <div class="lf-demo-benefit">
+                        <strong>Increase signed cases</strong>
+                        Capture and qualify more leads that would otherwise bounce or call after hours.
+                    </div>
+                    <div class="lf-demo-benefit">
+                        <strong>Reduce intake workload</strong>
+                        Let the assistant gather details so your team spends time on serious cases only.
+                    </div>
+                    <div class="lf-demo-benefit">
+                        <strong>Online payments built in</strong>
+                        Clients can pay retainers securely through Stripe while staying inside the chat.
+                    </div>
                 </div>
+            </section>
+
+            <!-- FAQ -->
+            <section class="lf-demo-section">
+                <div class="lf-demo-section-title">Common questions</div>
+
+                <div class="lf-demo-faq-item">
+                    <div class="lf-demo-faq-q">Is this connected to a real law firm?</div>
+                    <div class="lf-demo-faq-a">
+                        No. This is a demo environment to show how the experience works. In a real deployment, 
+                        the bot is branded with your firm’s name, logo, and approved content.
+                    </div>
+                </div>
+
+                <div class="lf-demo-faq-item">
+                    <div class="lf-demo-faq-q">Will it give legal advice?</div>
+                    <div class="lf-demo-faq-a">
+                        No. This is a demo environment to show how the experience works. In a real deployment,
+                        The assistant is designed to provide general information and guide intake — not legal advice. 
+                        It offers to connect the visitor with your staff when questions go beyond its scope.
+                    </div>
+                </div>
+
+            </section>
+
+            <div class="lf-demo-footer">
+                <span>Demo only — no information entered here creates an attorney–client relationship.</span>
+                <span>Built by <a href="https://4dgaming.games" target="_blank" rel="noopener noreferrer">4D AI Agency</a></span>
             </div>
         </div>
     </div>
-
-    <!-- TRUST SECTION -->
-    <div class="trust-section">
-        <p class="trust-label">Trusted by Forward-Thinking Law Firms</p>
-        <div class="trust-logos">
-            <div class="trust-item">✓ Personal Injury Firms</div>
-            <div class="trust-item">✓ Family Law Practices</div>
-            <div class="trust-item">✓ Immigration Attorneys</div>
-            <div class="trust-item">✓ Multi-Practice Firms</div>
-        </div>
-    </div>
-
-    <!-- MAIN CONTENT -->
-    <div class="content-wrapper">
-        <!-- BENEFITS SECTION -->
-        <h2 class="section-title">How LawBot 360 Helps Your Firm Win More Cases</h2>
+    <!-- Chat Container -->
+    <div id="lawfirm-chatbot-container">
+        <!-- Chat Button -->
+        <button id="lawfirm-chat-button" onclick="toggleChat()">
+            <svg viewBox="0 0 24 24">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+            </svg>
+            <span class="chat-notification" id="chat-notification" style="display: none;">1</span>
+        </button>
         
-        <div class="benefits-grid">
-            <div class="benefit-card">
-                <div class="benefit-icon">🚀</div>
-                <h3 class="benefit-title">Instant Response Time</h3>
-                <p class="benefit-description">
-                    Respond to every lead in seconds, not hours. First firm to respond gets the case 78% of the time.
-                </p>
-            </div>
-
-            <div class="benefit-card">
-                <div class="benefit-icon">🎯</div>
-                <h3 class="benefit-title">Pre-Qualified Leads Only</h3>
-                <p class="benefit-description">
-                    AI screens and qualifies cases before they reach your desk. No more wasted time on unqualified leads.
-                </p>
-            </div>
-
-            <div class="benefit-card">
-                <div class="benefit-icon">📅</div>
-                <h3 class="benefit-title">Automatic Scheduling</h3>
-                <p class="benefit-description">
-                    Consultations booked directly into your calendar. No back-and-forth emails or phone tag.
-                </p>
-            </div>
-
-            <div class="benefit-card">
-                <div class="benefit-icon">💳</div>
-                <h3 class="benefit-title">Instant Payment Processing</h3>
-                <p class="benefit-description">
-                    Collect retainers during intake. Get paid before the consultation even happens.
-                </p>
-            </div>
-
-            <div class="benefit-card">
-                <div class="benefit-icon">📁</div>
-                <h3 class="benefit-title">Document Collection</h3>
-                <p class="benefit-description">
-                    Clients upload police reports, medical records, and photos during intake. Come to the consultation prepared.
-                </p>
-            </div>
-
-            <div class="benefit-card">
-                <div class="benefit-icon">🔄</div>
-                <h3 class="benefit-title">Smart Routing</h3>
-                <p class="benefit-description">
-                    Cases automatically routed to the right attorney based on practice area and availability.
-                </p>
-            </div>
-        </div>
-
-        <!-- DEMO SECTION -->
-        <div id="demo" class="demo-section">
-            <h2 class="demo-title">Try It Yourself</h2>
-            <p class="demo-subtitle">
-                This is a fully functional demo. Interact with it just like a real client would.
-                <br>It takes less than 60 seconds to see the complete intake flow.
-            </p>
-            <a href="#chat-widget" class="demo-cta" onclick="openChat(); return false;">
-                <span>▶️</span>
-                <span>Start Demo</span>
-            </a>
-        </div>
-
-        <!-- TESTIMONIALS SECTION -->
-        <h2 class="section-title">What Law Firms Are Saying</h2>
-        
-        <div class="testimonials-section">
-            <div class="testimonials-grid">
-                <div class="testimonial-card">
-                    <p class="testimonial-text">
-                        "We went from losing 60% of after-hours leads to capturing nearly all of them. 
-                        The AI handles intake better than our previous receptionist."
-                    </p>
-                    <div class="testimonial-author">
-                        <div class="author-avatar">JM</div>
-                        <div class="author-info">
-                            <div class="author-name">James Morrison</div>
-                            <div class="author-title">Managing Partner, Morrison & Associates</div>
-                        </div>
+        <!-- Chat Window -->
+        <div id="lawfirm-chat-window">
+            <!-- Header -->
+            <div class="chat-header">
+                <div class="chat-header-info">
+                    <div class="chat-avatar">⚖️</div>
+                    <div>
+                        <div class="chat-title">Legal Assistant</div>
+                        <div class="chat-subtitle">Online • Available 24/7</div>
                     </div>
                 </div>
-
-                <div class="testimonial-card">
-                    <p class="testimonial-text">
-                        "We booked 47 consultations in the first month — up from 28 the month before. 
-                        And we reduced our intake staff from 3 people to 1."
-                    </p>
-                    <div class="testimonial-author">
-                        <div class="author-avatar">SC</div>
-                        <div class="author-info">
-                            <div class="author-name">Sarah Chen</div>
-                            <div class="author-title">Office Manager, Chen Family Law</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="testimonial-card">
-                    <p class="testimonial-text">
-                        "The payment processing feature alone paid for itself in the first week. 
-                        No more chasing clients for retainers."
-                    </p>
-                    <div class="testimonial-author">
-                        <div class="author-avatar">DR</div>
-                        <div class="author-info">
-                            <div class="author-name">David Rodriguez</div>
-                            <div class="author-title">Senior Partner, Rodriguez PI Firm</div>
-                        </div>
-                    </div>
-                </div>
+                <button class="chat-close" onclick="toggleChat()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
             </div>
-        </div>
-
-        <!-- PRICING SECTION -->
-        <div class="pricing-section">
-            <h2 class="pricing-title">Custom Solution for Your Firm</h2>
-            <p class="pricing-subtitle">
-                Complete setup with your branding, practice areas, and payment processing
-            </p>
             
-            <div class="pricing-card">
-                <div class="price-amount">$25K</div>
-                <p class="price-description">One-time setup fee • No monthly charges</p>
-                
-                <div class="included-list">
-                    <div class="included-item">
-                        <span class="check-icon">✓</span>
-                        <span>Complete custom branding (logo, colors, tone)</span>
-                    </div>
-                    <div class="included-item">
-                        <span class="check-icon">✓</span>
-                        <span>Unlimited practice area configurations</span>
-                    </div>
-                    <div class="included-item">
-                        <span class="check-icon">✓</span>
-                        <span>Calendar integration (Google, Outlook, Clio)</span>
-                    </div>
-                    <div class="included-item">
-                        <span class="check-icon">✓</span>
-                        <span>Payment processing setup (Stripe, LawPay)</span>
-                    </div>
-                    <div class="included-item">
-                        <span class="check-icon">✓</span>
-                        <span>Document upload & management</span>
-                    </div>
-                    <div class="included-item">
-                        <span class="check-icon">✓</span>
-                        <span>Attorney routing & assignment</span>
-                    </div>
-                    <div class="included-item">
-                        <span class="check-icon">✓</span>
-                        <span>Legal disclaimers & compliance</span>
-                    </div>
-                    <div class="included-item">
-                        <span class="check-icon">✓</span>
-                        <span>Staff training & documentation</span>
-                    </div>
-                    <div class="included-item">
-                        <span class="check-icon">✓</span>
-                        <span>30 days of post-launch support</span>
-                    </div>
-                </div>
-                
-                <p style="font-size: 14px; color: var(--text-light); margin-top: 20px;">
-                    <strong>ROI Guarantee:</strong> Most firms see positive ROI within 60-90 days through increased consultations and reduced staffing costs.
-                </p>
+            <!-- Quick Actions -->
+            <div class="chat-quick-actions">
+                <button class="quick-action-btn" onclick="quickAction('personal_injury')">Personal Injury</button>
+                <button class="quick-action-btn" onclick="quickAction('family_law')">Family Law</button>
+                <button class="quick-action-btn" onclick="quickAction('immigration')">Immigration</button>
+                <button class="quick-action-btn" onclick="quickAction('criminal_defense')">Criminal Defense</button>
+                <button class="quick-action-btn" onclick="quickAction('schedule')">Schedule Consultation</button>
+                <button class="quick-action-btn payment-quick-btn" onclick="quickAction('make_payment')">💳 Make a Payment</button>
             </div>
-        </div>
-
-        <!-- FINAL CTA -->
-        <div class="final-cta-section">
-            <h2 class="final-cta-title">Ready to Capture More Cases?</h2>
-            <p class="final-cta-subtitle">
-                Schedule a 15-minute demo call to see how LawBot 360 can work for your firm
-            </p>
-            <a href="tel:2054134101" class="final-cta-button">
-                <span>📞</span>
-                <span>Call (205) 413-4101</span>
-            </a>
             
-            <div class="contact-info">
-                <p><strong>Sidney Muhammad</strong> | 4D Gaming</p>
-                <p>legaltech@4dgaming.games | https://4dgaming.games</p>
+            <!-- Messages -->
+            <div class="chat-messages" id="chat-messages">
+                <!-- Welcome message will be added here -->
+            </div>
+            
+            <!-- Typing Indicator -->
+            <div class="typing-indicator" id="typing-indicator">
+                <div class="message-avatar">🤖</div>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+            
+            <!-- Input Area -->
+            <div class="chat-input-area">
+                <input type="file" id="file-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onchange="handleFileUpload(event)">
+                <button class="upload-btn" onclick="document.getElementById('file-input').click()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                </button>
+                <input 
+                    type="text" 
+                    id="chat-input" 
+                    class="chat-input" 
+                    placeholder="Type your message..." 
+                    onkeypress="handleKeyPress(event)"
+                >
+                <button class="chat-send-btn" onclick="sendMessage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"/>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
