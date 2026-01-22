@@ -57,6 +57,9 @@ from tempfile import NamedTemporaryFile
 # ============================================
 
 # API Keys (set as environment variables)
+DATABASE_URL = os.getenv("DATABASE_URL")
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 PAYPAL_CLIENT_ID = os.getenv("PAYPAL_CLIENT_ID", "")
@@ -195,7 +198,10 @@ class Appointment(Base):
 
 Base.metadata.create_all(bind=engine)
 
-# Dependency
+# ==============================================================================
+# DATABASE DEPENDENCY
+# ==============================================================================
+
 def get_db():
     db = SessionLocal()
     try:
@@ -257,6 +263,17 @@ class AppointmentRequest(BaseModel):
     preferred_time: Optional[str] = None
     case_type: Optional[str] = None
     notes: Optional[str] = None
+    
+class PaymentVerificationRequest(BaseModel):
+    full_name: str
+    email: EmailStr
+
+class StripeCheckoutRequest(BaseModel):
+    client_id: str
+    amount: float
+    description: str
+    payment_type: str  # 'retainer', 'case_payment', etc.
+    reference_id: Optional[str] = None
 
 # ============================================
 # EMAIL SERVICE - RESEND
@@ -891,6 +908,1137 @@ async def create_paypal_payment_endpoint(payment: PaymentCreate, db: Session = D
         return result
     else:
         raise HTTPException(status_code=400, detail=result["error"])
+    
+# Add these to your main.py file
+
+# ============================================
+# PAYMENT INTENT DETECTION & HANDLING
+# ============================================
+
+class PaymentIntentDetector:
+    """Detects and handles payment-related queries in chat"""
+    
+    PAYMENT_KEYWORDS = [
+        'payment', 'pay', 'paying', 'paid',
+        'invoice', 'bill', 'billing',
+        'retainer', 'fee', 'fees',
+        'cost', 'price', 'charge',
+        'owe', 'balance', 'due',
+        'credit card', 'debit card',
+        'stripe', 'paypal'
+    ]
+    
+    @staticmethod
+    def detect_payment_intent(message: str) -> bool:
+        """Check if message is asking about payments"""
+        message_lower = message.lower()
+        
+        # Check for payment keywords
+        has_payment_keyword = any(keyword in message_lower for keyword in PaymentIntentDetector.PAYMENT_KEYWORDS)
+        
+        # Check for question patterns
+        is_question = any(word in message_lower for word in ['can i', 'how do i', 'want to', 'need to', 'make a'])
+        
+        return has_payment_keyword and (is_question or 'payment' in message_lower)
+    
+    @staticmethod
+    def get_payment_response(client_email: str = None, client_name: str = None) -> dict:
+        """Generate payment options response"""
+        
+        return {
+            "type": "payment_intent",
+            "message": f"I can help you make a payment! We offer the following payment options:\n\n"
+                      f"💳 **Retainer Fee**: $500\n"
+                      f"💼 **Case Payment**: $2,500\n\n"
+                      f"Which payment would you like to make?",
+            "payment_options": [
+                {
+                    "id": "retainer",
+                    "label": "Retainer Fee - $500",
+                    "amount": 500,
+                    "description": "Initial retainer fee for legal services"
+                },
+                {
+                    "id": "case_payment",
+                    "label": "Case Payment - $2,500",
+                    "amount": 2500,
+                    "description": "Full case payment"
+                }
+            ],
+            "requires_client_info": not (client_email and client_name)
+        }
+
+payment_detector = PaymentIntentDetector()
+
+
+# ============================================
+# ENHANCED CHAT ENDPOINT WITH PAYMENT INTENT
+# ============================================
+
+@app.post("/api/chat/enhanced")
+async def chat_endpoint_with_intents(chat: ChatMessage, db: Session = Depends(get_db)):
+    """Enhanced chat endpoint that detects payment intents"""
+    
+    session_id = chat.session_id or str(uuid.uuid4())
+    
+    # Get or create conversation
+    conversation = db.query(Conversation).filter(
+        Conversation.session_id == session_id
+    ).first()
+    
+    if not conversation:
+        conversation = Conversation(
+            session_id=session_id,
+            client_id=chat.client_id,
+            messages=[],
+            channel="web",
+        )
+        db.add(conversation)
+        db.commit()
+    
+    # Get client info if available
+    client = None
+    client_email = None
+    client_name = None
+    
+    if chat.client_id:
+        client = db.query(Client).filter(Client.id == chat.client_id).first()
+        if client:
+            client_email = client.email
+            client_name = client.name
+    
+    # DETECT PAYMENT INTENT
+    if payment_detector.detect_payment_intent(chat.message):
+        print(f"💳 Payment intent detected from: {client_name or 'Unknown'}")
+        
+        payment_response = payment_detector.get_payment_response(
+            client_email=client_email,
+            client_name=client_name
+        )
+        
+        # Save to conversation
+        conversation.messages.append({"role": "user", "content": chat.message})
+        conversation.messages.append({
+            "role": "assistant", 
+            "content": payment_response["message"],
+            "metadata": {"type": "payment_intent", "options": payment_response["payment_options"]}
+        })
+        conversation.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        
+        return {
+            "response": payment_response["message"],
+            "session_id": session_id,
+            "intent": "payment",
+            "payment_options": payment_response["payment_options"],
+            "requires_client_info": payment_response["requires_client_info"],
+            "client_info": {
+                "email": client_email,
+                "name": client_name
+            } if client else None,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    
+    # NORMAL FLOW HANDLING (existing intake flow)
+    flow_manager.ensure_session(session_id)
+    prev_step_id = flow_manager.get_current_step(session_id)
+    new_step_id = flow_manager.advance_if_answered(session_id, chat.message)
+    current_step_id = flow_manager.get_current_step(session_id)
+    response_text = flow_manager.get_prompt(current_step_id)
+    
+    conversation.messages.append({"role": "user", "content": chat.message})
+    conversation.messages.append({"role": "assistant", "content": response_text})
+    conversation.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    
+    return {
+        "response": response_text,
+        "session_id": session_id,
+        "current_step": current_step_id,
+        "answered": current_step_id != prev_step_id,
+        "intent": "intake",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
+
+# ============================================
+# PAYMENT PROCESSING ENDPOINTS
+# ============================================
+
+class PaymentRequest(BaseModel):
+    session_id: str
+    payment_type: str  # 'retainer' or 'case_payment'
+    client_email: str
+    client_name: str
+    payment_method: str  # 'stripe' or 'paypal'
+
+
+@app.post("/api/payments/create-intent")
+async def create_payment_intent(payment_request: PaymentRequest, db: Session = Depends(get_db)):
+    """Create a payment intent for retainer or case payment"""
+    
+    # Determine amount based on payment type
+    payment_amounts = {
+        "retainer": 500.00,
+        "case_payment": 2500.00
+    }
+    
+    amount = payment_amounts.get(payment_request.payment_type)
+    if not amount:
+        raise HTTPException(status_code=400, detail="Invalid payment type")
+    
+    # Get or create client
+    client = db.query(Client).filter(Client.email == payment_request.client_email).first()
+    
+    if not client:
+        client = Client(
+            name=payment_request.client_name,
+            email=payment_request.client_email,
+            status="payment_processing"
+        )
+        db.add(client)
+        db.commit()
+        db.refresh(client)
+    
+    # Get or create a case for this client
+    case = db.query(Case).filter(Case.client_id == client.id).first()
+    
+    if not case:
+        case = Case(
+            client_id=client.id,
+            case_type="General",
+            description=f"{payment_request.payment_type.replace('_', ' ').title()} payment",
+            status="payment_pending"
+        )
+        db.add(case)
+        db.commit()
+        db.refresh(case)
+    
+    # Create payment based on method
+    if payment_request.payment_method == "stripe":
+        result = await create_stripe_payment(
+            amount=amount,
+            description=f"{payment_request.payment_type.replace('_', ' ').title()} - {LAW_FIRM_NAME}",
+            metadata={
+                "case_id": case.id,
+                "client_id": client.id,
+                "payment_type": payment_request.payment_type
+            }
+        )
+        
+        if result["success"]:
+            # Save payment record
+            new_payment = Payment(
+                case_id=case.id,
+                amount=amount,
+                provider="stripe",
+                transaction_id=result["payment_intent_id"],
+                status="pending",
+                payment_metadata={
+                    "payment_type": payment_request.payment_type,
+                    "client_email": payment_request.client_email
+                }
+            )
+            db.add(new_payment)
+            db.commit()
+            
+            # Send confirmation email
+            await send_email(
+                to=payment_request.client_email,
+                subject=f"Payment Link - {LAW_FIRM_NAME}",
+                body=f"""Dear {payment_request.client_name},
+
+Here is your payment link for: {payment_request.payment_type.replace('_', ' ').title()}
+Amount: ${amount}
+
+Please complete your payment at your earliest convenience.
+
+Best regards,
+{LAW_FIRM_NAME}""",
+                html=f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #2563eb;">💳 Payment Link Ready</h2>
+                    <p>Dear {payment_request.client_name},</p>
+                    <div style="background-color: #dbeafe; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <p><strong>Payment Type:</strong> {payment_request.payment_type.replace('_', ' ').title()}</p>
+                        <p><strong>Amount:</strong> ${amount}</p>
+                    </div>
+                    <p>Your payment is ready to process. Please complete it at your earliest convenience.</p>
+                    <p>Best regards,<br><strong>{LAW_FIRM_NAME}</strong></p>
+                </div>
+                """
+            )
+            
+            return {
+                "success": True,
+                "payment_id": new_payment.id,
+                "amount": amount,
+                "client_secret": result["client_secret"],
+                "payment_intent_id": result["payment_intent_id"],
+                "message": f"Payment link created for ${amount}"
+            }
+        else:
+            raise HTTPException(status_code=400, detail=result["error"])
+    
+    elif payment_request.payment_method == "paypal":
+        result = await create_paypal_payment(
+            amount=amount,
+            description=f"{payment_request.payment_type.replace('_', ' ').title()} - {LAW_FIRM_NAME}"
+        )
+        
+        if result["success"]:
+            # Save payment record
+            new_payment = Payment(
+                case_id=case.id,
+                amount=amount,
+                provider="paypal",
+                transaction_id=result["order_id"],
+                status="pending",
+                payment_metadata={
+                    "payment_type": payment_request.payment_type,
+                    "client_email": payment_request.client_email
+                }
+            )
+            db.add(new_payment)
+            db.commit()
+            
+            return {
+                "success": True,
+                "payment_id": new_payment.id,
+                "amount": amount,
+                "order_id": result["order_id"],
+                "approval_url": result["approval_url"],
+                "message": f"PayPal payment created for ${amount}"
+            }
+        else:
+            raise HTTPException(status_code=400, detail=result["error"])
+    
+    else:
+        raise HTTPException(status_code=400, detail="Invalid payment method")
+
+
+@app.post("/api/payments/confirm")
+async def confirm_payment(
+    payment_id: str,
+    transaction_id: str,
+    db: Session = Depends(get_db)
+):
+    """Confirm a payment after successful transaction"""
+    
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    
+    # Update payment status
+    payment.status = "completed"
+    payment.transaction_id = transaction_id
+    
+    # Update case status
+    case = db.query(Case).filter(Case.id == payment.case_id).first()
+    if case:
+        case.status = "payment_received"
+    
+    # Get client info
+    client = db.query(Client).filter(Client.id == case.client_id).first()
+    
+    db.commit()
+    
+    # Send confirmation emails
+    if client:
+        # Email to client
+        await send_email(
+            to=client.email,
+            subject=f"✅ Payment Confirmed - {LAW_FIRM_NAME}",
+            body=f"""Dear {client.name},
+
+Your payment of ${payment.amount} has been successfully processed.
+
+Transaction ID: {transaction_id}
+Amount: ${payment.amount}
+Date: {datetime.now(timezone.utc).strftime('%B %d, %Y at %I:%M %p')}
+
+Thank you for your payment!
+
+Best regards,
+{LAW_FIRM_NAME}""",
+            html=f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background-color: #10b981; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                    <h1 style="margin: 0;">✅ Payment Confirmed</h1>
+                </div>
+                <div style="background-color: #f9fafb; padding: 20px; border: 1px solid #e5e7eb;">
+                    <p>Dear {client.name},</p>
+                    <p>Your payment has been successfully processed.</p>
+                    <div style="background-color: white; padding: 15px; border-radius: 6px; margin: 15px 0;">
+                        <p><strong>Amount:</strong> ${payment.amount}</p>
+                        <p><strong>Transaction ID:</strong> {transaction_id}</p>
+                        <p><strong>Date:</strong> {datetime.now(timezone.utc).strftime('%B %d, %Y at %I:%M %p')}</p>
+                    </div>
+                    <p>Thank you for your payment!</p>
+                    <p>Best regards,<br><strong>{LAW_FIRM_NAME}</strong></p>
+                </div>
+            </div>
+            """
+        )
+        
+        # Email to law firm
+        await send_email(
+            to=LAW_FIRM_EMAIL,
+            subject=f"💰 Payment Received: ${payment.amount}",
+            body=f"""Payment Received
+
+Client: {client.name}
+Email: {client.email}
+Amount: ${payment.amount}
+Transaction ID: {transaction_id}
+Provider: {payment.provider}
+Payment Type: {payment.payment_metadata.get('payment_type', 'Unknown')}
+Case ID: {case.id}"""
+        )
+    
+    return {
+        "success": True,
+        "message": "Payment confirmed",
+        "payment": {
+            "id": payment.id,
+            "amount": payment.amount,
+            "status": payment.status,
+            "transaction_id": transaction_id
+        }
+    }
+
+# ============================================
+# CLIENT PAYMENT VERIFICATION & PROCESSING
+# ============================================
+
+from pydantic import BaseModel
+
+class ClientVerificationRequest(BaseModel):
+    first_name: str
+    last_name: str
+    client_id: Optional[str] = None  # Made optional since clients may not have this
+    email: str
+
+class PaymentLinkRequest(BaseModel):
+    client_id: str
+    amount: float
+    description: str = "Legal Services Payment"
+    payment_type: str  # "retainer" or "case_payment"
+
+
+@app.post("/api/payments/verify-client")
+async def verify_client_for_payment(
+    request: ClientVerificationRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Verify client exists by matching first name, last name, and email
+    client_id is optional for additional verification
+    Returns client info if found, or indicates no match
+    """
+    try:
+        print(f"🔍 Verifying client: {request.first_name} {request.last_name}, Email: {request.email}, Client ID: {request.client_id or 'Not provided'}")
+        
+        # Build query - start with email as primary identifier
+        query = db.query(Client).filter(Client.email == request.email.lower())
+        
+        # If client_id provided, add it to filter
+        if request.client_id:
+            query = query.filter(Client.id == request.client_id)
+        
+        client = query.first()
+        
+        # If found, verify names match (case-insensitive)
+        if client:
+            # Parse client name
+            client_name_parts = client.name.lower().split()
+            provided_first = request.first_name.lower()
+            provided_last = request.last_name.lower()
+            
+            # Check if names match
+            name_match = (
+                provided_first in client_name_parts and
+                provided_last in client_name_parts
+            )
+            
+            if name_match:
+                print(f"✅ Client verified: {client.name}")
+                
+                return {
+                    "success": True,
+                    "client_found": True,
+                    "client": {
+                        "id": client.id,
+                        "name": client.name,
+                        "email": client.email,
+                        "phone": client.phone,
+                        "case_type": client.case_type,
+                        "status": client.status
+                    }
+                }
+        
+        print(f"❌ No matching client found")
+        
+        return {
+            "success": True,
+            "client_found": False,
+            "message": "No matching client found. Please verify your information."
+        }
+        
+    except Exception as e:
+        print(f"Error verifying client: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/api/payments/stripe-config")
+async def get_stripe_config():
+    """
+    Returns Stripe publishable key for frontend to initialize Stripe.js
+    This is needed for embedded checkout modal
+    """
+    if not STRIPE_PUBLISHABLE_KEY:
+        raise HTTPException(
+            status_code=500, 
+            detail="Stripe publishable key not configured"
+        )
+    
+    return {
+        "success": True,
+        "publishable_key": STRIPE_PUBLISHABLE_KEY
+    }
+
+
+# -------------------- ENDPOINT #2: Create Stripe Link (REPLACE) --------------------
+# REPLACE lines 1412-1492 with this:
+
+@app.post("/api/payments/create-stripe-link")
+async def create_stripe_payment_link(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Create Stripe Checkout Session (embedded mode)
+    Called by frontend after client verification
+    """
+    try:
+        data = await request.json()
+        client_id = data.get('client_id')
+        amount = data.get('amount')
+        description = data.get('description')
+        payment_type = data.get('payment_type', 'retainer')
+        reference_id = data.get('reference_id')
+        # ✅ ADD THIS LINE
+        # Get return URL from frontend
+        return_url = data.get('return_url', BASE_URL)
+
+        # ✅ ADD THIS LINE: Remove trailing slash
+        return_url = return_url.rstrip('/')
+        
+        if not STRIPE_SECRET_KEY:
+            raise HTTPException(status_code=500, detail="Stripe not configured")
+            
+        
+        # Get client info
+        client = db.query(Client).filter(Client.id == client_id).first()
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        print(f"💳 Creating Stripe checkout for {client.name} - ${amount}")
+        
+        # Create Stripe Checkout Session
+       
+        client = db.query(Client).filter(Client.id == client_id).first()
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+
+        print(f"💳 Creating Stripe checkout for {client.name} - ${amount}")
+        print(f"📍 Return URL (cleaned): {return_url}")
+
+        # ✅ Add this line HERE (BEFORE the stripe.checkout.Session.create call)
+        origin = request.headers.get('origin') or request.headers.get('referer', BASE_URL).rstrip('/')
+
+        # Create Stripe Checkout Session
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': description,
+                        'description': f'{LAW_FIRM_NAME} - {payment_type.replace("_", " ").title()}',
+                    },
+                    'unit_amount': int(amount * 100),  # Convert to cents
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=f'{return_url}?payment=success&session_id={{CHECKOUT_SESSION_ID}}',
+            cancel_url=f'{return_url}?payment=cancelled',
+            client_reference_id=client.id,
+            customer_email=client.email,
+            metadata={
+                'client_id': client.id,
+                'client_name': client.name,
+                'payment_type': payment_type,
+                'reference_id': reference_id or 'N/A'
+            }
+        )
+        
+        print(f"âœ… Stripe checkout created: {checkout_session.id}")
+        
+        
+        # ✅ FIXED: Store payment with correct Payment model fields
+        payment = Payment(
+            case_id=client_id,  # ✅ case_id not client_id
+            amount=amount,
+            status='pending',
+            provider='stripe',  # ✅ Added provider
+            transaction_id=checkout_session.id,  # ✅ transaction_id not stripe_session_id
+            payment_metadata={  # ✅ JSON field for extra data
+                'payment_type': payment_type,
+                'description': description,
+                'reference_id': reference_id,
+                'client_name': client.name,
+                'client_email': client.email,
+                'client_secret': checkout_session.client_secret
+            }
+        )
+        db.add(payment)
+        db.commit()
+        
+        print(f"✅ Stripe checkout session created: {checkout_session.id}")
+        
+        return {
+            "success": True,
+            "session_id": checkout_session.id,
+            "payment_url": checkout_session.url  # ✅ Return URL not client_secret
+        }
+        
+    except stripe.error.StripeError as e:
+        print(f"❌ Stripe error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
+    except Exception as e:
+        print(f"❌ Error creating checkout: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/payments/create-stripe-checkout")
+async def create_stripe_checkout_session(
+    request: StripeCheckoutRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Create Stripe Checkout Session in EMBEDDED mode (opens as modal on same page)
+    """
+    try:
+        if not STRIPE_SECRET_KEY:
+            raise HTTPException(
+                status_code=500, 
+                detail="Stripe not configured"
+            )
+        
+        # Get client info
+        client = db.query(Client).filter(Client.id == request.client_id).first()
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        print(f"💳 Creating Stripe checkout for {client.name} - ${request.amount}")
+        
+        # Create Stripe Checkout Session
+        # The key difference: Using success_url and cancel_url to redirect back
+        # to the SAME page, then handling it with URL parameters
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': request.description,
+                        'description': f'{LAW_FIRM_NAME} - {request.payment_type.replace("_", " ").title()}',
+                    },
+                    'unit_amount': int(request.amount * 100),  # Convert to cents
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            
+            # IMPORTANT: These URLs allow the payment to return to the same page
+            success_url=f'{BASE_URL}?payment=success&session_id={{CHECKOUT_SESSION_ID}}',
+            cancel_url=f'{BASE_URL}?payment=cancelled',
+            
+            # UI mode for embedded experience (optional, but recommended)
+            ui_mode='embedded',  # This makes it work as a modal
+            
+            # Store client info
+            client_reference_id=client.id,
+            customer_email=client.email,
+            
+            metadata={
+                'client_id': client.id,
+                'client_name': client.name,
+                'payment_type': request.payment_type,
+                'description': request.description,
+                'reference_id': request.reference_id or 'N/A'
+            }
+        )
+        
+        # Store payment record in database
+        payment = Payment(
+            client_id=client.id,
+            amount=request.amount,
+            payment_type=request.payment_type,
+            description=request.description,
+            reference_id=request.reference_id,
+            stripe_session_id=checkout_session.id,
+            status='pending'
+        )
+        db.add(payment)
+        db.commit()
+        
+        print(f"✅ Stripe checkout session created: {checkout_session.id}")
+        
+        return {
+            "success": True,
+            "session_id": checkout_session.id,
+            "publishable_key": STRIPE_PUBLISHABLE_KEY,  # Frontend needs this
+            "client_secret": checkout_session.client_secret  # For embedded checkout
+        }
+        
+    except stripe.error.StripeError as e:
+        print(f"❌ Stripe error: {str(e)}")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Stripe error: {str(e)}"
+        )
+    except Exception as e:
+        print(f"❌ Error creating checkout: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error creating checkout: {str(e)}"
+        )
+
+
+@app.post("/api/payments/create-paypal-link")
+async def create_paypal_payment_link(
+    request: PaymentLinkRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Create PayPal payment link for client payment
+    """
+    try:
+        if not PAYPAL_CLIENT_ID or not PAYPAL_SECRET:
+            raise HTTPException(status_code=500, detail="PayPal not configured")
+        
+        # Get client info
+        client = db.query(Client).filter(Client.id == request.client_id).first()
+        if not client:
+            raise HTTPException(status_code=404, detail="Client not found")
+        
+        # Get PayPal access token
+        auth_response = requests.post(
+            "https://api-m.paypal.com/v1/oauth2/token",
+            headers={"Accept": "application/json"},
+            auth=(PAYPAL_CLIENT_ID, PAYPAL_SECRET),
+            data={"grant_type": "client_credentials"}
+        )
+        
+        if auth_response.status_code != 200:
+            raise HTTPException(status_code=500, detail="Failed to authenticate with PayPal")
+        
+        access_token = auth_response.json()["access_token"]
+        
+        # Create PayPal order
+        order_data = {
+            "intent": "CAPTURE",
+            "purchase_units": [{
+                "reference_id": client.id,
+                "description": request.description,
+                "amount": {
+                    "currency_code": "USD",
+                    "value": f"{request.amount:.2f}"
+                }
+            }],
+            "application_context": {
+                "return_url": f"{BASE_URL}/payment-success?provider=paypal",
+                "cancel_url": f"{BASE_URL}/chat-widget.html",
+                "brand_name": LAW_FIRM_NAME,
+                "user_action": "PAY_NOW"
+            }
+        }
+        
+        order_response = requests.post(
+            "https://api-m.paypal.com/v2/checkout/orders",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {access_token}"
+            },
+            json=order_data
+        )
+        
+        if order_response.status_code != 201:
+            raise HTTPException(status_code=500, detail="Failed to create PayPal order")
+        
+        order = order_response.json()
+        
+        # Get approval URL
+        approval_url = next(
+            (link["href"] for link in order["links"] if link["rel"] == "approve"),
+            None
+        )
+        
+        if not approval_url:
+            raise HTTPException(status_code=500, detail="No approval URL in PayPal response")
+        
+        # Store payment record
+        payment = Payment(
+            case_id=client.case_type or "payment",
+            amount=request.amount,
+            status="pending",
+            provider="paypal",
+            transaction_id=order["id"],
+            payment_metadata={
+                'client_id': client.id,
+                'payment_type': request.payment_type,
+                'description': request.description,
+                'order_id': order["id"]
+            }
+        )
+        db.add(payment)
+        db.commit()
+        db.refresh(payment)
+        
+        print(f"✅ PayPal payment link created: {approval_url}")
+        
+        return {
+            "success": True,
+            "payment_url": approval_url,
+            "order_id": order["id"],
+            "payment_id": payment.id,
+            "amount": request.amount,
+            "provider": "paypal"
+        }
+        
+    except Exception as e:
+        print(f"Error creating PayPal payment link: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/payments/client-payment-request")
+async def client_payment_request(
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    email: str = Form(...),
+    client_id: str = Form(None),  # Made optional
+    reference_id: str = Form(None),  # For tracking
+    amount: float = Form(None),  # Optional: can be set by system
+    payment_type: str = Form("retainer"),  # "retainer" or "case_payment"
+    db: Session = Depends(get_db)
+):
+    """
+    All-in-one endpoint for client payment requests
+    Verifies client by name and email (client_id optional)
+    Returns payment links
+    """
+    try:
+        print(f"💳 Payment request - Reference: {reference_id}, Client: {first_name} {last_name}, Email: {email}")
+        
+        # Verify client
+        verification_request = ClientVerificationRequest(
+            first_name=first_name,
+            last_name=last_name,
+            client_id=client_id,  # Now optional
+            email=email
+        )
+        
+        verification_result = await verify_client_for_payment(verification_request, db)
+        
+        if not verification_result["client_found"]:
+            return {
+                "success": False,
+                "client_found": False,
+                "message": "Client not found. Please verify your information.",
+                "hand_off_to_agent": False,  # Frontend will ask "returning client?" question
+                "reference_id": reference_id
+            }
+        
+        # Client found - determine amount if not provided
+        client = verification_result["client"]
+        
+        if amount is None:
+            # Set default amounts based on payment type
+            if payment_type == "retainer":
+                amount = 500.00  # Default retainer fee
+            else:
+                amount = 250.00  # Default case payment
+        
+        # Create description
+        description = f"{payment_type.replace('_', ' ').title()} - {client['name']}"
+        
+        return {
+            "success": True,
+            "client_found": True,
+            "client": client,
+            "amount": amount,
+            "payment_type": payment_type,
+            "description": description,
+            "reference_id": reference_id,
+            "message": f"Hello {client['name']}! Your {payment_type.replace('_', ' ')} amount is ${amount:.2f}. Please choose your payment method:"
+        }
+        
+    except Exception as e:
+        print(f"Error processing client payment request: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/payments/client/{client_id}/pending")
+async def get_client_pending_payments(
+    client_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get pending payments for a client
+    """
+    try:
+        payments = db.query(Payment).filter(
+            Payment.payment_metadata['client_id'].astext == client_id,
+            Payment.status == "pending"
+        ).all()
+        
+        result = [{
+            "id": p.id,
+            "amount": p.amount,
+            "provider": p.provider,
+            "description": p.payment_metadata.get('description', 'Payment'),
+            "created_at": p.created_at.isoformat()
+        } for p in payments]
+        
+        return {
+            "success": True,
+            "count": len(result),
+            "payments": result
+        }
+        
+    except Exception as e:
+        print(f"Error getting pending payments: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+# ==============================================================================
+# PAYMENT STATUS CHECK (NEW - Called after payment completes)
+# ==============================================================================
+
+@app.get("/api/payments/{session_id}/status")
+async def check_payment_status(
+    session_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Check payment status after Stripe redirect
+    """
+    try:
+        # Retrieve Stripe session
+        session = stripe.checkout.Session.retrieve(session_id)
+        
+        # ✅ FIXED: Use transaction_id not stripe_session_id
+        payment = db.query(Payment).filter(
+            Payment.transaction_id == session_id
+        ).first()
+        
+        if not payment:
+            print(f"❌ Payment not found for session: {session_id}")
+            raise HTTPException(status_code=404, detail="Payment not found")
+        
+        # ✅ FIXED: Use case_id to get client
+        client = db.query(Client).filter(Client.id == payment.case_id).first()
+        
+        # ✅ FIXED: Get data from payment_metadata
+        metadata = payment.payment_metadata or {}
+        
+        if session.payment_status == 'paid':
+            # Update payment status
+            payment.status = 'completed'
+            db.commit()
+            
+            print(f"✅ Payment verified and completed: {session_id}")
+            
+            # ✅ SEND RECEIPT EMAIL
+            try:
+                client_email = client.email if client else metadata.get('client_email', '')
+                client_name = client.name if client else metadata.get('client_name', 'Valued Client')
+                
+                if client_email:
+                    await send_receipt_email(
+                        client_email=client_email,
+                        client_name=client_name,
+                        amount=payment.amount,
+                        transaction_id=session_id,
+                        payment_type=metadata.get('payment_type', 'Payment'),
+                        description=metadata.get('description', 'Legal Services')
+                    )
+                    print(f"📧 Receipt email sent to {client_email}")
+                else:
+                    print(f"⚠️ No email address found")
+                    
+            except Exception as email_error:
+                print(f"⚠️ Email send failed: {str(email_error)}")
+                # Don't fail the request if email fails
+            
+            return {
+                "success": True,
+                "status": "completed",
+                "amount": payment.amount,
+                "transaction_id": session_id,
+                "client_name": client.name if client else metadata.get('client_name', 'Valued Client')
+            }
+        else:
+            return {
+                "success": False,
+                "status": session.payment_status,
+                "message": "Payment not completed"
+            }
+            
+    except stripe.error.StripeError as e:
+        print(f"❌ Stripe error: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Stripe error: {str(e)}")
+    except Exception as e:
+        print(f"❌ Error checking payment status: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==============================================================================
+# RECEIPT EMAIL FUNCTION (NEW)
+# ==============================================================================
+
+async def send_receipt_email(
+    client_email: str,
+    client_name: str,
+    amount: float,
+    transaction_id: str,
+    payment_type: str,
+    description: str
+):
+    """
+    Send professional receipt email to client
+    """
+    try:
+        if not RESEND_API_KEY:
+            print("⚠️ Skipping receipt email (RESEND_API_KEY not configured)")
+            return
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: #1e40af; color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }}
+                .content {{ background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }}
+                .receipt-box {{ background: white; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #10b981; }}
+                .amount {{ font-size: 32px; color: #10b981; font-weight: bold; }}
+                .footer {{ background: #f3f4f6; padding: 20px; text-align: center; border-radius: 0 0 8px 8px; font-size: 14px; color: #6b7280; }}
+                .info-row {{ display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e5e7eb; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>{LAW_FIRM_NAME}</h1>
+                    <p style="margin: 0; opacity: 0.9;">Payment Receipt</p>
+                </div>
+                
+                <div class="content">
+                    <h2>Thank you for your payment, {client_name}!</h2>
+                    <p>We've successfully received your payment. Here are the details:</p>
+                    
+                    <div class="receipt-box">
+                        <div class="info-row">
+                            <span><strong>Amount Paid:</strong></span>
+                            <span class="amount">${amount:.2f}</span>
+                        </div>
+                        <div class="info-row">
+                            <span><strong>Transaction ID:</strong></span>
+                            <span>{transaction_id}</span>
+                        </div>
+                        <div class="info-row">
+                            <span><strong>Payment Type:</strong></span>
+                            <span>{payment_type.replace('_', ' ').title()}</span>
+                        </div>
+                        <div class="info-row">
+                            <span><strong>Description:</strong></span>
+                            <span>{description}</span>
+                        </div>
+                        <div class="info-row" style="border-bottom: none;">
+                            <span><strong>Date:</strong></span>
+                            <span>{datetime.utcnow().strftime('%B %d, %Y at %I:%M %p UTC')}</span>
+                        </div>
+                    </div>
+                    
+                    <p style="margin-top: 30px;">
+                        <strong>What happens next?</strong><br>
+                        Your payment has been processed and our team will be in touch shortly to discuss the next steps in your case.
+                    </p>
+                    
+                    <p>If you have any questions about this payment, please don't hesitate to reach out to us.</p>
+                </div>
+                
+                <div class="footer">
+                    <p><strong>{LAW_FIRM_NAME}</strong></p>
+                    <p>📞 {LAW_FIRM_PHONE} | 📧 {LAW_FIRM_EMAIL}</p>
+                    <p style="margin-top: 15px; font-size: 12px;">
+                        This is an automated receipt. Please keep this for your records.
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        params = {
+            "from": f"{LAW_FIRM_NAME} <{LAW_FIRM_EMAIL}>",
+            "to": [client_email],
+            "subject": f"Payment Receipt - ${amount:.2f} - {LAW_FIRM_NAME}",
+            "html": html_content
+        }
+        
+        email = resend.Emails.send(params)
+        print(f"✅ Receipt email sent to {client_email}")
+        
+    except Exception as e:
+        print(f"❌ Error sending receipt email: {str(e)}")
+        # Don't raise exception - payment succeeded even if email fails
+
+# ==============================================================================
+# PAYPAL ENDPOINTS (Optional - if you want PayPal too)
+# ==============================================================================
+
+# You can add PayPal SDK integration here if needed
+# Similar approach: create order, return order_id, handle completion
+# ============================================
+# TEST PAYMENT INTENT
+# ============================================
+
+@app.post("/api/test/payment-intent")
+async def test_payment_intent(message: str):
+    """Test if message triggers payment intent"""
+    
+    is_payment = payment_detector.detect_payment_intent(message)
+    
+    if is_payment:
+        response = payment_detector.get_payment_response()
+        return {
+            "detected": True,
+            "message": message,
+            "response": response
+        }
+    else:
+        return {
+            "detected": False,
+            "message": message,
+            "note": "This message does not trigger payment intent"
+        }
 
 # ============================================
 # FILE UPLOAD/DOWNLOAD
