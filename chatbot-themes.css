@@ -1,0 +1,457 @@
+/* ============================================
+   LAWBOT 360 - MODULAR THEME SYSTEM
+   ============================================
+   
+   How to use:
+   1. Keep your existing chat-widget.html functionality
+   2. Replace the CSS variables at the top with one of these themes
+   3. Or create separate demo pages for each theme
+   
+   ============================================ */
+
+/* ============================================
+   THEME 1: CLASSIC PROFESSIONAL (Blue)
+   ============================================ */
+.theme-classic {
+    /* Background */
+    --page-background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%);
+    
+    /* Chat Widget Button */
+    --widget-bg: #1e40af;
+    --widget-bg-hover: #1e3a8a;
+    --widget-icon: "⚖️";
+    --widget-shadow: 0 8px 30px rgba(30, 64, 175, 0.4);
+    
+    /* Chat Window */
+    --chat-header-bg: linear-gradient(135deg, #1e40af, #3b82f6);
+    --chat-body-bg: #ffffff;
+    
+    /* Messages */
+    --bot-message-bg: #eff6ff;
+    --bot-message-text: #1e40af;
+    --user-message-bg: #1e40af;
+    --user-message-text: #ffffff;
+    
+    /* Buttons */
+    --button-primary-bg: #1e40af;
+    --button-primary-hover: #1e3a8a;
+}
+
+/* ============================================
+   THEME 2: MODERN DARK (Black/Gray)
+   ============================================ */
+.theme-modern {
+    /* Background */
+    --page-background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
+    
+    /* Chat Widget Button */
+    --widget-bg: #111827;
+    --widget-bg-hover: #000000;
+    --widget-icon: "💼";
+    --widget-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    
+    /* Chat Window */
+    --chat-header-bg: linear-gradient(135deg, #111827, #374151);
+    --chat-body-bg: #f9fafb;
+    
+    /* Messages */
+    --bot-message-bg: #f3f4f6;
+    --bot-message-text: #111827;
+    --user-message-bg: #111827;
+    --user-message-text: #ffffff;
+    
+    /* Buttons */
+    --button-primary-bg: #111827;
+    --button-primary-hover: #000000;
+}
+
+/* ============================================
+   THEME 3: ELEGANT PURPLE
+   ============================================ */
+.theme-elegant {
+    /* Background */
+    --page-background: linear-gradient(180deg, #5b21b6 0%, #7c3aed 100%);
+    
+    /* Chat Widget Button */
+    --widget-bg: linear-gradient(135deg, #7c3aed, #a78bfa);
+    --widget-bg-hover: #6d28d9;
+    --widget-icon: "📋";
+    --widget-shadow: 0 8px 30px rgba(124, 58, 237, 0.4);
+    
+    /* Chat Window */
+    --chat-header-bg: linear-gradient(135deg, #7c3aed, #a78bfa);
+    --chat-body-bg: #ffffff;
+    
+    /* Messages */
+    --bot-message-bg: #f5f3ff;
+    --bot-message-text: #6d28d9;
+    --user-message-bg: #7c3aed;
+    --user-message-text: #ffffff;
+    
+    /* Buttons */
+    --button-primary-bg: #7c3aed;
+    --button-primary-hover: #6d28d9;
+}
+
+/* ============================================
+   THEME 4: PROFESSIONAL TEAL
+   ============================================ */
+.theme-professional {
+    /* Background */
+    --page-background: linear-gradient(180deg, #0f766e 0%, #14b8a6 100%);
+    
+    /* Chat Widget Button */
+    --widget-bg: #14b8a6;
+    --widget-bg-hover: #0f766e;
+    --widget-icon: "💬";
+    --widget-shadow: 0 8px 30px rgba(20, 184, 166, 0.4);
+    
+    /* Chat Window */
+    --chat-header-bg: linear-gradient(135deg, #0f766e, #14b8a6);
+    --chat-body-bg: #ffffff;
+    
+    /* Messages */
+    --bot-message-bg: #f0fdfa;
+    --bot-message-text: #0f766e;
+    --user-message-bg: #14b8a6;
+    --user-message-text: #ffffff;
+    
+    /* Buttons */
+    --button-primary-bg: #14b8a6;
+    --button-primary-hover: #0f766e;
+}
+
+/* ============================================
+   THEME 5: LUXURY GOLD
+   ============================================ */
+.theme-luxury {
+    /* Background */
+    --page-background: linear-gradient(180deg, #78350f 0%, #92400e 100%);
+    
+    /* Chat Widget Button */
+    --widget-bg: linear-gradient(135deg, #78350f, #d97706);
+    --widget-bg-hover: #92400e;
+    --widget-icon: "👔";
+    --widget-shadow: 0 8px 30px rgba(217, 119, 6, 0.4);
+    
+    /* Chat Window */
+    --chat-header-bg: linear-gradient(135deg, #78350f, #d97706);
+    --chat-body-bg: #fffbeb;
+    
+    /* Messages */
+    --bot-message-bg: #fef3c7;
+    --bot-message-text: #78350f;
+    --user-message-bg: #d97706;
+    --user-message-text: #ffffff;
+    
+    /* Buttons */
+    --button-primary-bg: #d97706;
+    --button-primary-hover: #92400e;
+}
+
+/* ============================================
+   THEME 6: MINIMAL WHITE
+   ============================================ */
+.theme-minimal {
+    /* Background */
+    --page-background: #ffffff;
+    
+    /* Chat Widget Button */
+    --widget-bg: #ffffff;
+    --widget-bg-hover: #f9fafb;
+    --widget-icon: "🤖";
+    --widget-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    --widget-border: 2px solid #e5e7eb;
+    --widget-icon-color: #111827;
+    
+    /* Chat Window */
+    --chat-header-bg: #f9fafb;
+    --chat-header-text: #111827;
+    --chat-body-bg: #ffffff;
+    
+    /* Messages */
+    --bot-message-bg: #f3f4f6;
+    --bot-message-text: #111827;
+    --user-message-bg: #111827;
+    --user-message-text: #ffffff;
+    
+    /* Buttons */
+    --button-primary-bg: #111827;
+    --button-primary-hover: #000000;
+}
+
+/* ============================================
+   THEME 7: VIDEO BACKGROUND
+   ============================================ */
+.theme-video {
+    /* Background Video Container */
+    --page-background: #000000;
+    
+    /* Overlay for readability */
+    --video-overlay: rgba(0, 0, 0, 0.4);
+    
+    /* Chat Widget Button */
+    --widget-bg: rgba(30, 64, 175, 0.95);
+    --widget-bg-hover: rgba(30, 64, 175, 1);
+    --widget-icon: "⚖️";
+    --widget-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    
+    /* Chat Window */
+    --chat-header-bg: linear-gradient(135deg, rgba(30, 64, 175, 0.95), rgba(59, 130, 246, 0.95));
+    --chat-body-bg: rgba(255, 255, 255, 0.98);
+    
+    /* Messages */
+    --bot-message-bg: #eff6ff;
+    --bot-message-text: #1e40af;
+    --user-message-bg: #1e40af;
+    --user-message-text: #ffffff;
+    
+    /* Buttons */
+    --button-primary-bg: #1e40af;
+    --button-primary-hover: #1e3a8a;
+}
+
+/* ============================================
+   THEME 8: IMAGE BACKGROUND
+   ============================================ */
+.theme-image {
+    /* Background Image */
+    --page-background: url('your-office-image.jpg');
+    --page-background-size: cover;
+    --page-background-position: center;
+    
+    /* Overlay for readability */
+    --image-overlay: rgba(0, 0, 0, 0.3);
+    
+    /* Chat Widget Button */
+    --widget-bg: rgba(20, 184, 166, 0.95);
+    --widget-bg-hover: rgba(15, 118, 110, 1);
+    --widget-icon: "💬";
+    --widget-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    
+    /* Chat Window */
+    --chat-header-bg: linear-gradient(135deg, rgba(15, 118, 110, 0.95), rgba(20, 184, 166, 0.95));
+    --chat-body-bg: rgba(255, 255, 255, 0.98);
+    
+    /* Messages */
+    --bot-message-bg: #f0fdfa;
+    --bot-message-text: #0f766e;
+    --user-message-bg: #14b8a6;
+    --user-message-text: #ffffff;
+    
+    /* Buttons */
+    --button-primary-bg: #14b8a6;
+    --button-primary-hover: #0f766e;
+}
+
+/* ============================================
+   HOW TO APPLY THEMES
+   ============================================ */
+
+/*
+METHOD 1: Single Page with Theme Switcher
+-------------------------------------------
+Add theme class to body:
+<body class="theme-classic">
+
+Then update your CSS to use variables:
+background: var(--widget-bg);
+color: var(--widget-icon-color, white);
+
+
+METHOD 2: Separate Pages for Each Theme
+-------------------------------------------
+Create: demo-classic.html, demo-modern.html, etc.
+Each file has different theme class on body.
+
+
+METHOD 3: Dynamic Theme Switching
+-------------------------------------------
+<script>
+function switchTheme(themeName) {
+    document.body.className = `theme-${themeName}`;
+}
+</script>
+
+<select onchange="switchTheme(this.value)">
+    <option value="classic">Classic</option>
+    <option value="modern">Modern</option>
+    <option value="elegant">Elegant</option>
+</select>
+*/
+
+/* ============================================
+   EXAMPLE: Applying Theme to Chat Widget
+   ============================================ */
+
+/* Chat Widget Button - Updated to use theme variables */
+#chat-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--widget-bg);
+    border: var(--widget-border, none);
+    box-shadow: var(--widget-shadow);
+    cursor: pointer;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    transition: all 0.3s ease;
+}
+
+#chat-toggle:hover {
+    background: var(--widget-bg-hover);
+    transform: scale(1.1);
+}
+
+/* Use the icon from theme */
+#chat-toggle::before {
+    content: var(--widget-icon, "💬");
+}
+
+/* Chat Header - Updated */
+.chat-header {
+    background: var(--chat-header-bg);
+    color: var(--chat-header-text, white);
+    padding: 20px;
+    border-radius: 20px 20px 0 0;
+}
+
+/* Bot Messages - Updated */
+.bot-message {
+    background: var(--bot-message-bg);
+    color: var(--bot-message-text);
+    padding: 12px 16px;
+    border-radius: 18px 18px 18px 4px;
+    max-width: 80%;
+}
+
+/* User Messages - Updated */
+.user-message {
+    background: var(--user-message-bg);
+    color: var(--user-message-text);
+    padding: 12px 16px;
+    border-radius: 18px 18px 4px 18px;
+    max-width: 80%;
+    margin-left: auto;
+}
+
+/* Buttons - Updated */
+.primary-button {
+    background: var(--button-primary-bg);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.primary-button:hover {
+    background: var(--button-primary-hover);
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   VIDEO BACKGROUND IMPLEMENTATION
+   ============================================ */
+
+/* Add this HTML structure:
+<div class="video-background-container">
+    <video autoplay muted loop playsinline>
+        <source src="office-video.mp4" type="video/mp4">
+        <source src="office-video.webm" type="video/webm">
+    </video>
+    <div class="video-overlay"></div>
+</div>
+*/
+
+.video-background-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+}
+
+.video-background-container video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    transform: translate(-50%, -50%);
+    object-fit: cover;
+}
+
+.video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--video-overlay, rgba(0, 0, 0, 0.4));
+}
+
+/* ============================================
+   IMAGE BACKGROUND IMPLEMENTATION
+   ============================================ */
+
+/* Add this to body when using image theme */
+body.theme-image {
+    background-image: var(--page-background);
+    background-size: var(--page-background-size, cover);
+    background-position: var(--page-background-position, center);
+    background-attachment: fixed;
+    position: relative;
+}
+
+body.theme-image::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--image-overlay, rgba(0, 0, 0, 0.3));
+    z-index: -1;
+}
+
+/* ============================================
+   CUSTOM ICON IMPLEMENTATION
+   ============================================ */
+
+/* Option 1: Using Emoji (easiest) */
+#chat-toggle::before {
+    content: var(--widget-icon);
+}
+
+/* Option 2: Using Font Awesome */
+/* 
+Add to <head>:
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+Then use:
+<button id="chat-toggle">
+    <i class="fas fa-balance-scale"></i>
+</button>
+*/
+
+/* Option 3: Using Custom SVG */
+/*
+<button id="chat-toggle">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="white">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+    </svg>
+</button>
+*/

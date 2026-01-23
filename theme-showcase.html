@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LawBot 360 - UI Theme Showcase</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .showcase-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .showcase-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+
+        .showcase-title {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 15px;
+        }
+
+        .showcase-subtitle {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        /* Theme Grid */
+        .themes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .theme-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .theme-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .theme-preview {
+            position: relative;
+            height: 400px;
+            background: #f5f5f5;
+            overflow: hidden;
+        }
+
+        .theme-info {
+            padding: 25px;
+        }
+
+        .theme-name {
+            font-size: 22px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 10px;
+        }
+
+        .theme-description {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .theme-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .theme-tag {
+            background: #eff6ff;
+            color: #1e40af;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .view-demo-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .view-demo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(30, 64, 175, 0.3);
+        }
+
+        /* Back Button */
+        .back-to-main {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            color: #1e40af;
+            padding: 14px 28px;
+            border-radius: 999px;
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Theme Preview Backgrounds */
+        .preview-classic {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+        }
+
+        .preview-modern {
+            background: linear-gradient(135deg, #111827 0%, #374151 100%);
+        }
+
+        .preview-elegant {
+            background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+        }
+
+        .preview-professional {
+            background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+        }
+
+        .preview-luxury {
+            background: linear-gradient(135deg, #78350f 0%, #d97706 100%);
+        }
+
+        .preview-minimal {
+            background: #ffffff;
+        }
+
+        /* Video Background Preview */
+        .preview-video {
+            position: relative;
+            background: #000;
+        }
+
+        .preview-video::before {
+            content: '🎥 Video Background';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* Image Background Preview */
+        .preview-image {
+            background-image: url('data:image/svg+xml,<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="400" fill="%23667eea"/><text x="50%" y="50%" text-anchor="middle" fill="white" font-size="20" font-family="Arial">Law Office Background</text></svg>');
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* Mock Chat Widget in Preview */
+        .preview-widget {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .preview-widget:hover {
+            transform: scale(1.1);
+        }
+
+        /* Different widget styles */
+        .widget-classic {
+            background: #1e40af;
+            color: white;
+        }
+
+        .widget-modern {
+            background: #111827;
+            color: white;
+        }
+
+        .widget-elegant {
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            color: white;
+        }
+
+        .widget-professional {
+            background: #14b8a6;
+            color: white;
+        }
+
+        .widget-luxury {
+            background: linear-gradient(135deg, #78350f, #d97706);
+            color: white;
+        }
+
+        .widget-minimal {
+            background: white;
+            border: 2px solid #e5e7eb;
+            color: #111827;
+        }
+
+        @media (max-width: 768px) {
+            .showcase-title {
+                font-size: 32px;
+            }
+
+            .themes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="showcase-container">
+        <!-- Header -->
+        <div class="showcase-header">
+            <h1 class="showcase-title">Choose Your Style</h1>
+            <p class="showcase-subtitle">
+                Preview different UI themes for your custom LawBot 360 chatbot
+            </p>
+        </div>
+
+        <!-- Themes Grid -->
+        <div class="themes-grid">
+            <!-- Theme 1: Classic Professional -->
+            <div class="theme-card">
+                <div class="theme-preview preview-classic">
+                    <div class="preview-widget widget-classic">⚖️</div>
+                </div>
+                <div class="theme-info">
+                    <h3 class="theme-name">Classic Professional</h3>
+                    <p class="theme-description">
+                        Traditional legal blue gradient with scales of justice icon. 
+                        Professional and trustworthy appearance perfect for established firms.
+                    </p>
+                    <div class="theme-features">
+                        <span class="theme-tag">Blue Gradient</span>
+                        <span class="theme-tag">Legal Icon</span>
+                        <span class="theme-tag">Professional</span>
+                    </div>
+                    <button class="view-demo-btn" onclick="openDemo('classic')">
+                        View Live Demo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Theme 2: Modern Dark -->
+            <div class="theme-card">
+                <div class="theme-preview preview-modern">
+                    <div class="preview-widget widget-modern">💼</div>
+                </div>
+                <div class="theme-info">
+                    <h3 class="theme-name">Modern Dark</h3>
+                    <p class="theme-description">
+                        Sleek dark gradient with briefcase icon. 
+                        Contemporary and sophisticated for modern law practices.
+                    </p>
+                    <div class="theme-features">
+                        <span class="theme-tag">Dark Theme</span>
+                        <span class="theme-tag">Briefcase Icon</span>
+                        <span class="theme-tag">Modern</span>
+                    </div>
+                    <button class="view-demo-btn" onclick="openDemo('modern')">
+                        View Live Demo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Theme 3: Elegant Purple -->
+            <div class="theme-card">
+                <div class="theme-preview preview-elegant">
+                    <div class="preview-widget widget-elegant">📋</div>
+                </div>
+                <div class="theme-info">
+                    <h3 class="theme-name">Elegant Purple</h3>
+                    <p class="theme-description">
+                        Rich purple gradient with clipboard icon. 
+                        Distinctive and memorable for boutique law firms.
+                    </p>
+                    <div class="theme-features">
+                        <span class="theme-tag">Purple Gradient</span>
+                        <span class="theme-tag">Clipboard Icon</span>
+                        <span class="theme-tag">Distinctive</span>
+                    </div>
+                    <button class="view-demo-btn" onclick="openDemo('elegant')">
+                        View Live Demo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Theme 4: Professional Teal -->
+            <div class="theme-card">
+                <div class="theme-preview preview-professional">
+                    <div class="preview-widget widget-professional">💬</div>
+                </div>
+                <div class="theme-info">
+                    <h3 class="theme-name">Professional Teal</h3>
+                    <p class="theme-description">
+                        Clean teal gradient with chat icon. 
+                        Fresh and approachable for client-focused practices.
+                    </p>
+                    <div class="theme-features">
+                        <span class="theme-tag">Teal Theme</span>
+                        <span class="theme-tag">Chat Icon</span>
+                        <span class="theme-tag">Approachable</span>
+                    </div>
+                    <button class="view-demo-btn" onclick="openDemo('professional')">
+                        View Live Demo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Theme 5: Luxury Gold -->
+            <div class="theme-card">
+                <div class="theme-preview preview-luxury">
+                    <div class="preview-widget widget-luxury">👔</div>
+                </div>
+                <div class="theme-info">
+                    <h3 class="theme-name">Luxury Gold</h3>
+                    <p class="theme-description">
+                        Premium gold/brown gradient with professional icon. 
+                        High-end appearance for premium legal services.
+                    </p>
+                    <div class="theme-features">
+                        <span class="theme-tag">Gold Gradient</span>
+                        <span class="theme-tag">Premium Icon</span>
+                        <span class="theme-tag">Luxury</span>
+                    </div>
+                    <button class="view-demo-btn" onclick="openDemo('luxury')">
+                        View Live Demo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Theme 6: Minimal White -->
+            <div class="theme-card">
+                <div class="theme-preview preview-minimal">
+                    <div class="preview-widget widget-minimal">🤖</div>
+                </div>
+                <div class="theme-info">
+                    <h3 class="theme-name">Minimal White</h3>
+                    <p class="theme-description">
+                        Clean white background with robot icon. 
+                        Simple and modern for tech-forward firms.
+                    </p>
+                    <div class="theme-features">
+                        <span class="theme-tag">White Background</span>
+                        <span class="theme-tag">AI Icon</span>
+                        <span class="theme-tag">Minimal</span>
+                    </div>
+                    <button class="view-demo-btn" onclick="openDemo('minimal')">
+                        View Live Demo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Theme 7: Video Background -->
+            <div class="theme-card">
+                <div class="theme-preview preview-video">
+                    <div class="preview-widget widget-classic">⚖️</div>
+                </div>
+                <div class="theme-info">
+                    <h3 class="theme-name">Video Background</h3>
+                    <p class="theme-description">
+                        Looping video background (cityscape, office, or custom). 
+                        Dynamic and engaging for high-end presentations.
+                    </p>
+                    <div class="theme-features">
+                        <span class="theme-tag">Video Loop</span>
+                        <span class="theme-tag">Custom Video</span>
+                        <span class="theme-tag">Premium</span>
+                    </div>
+                    <button class="view-demo-btn" onclick="openDemo('video')">
+                        View Live Demo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Theme 8: Image Background -->
+            <div class="theme-card">
+                <div class="theme-preview preview-image">
+                    <div class="preview-widget widget-professional">💬</div>
+                </div>
+                <div class="theme-info">
+                    <h3 class="theme-name">Image Background</h3>
+                    <p class="theme-description">
+                        Custom image background (office, courthouse, or brand photo). 
+                        Personalized branding for your firm.
+                    </p>
+                    <div class="theme-features">
+                        <span class="theme-tag">Custom Image</span>
+                        <span class="theme-tag">Branded</span>
+                        <span class="theme-tag">Personalized</span>
+                    </div>
+                    <button class="view-demo-btn" onclick="openDemo('image')">
+                        View Live Demo
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back Button -->
+        <div class="back-to-main">
+            <a href="index.html" class="back-btn">
+                <span>←</span>
+                <span>Back to Main Demo</span>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function openDemo(theme) {
+            // Redirect to specific theme demo page
+            window.location.href = `demo-${theme}.html`;
+        }
+    </script>
+</body>
+</html>

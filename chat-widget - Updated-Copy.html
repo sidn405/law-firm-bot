@@ -14,7 +14,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="chatbot-themes.css">
     
     <script src="https://js.stripe.com/v3/"></script>
     <style>
@@ -1322,17 +1321,6 @@
                 AI intake assistant that captures, qualifies, and books consultations 24/7 
                 — even when your office is closed. Try the live demo below.
             </p>
-            <div class="theme-selector">
-                <label>Choose Theme:</label>
-                <select onchange="switchTheme(this.value)">
-                    <option value="classic">Classic Professional</option>
-                    <option value="modern">Modern Dark</option>
-                    <option value="elegant">Elegant Purple</option>
-                    <option value="professional">Professional Teal</option>
-                    <option value="luxury">Luxury Gold</option>
-                    <option value="minimal">Minimal White</option>
-                </select>
-            </div>
             <button class="hero-cta" type="button" onclick="openChatFromCTA()">
                 <span>🎮</span>
                 <span>Try Live Demo Now</span>
@@ -3282,12 +3270,6 @@ Consultation Preference:
                 addMessage('bot', `I've saved all your information! Our scheduling team will contact you at ${phone} within 2 hours to confirm your consultation.\n\nPreferred time: ${preferredTime}\n\nFor immediate assistance, call (555) 123-4567`);
             }
         }
-
-        function switchTheme(theme) {
-            document.body.className = `theme-${theme}`;
-        }
-        // Set default theme
-        document.body.className = 'theme-classic';
     </script>
 <!-- Payment Modal -->
 <div id="payment-modal">
@@ -3306,7 +3288,7 @@ Consultation Preference:
         </div>
     </div>
 </div>
-    
+
     <!-- FINAL CTA SECTION - Add this AFTER your chat widget -->
     <div class="final-cta-section">
         <h2 class="final-cta-title">Ready to Capture More Cases?</h2>
