@@ -1310,10 +1310,65 @@
                 right: 10px;
             }
         }
+
+        /* Theme Selector Styling */
+        .theme-selector-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .theme-selector-wrapper label {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .theme-selector {
+            background: rgba(255, 255, 255, 0.95);
+            color: #1e40af;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 12px 20px; /* Added padding */
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            transition: all 0.2s ease;
+            min-width: 200px;
+        }
+
+        .theme-selector:hover {
+            background: white;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .theme-selector:focus {
+            outline: none;
+            border-color: white;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .theme-selector-wrapper {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .theme-selector {
+                width: 100%;
+                max-width: 280px;
+            }
+        }
     </style>
 </head>
 <body>
     <!-- DEMO LANDING PAGE CONTENT -->
+    <!-- Updated Hero Section with Theme Switcher -->
     <div class="hero-section">
         <div class="hero-content">
             <div class="hero-badge">🤖 AI-Powered Legal Intake</div>
@@ -1322,9 +1377,11 @@
                 AI intake assistant that captures, qualifies, and books consultations 24/7 
                 — even when your office is closed. Try the live demo below.
             </p>
-            <div class="theme-selector">
-                <label>Choose Theme:</label>
-                <select onchange="switchTheme(this.value)">
+            
+            <!-- Theme Selector -->
+            <div class="theme-selector-wrapper">
+                <label for="theme-select">Choose Theme:</label>
+                <select id="theme-select" class="theme-selector" onchange="switchTheme(this.value)">
                     <option value="classic">Classic Professional</option>
                     <option value="modern">Modern Dark</option>
                     <option value="elegant">Elegant Purple</option>
@@ -1333,10 +1390,12 @@
                     <option value="minimal">Minimal White</option>
                 </select>
             </div>
+            
             <button class="hero-cta" type="button" onclick="openChatFromCTA()">
                 <span>🎮</span>
                 <span>Try Live Demo Now</span>
-            </button>                       
+            </button>
+            
             <div class="hero-stats">
                 <div class="stat-item">
                     <span class="stat-number">40-70%</span>
@@ -1608,6 +1667,7 @@
         let paymentFlowActive = false;
         let paymentClientData = {};
         let awaitingFarewellResponse = false;
+        let currentTheme = 'classic';
         
         let paymentFlow = {
             active: false,
@@ -3283,11 +3343,98 @@ Consultation Preference:
             }
         }
 
-        function switchTheme(theme) {
-            document.body.className = `theme-${theme}`;
+        // Set default theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            switchTheme('classic');
+        });
+
+        // Switch theme function
+        function switchTheme(themeName) {
+            currentTheme = themeName;
+            
+            // Update body class
+            document.body.className = `theme-${themeName}`;
+            
+            // Update chat widget appearance
+            const chatToggle = document.getElementById('chat-toggle');
+            const chatHeader = document.querySelector('.chat-header');
+            
+            // Theme configurations
+            const themes = {
+                classic: {
+                    widgetBg: '#1e40af',
+                    widgetIcon: '⚖️',
+                    headerBg: 'linear-gradient(135deg, #1e40af, #3b82f6)'
+                },
+                modern: {
+                    widgetBg: '#111827',
+                    widgetIcon: '💼',
+                    headerBg: 'linear-gradient(135deg, #111827, #374151)'
+                },
+                elegant: {
+                    widgetBg: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
+                    widgetIcon: '📋',
+                    headerBg: 'linear-gradient(135deg, #7c3aed, #a78bfa)'
+                },
+                professional: {
+                    widgetBg: '#14b8a6',
+                    widgetIcon: '💬',
+                    headerBg: 'linear-gradient(135deg, #0f766e, #14b8a6)'
+                },
+                luxury: {
+                    widgetBg: 'linear-gradient(135deg, #78350f, #d97706)',
+                    widgetIcon: '👔',
+                    headerBg: 'linear-gradient(135deg, #78350f, #d97706)'
+                },
+                minimal: {
+                    widgetBg: '#ffffff',
+                    widgetIcon: '🤖',
+                    headerBg: '#f9fafb'
+                }
+            };
+            
+            // Apply theme to chat widget
+            const theme = themes[themeName];
+            if (chatToggle && theme) {
+                chatToggle.style.background = theme.widgetBg;
+                chatToggle.textContent = theme.widgetIcon;
+                
+                if (themeName === 'minimal') {
+                    chatToggle.style.border = '2px solid #e5e7eb';
+                    chatToggle.style.color = '#111827';
+                } else {
+                    chatToggle.style.border = 'none';
+                    chatToggle.style.color = 'white';
+                }
+            }
+            
+            if (chatHeader && theme) {
+                chatHeader.style.background = theme.headerBg;
+                if (themeName === 'minimal') {
+                    chatHeader.style.color = '#111827';
+                } else {
+                    chatHeader.style.color = 'white';
+                }
+            }
+            
+            console.log(`Theme switched to: ${themeName}`);
         }
-        // Set default theme
-        document.body.className = 'theme-classic';
+
+        // Function to open chat with current theme
+        function openChatFromCTA() {
+            // Make sure theme is applied
+            switchTheme(currentTheme);
+            
+            // Open the chat widget (adjust this to match your chat opening function)
+            openChat(); // or whatever your function is called
+            
+            // If you need to scroll to chat
+            const chatWidget = document.getElementById('chat-window') || document.getElementById('chat-widget');
+            if (chatWidget) {
+                chatWidget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
     </script>
 <!-- Payment Modal -->
 <div id="payment-modal">
