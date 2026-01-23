@@ -14,8 +14,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="chatbot-themes.css">
-    <link rel="stylesheet" href="chat-widget-theme-variables.css">
+    <link rel="stylesheet" href="chatbot-themes.css"> 
     
     <script src="https://js.stripe.com/v3/"></script>
     <style>
@@ -3710,13 +3709,361 @@ Consultation Preference:
             }
         }
 
-        
-        // When page loads, apply the default theme
-        document.body.className = 'theme-classic';  // or whatever your default is
+        // Set default theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            switchTheme('classic');
+        });
 
-        // Theme selector dropdown
-        document.getElementById('theme-selector').addEventListener('change', function(e) {
-            switchTheme(e.target.value);
+        // Complete theme switching function
+        function switchTheme(themeName) {
+            currentTheme = themeName;
+            
+            // Theme configurations with ALL styling
+            const themes = {
+                classic: {
+                    // Widget button
+                    widgetBg: 'linear-gradient(135deg, #1e40af, #3b82f6)',
+                    widgetIcon: '⚖️',
+                    widgetIconColor: '#ffffff',
+                    widgetBorder: 'none',
+                    
+                    // Chat header
+                    headerBg: 'linear-gradient(135deg, #1e40af, #3b82f6)',
+                    headerTextColor: '#ffffff',
+                    
+                    // Chat body
+                    bodyBg: '#f9fafb',
+                    
+                    // Bot messages
+                    botMsgBg: '#eff6ff',
+                    botMsgText: '#1e40af',
+                    botMsgBorder: '1px solid #dbeafe',
+                    
+                    // User messages
+                    userMsgBg: '#1e40af',
+                    userMsgText: '#ffffff',
+                    
+                    // Buttons
+                    primaryBtnBg: '#1e40af',
+                    primaryBtnHover: '#1e3a8a',
+                    primaryBtnText: '#ffffff',
+                    
+                    // Input
+                    inputBorder: '#e5e7eb',
+                    inputFocusBorder: '#1e40af',
+                    
+                    // Tabs
+                    tabActiveBg: '#1e40af',
+                    tabActiveText: '#ffffff',
+                    tabInactiveBg: '#f3f4f6',
+                    tabInactiveText: '#6b7280'
+                },
+                
+                modern: {
+                    // Widget button
+                    widgetBg: 'linear-gradient(135deg, #111827, #374151)',
+                    widgetIcon: '💼',
+                    widgetIconColor: '#ffffff',
+                    widgetBorder: 'none',
+                    
+                    // Chat header
+                    headerBg: 'linear-gradient(135deg, #111827, #374151)',
+                    headerTextColor: '#ffffff',
+                    
+                    // Chat body
+                    bodyBg: '#f9fafb',
+                    
+                    // Bot messages
+                    botMsgBg: '#f3f4f6',
+                    botMsgText: '#111827',
+                    botMsgBorder: '1px solid #e5e7eb',
+                    
+                    // User messages
+                    userMsgBg: '#111827',
+                    userMsgText: '#ffffff',
+                    
+                    // Buttons
+                    primaryBtnBg: '#111827',
+                    primaryBtnHover: '#000000',
+                    primaryBtnText: '#ffffff',
+                    
+                    // Input
+                    inputBorder: '#e5e7eb',
+                    inputFocusBorder: '#111827',
+                    
+                    // Tabs
+                    tabActiveBg: '#111827',
+                    tabActiveText: '#ffffff',
+                    tabInactiveBg: '#f3f4f6',
+                    tabInactiveText: '#6b7280'
+                },
+                
+                elegant: {
+                    // Widget button
+                    widgetBg: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
+                    widgetIcon: '📋',
+                    widgetIconColor: '#ffffff',
+                    widgetBorder: 'none',
+                    
+                    // Chat header
+                    headerBg: 'linear-gradient(135deg, #7c3aed, #a78bfa)',
+                    headerTextColor: '#ffffff',
+                    
+                    // Chat body
+                    bodyBg: '#faf5ff',
+                    
+                    // Bot messages
+                    botMsgBg: '#f5f3ff',
+                    botMsgText: '#6d28d9',
+                    botMsgBorder: '1px solid #e9d5ff',
+                    
+                    // User messages
+                    userMsgBg: '#7c3aed',
+                    userMsgText: '#ffffff',
+                    
+                    // Buttons
+                    primaryBtnBg: '#7c3aed',
+                    primaryBtnHover: '#6d28d9',
+                    primaryBtnText: '#ffffff',
+                    
+                    // Input
+                    inputBorder: '#e5e7eb',
+                    inputFocusBorder: '#7c3aed',
+                    
+                    // Tabs
+                    tabActiveBg: '#7c3aed',
+                    tabActiveText: '#ffffff',
+                    tabInactiveBg: '#f5f3ff',
+                    tabInactiveText: '#7c3aed'
+                },
+                
+                professional: {
+                    // Widget button
+                    widgetBg: 'linear-gradient(135deg, #0f766e, #14b8a6)',
+                    widgetIcon: '💬',
+                    widgetIconColor: '#ffffff',
+                    widgetBorder: 'none',
+                    
+                    // Chat header
+                    headerBg: 'linear-gradient(135deg, #0f766e, #14b8a6)',
+                    headerTextColor: '#ffffff',
+                    
+                    // Chat body
+                    bodyBg: '#f0fdfa',
+                    
+                    // Bot messages
+                    botMsgBg: '#ccfbf1',
+                    botMsgText: '#0f766e',
+                    botMsgBorder: '1px solid #99f6e4',
+                    
+                    // User messages
+                    userMsgBg: '#14b8a6',
+                    userMsgText: '#ffffff',
+                    
+                    // Buttons
+                    primaryBtnBg: '#14b8a6',
+                    primaryBtnHover: '#0f766e',
+                    primaryBtnText: '#ffffff',
+                    
+                    // Input
+                    inputBorder: '#e5e7eb',
+                    inputFocusBorder: '#14b8a6',
+                    
+                    // Tabs
+                    tabActiveBg: '#14b8a6',
+                    tabActiveText: '#ffffff',
+                    tabInactiveBg: '#ccfbf1',
+                    tabInactiveText: '#0f766e'
+                },
+                
+                luxury: {
+                    // Widget button
+                    widgetBg: 'linear-gradient(135deg, #78350f, #d97706)',
+                    widgetIcon: '👔',
+                    widgetIconColor: '#ffffff',
+                    widgetBorder: 'none',
+                    
+                    // Chat header
+                    headerBg: 'linear-gradient(135deg, #78350f, #d97706)',
+                    headerTextColor: '#ffffff',
+                    
+                    // Chat body
+                    bodyBg: '#fffbeb',
+                    
+                    // Bot messages
+                    botMsgBg: '#fef3c7',
+                    botMsgText: '#78350f',
+                    botMsgBorder: '1px solid #fde68a',
+                    
+                    // User messages
+                    userMsgBg: '#d97706',
+                    userMsgText: '#ffffff',
+                    
+                    // Buttons
+                    primaryBtnBg: '#d97706',
+                    primaryBtnHover: '#92400e',
+                    primaryBtnText: '#ffffff',
+                    
+                    // Input
+                    inputBorder: '#e5e7eb',
+                    inputFocusBorder: '#d97706',
+                    
+                    // Tabs
+                    tabActiveBg: '#d97706',
+                    tabActiveText: '#ffffff',
+                    tabInactiveBg: '#fef3c7',
+                    tabInactiveText: '#78350f'
+                },
+                
+                minimal: {
+                    // Widget button
+                    widgetBg: '#ffffff',
+                    widgetIcon: '🤖',
+                    widgetIconColor: '#111827',
+                    widgetBorder: '2px solid #e5e7eb',
+                    
+                    // Chat header
+                    headerBg: '#f9fafb',
+                    headerTextColor: '#111827',
+                    
+                    // Chat body
+                    bodyBg: '#ffffff',
+                    
+                    // Bot messages
+                    botMsgBg: '#f3f4f6',
+                    botMsgText: '#111827',
+                    botMsgBorder: '1px solid #e5e7eb',
+                    
+                    // User messages
+                    userMsgBg: '#111827',
+                    userMsgText: '#ffffff',
+                    
+                    // Buttons
+                    primaryBtnBg: '#111827',
+                    primaryBtnHover: '#000000',
+                    primaryBtnText: '#ffffff',
+                    
+                    // Input
+                    inputBorder: '#e5e7eb',
+                    inputFocusBorder: '#111827',
+                    
+                    // Tabs
+                    tabActiveBg: '#111827',
+                    tabActiveText: '#ffffff',
+                    tabInactiveBg: '#f3f4f6',
+                    tabInactiveText: '#6b7280'
+                }
+            };
+            
+            const theme = themes[themeName];
+            if (!theme) return;
+            
+            // Apply to floating chat button
+            const chatToggle = document.getElementById('chat-toggle');
+            if (chatToggle) {
+                chatToggle.style.background = theme.widgetBg;
+                chatToggle.style.color = theme.widgetIconColor;
+                chatToggle.style.border = theme.widgetBorder;
+                chatToggle.textContent = theme.widgetIcon;
+            }
+            
+            // Apply to chat header
+            const chatHeader = document.querySelector('.chat-header');
+            if (chatHeader) {
+                chatHeader.style.background = theme.headerBg;
+                chatHeader.style.color = theme.headerTextColor;
+            }
+            
+            // Apply to chat body
+            const chatBody = document.querySelector('.chat-body');
+            if (chatBody) {
+                chatBody.style.background = theme.bodyBg;
+            }
+            
+            // Apply to ALL bot messages
+            const botMessages = document.querySelectorAll('.bot-message');
+            botMessages.forEach(msg => {
+                msg.style.background = theme.botMsgBg;
+                msg.style.color = theme.botMsgText;
+                msg.style.border = theme.botMsgBorder;
+            });
+            
+            // Apply to ALL user messages
+            const userMessages = document.querySelectorAll('.user-message');
+            userMessages.forEach(msg => {
+                msg.style.background = theme.userMsgBg;
+                msg.style.color = theme.userMsgText;
+            });
+            
+            // Apply to ALL buttons
+            const buttons = document.querySelectorAll('.choice-button, .practice-button, .primary-button');
+            buttons.forEach(btn => {
+                btn.style.background = theme.primaryBtnBg;
+                btn.style.color = theme.primaryBtnText;
+                btn.dataset.hoverBg = theme.primaryBtnHover;
+                
+                // Add hover effect
+                btn.addEventListener('mouseenter', function() {
+                    this.style.background = theme.primaryBtnHover;
+                });
+                btn.addEventListener('mouseleave', function() {
+                    this.style.background = theme.primaryBtnBg;
+                });
+            });
+            
+            // Apply to input fields
+            const inputs = document.querySelectorAll('input[type="text"], textarea');
+            inputs.forEach(input => {
+                input.style.borderColor = theme.inputBorder;
+                
+                input.addEventListener('focus', function() {
+                    this.style.borderColor = theme.inputFocusBorder;
+                });
+                input.addEventListener('blur', function() {
+                    this.style.borderColor = theme.inputBorder;
+                });
+            });
+            
+            // Apply to tabs
+            const activeTabs = document.querySelectorAll('.practice-tab.active');
+            activeTabs.forEach(tab => {
+                tab.style.background = theme.tabActiveBg;
+                tab.style.color = theme.tabActiveText;
+            });
+            
+            const inactiveTabs = document.querySelectorAll('.practice-tab:not(.active)');
+            inactiveTabs.forEach(tab => {
+                tab.style.background = theme.tabInactiveBg;
+                tab.style.color = theme.tabInactiveText;
+            });
+            
+            console.log(`✅ Complete theme applied: ${themeName}`);
+        }
+
+        // Observer to apply theme to dynamically added elements
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length) {
+                    // Re-apply theme when new messages are added
+                    switchTheme(currentTheme);
+                }
+            });
+        });
+
+        // Start observing when chat opens
+        function startThemeObserver() {
+            const chatMessages = document.getElementById('chat-messages') || document.querySelector('.chat-body');
+            if (chatMessages) {
+                observer.observe(chatMessages, {
+                    childList: true,
+                    subtree: true
+                });
+            }
+        }
+
+        // Call observer when chat opens
+        window.addEventListener('load', function() {
+            startThemeObserver();
         });
 
     </script>
