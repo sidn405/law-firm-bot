@@ -205,81 +205,32 @@
             margin: 0;
         }
 
-        /* Chat Widget Styles */
-        #chat-container {
-            position: fixed;
-            z-index: 9999;
+        /* Theme Colors */
+        .theme-classic {
+            --primary-color: #1e40af;
         }
 
-        /* Layout: Classic Corner */
-        .layout-classic #chat-container {
-            bottom: 20px;
-            right: 20px;
+        .theme-elegant {
+            --primary-color: #7c3aed;
         }
 
-        /* Layout: Sidebar */
-        .layout-sidebar #chat-container {
-            top: 0;
-            right: 0;
-            height: 100vh;
-            width: 400px;
-            transform: translateX(100%);
-            transition: transform 0.4s ease;
+        .theme-professional {
+            --primary-color: #0f766e;
         }
 
-        .layout-sidebar #chat-container.open {
-            transform: translateX(0);
+        .theme-luxury {
+            --primary-color: #d97706;
         }
 
-        /* Keep toggle button visible in sidebar */
-        .layout-sidebar .chat-toggle {
-            position: fixed;
-            right: 20px;
-            bottom: 20px;
-            z-index: 10001;
-        }
+        /* ============================================
+           CHAT WIDGET - FIXED LAYOUTS
+           ============================================ */
 
-        .layout-sidebar #chat-container.open .chat-toggle {
-            display: none; /* Hide button when sidebar is open */
-        }
-
-        /* Layout: Modal */
-        .layout-modal #chat-container {
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0, 0, 0, 0.6);
-        }
-
-        .layout-modal #chat-container.open {
-            display: flex;
-        }
-
-        /* Keep toggle button visible in modal */
-        .layout-modal .chat-toggle {
-            position: fixed;
-            right: 20px;
-            bottom: 20px;
-            z-index: 10001;
-        }
-
-        /* Hide toggle when modal is open */
-        .layout-modal #chat-container.open .chat-toggle {
-            display: none;
-        }
-
-        /* Layout: Card */
-        .layout-card #chat-container {
-            bottom: 100px;
-            right: 20px;
-        }
-
-        /* Chat Toggle Button */
+        /* Chat Toggle Button - Always visible */
         .chat-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
             width: 60px;
             height: 60px;
             border-radius: 50%;
@@ -293,35 +244,110 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 10000;
         }
 
         .chat-toggle:hover {
             transform: scale(1.1);
         }
 
-        /* Chat Window */
-        .chat-window {
-            display: none;
-            flex-direction: column;
+        /* ============================================
+           LAYOUT 1: CLASSIC CORNER
+           ============================================ */
+        .layout-classic .chat-window {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 380px;
+            height: 600px;
             background: white;
             border-radius: 16px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
+            display: none;
+            flex-direction: column;
+            z-index: 9999;
+            animation: slideUp 0.3s ease;
         }
 
-        .layout-classic .chat-window {
-            position: absolute;
-            bottom: 80px;
+        .layout-classic .chat-window.open {
+            display: flex;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ============================================
+           LAYOUT 2: SIDEBAR (FIXED!)
+           ============================================ */
+        .layout-sidebar .chat-sidebar-container {
+            position: fixed;
+            top: 0;
             right: 0;
-            width: 380px;
-            height: 600px;
+            width: 400px;
+            height: 100vh;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .layout-sidebar .chat-sidebar-container.open {
+            pointer-events: auto;
         }
 
         .layout-sidebar .chat-window {
+            position: absolute;
+            top: 0;
+            right: 0;
             width: 100%;
             height: 100%;
-            border-radius: 0;
-            display: flex; /* Always visible in sidebar */
+            background: white;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .layout-sidebar .chat-sidebar-container.open .chat-window {
+            transform: translateX(0);
+        }
+
+        /* ============================================
+           LAYOUT 3: CENTER MODAL (FIXED!)
+           ============================================ */
+        .layout-modal .chat-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .layout-modal .chat-modal-overlay.open {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
         }
 
         .layout-modal .chat-window {
@@ -329,24 +355,61 @@
             max-width: 900px;
             height: 80vh;
             max-height: 700px;
+            background: white;
             border-radius: 24px;
-            display: flex; /* Always visible in modal */
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            animation: scaleIn 0.3s ease;
         }
 
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* ============================================
+           LAYOUT 4: FLOATING CARD
+           ============================================ */
         .layout-card .chat-window {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
             width: 340px;
             background: white;
             border-radius: 20px;
             padding: 24px;
-            position: absolute;
-            bottom: 0;
-            right: 0;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+            display: none;
+            flex-direction: column;
+            z-index: 9999;
+            animation: floatIn 0.3s ease;
         }
 
-        .chat-window.open {
+        .layout-card .chat-window.open {
             display: flex;
         }
 
+        @keyframes floatIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* ============================================
+           COMMON CHAT STYLES
+           ============================================ */
         .chat-header {
             background: var(--primary-color, #1e40af);
             color: white;
@@ -354,6 +417,19 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .layout-sidebar .chat-header,
+        .layout-modal .chat-header {
+            border-radius: 0;
+        }
+
+        .layout-card .chat-header {
+            background: transparent;
+            color: #111827;
+            padding: 0 0 16px 0;
+            border-bottom: 1px solid #e5e7eb;
         }
 
         .chat-title {
@@ -370,6 +446,20 @@
             border-radius: 50%;
             cursor: pointer;
             font-size: 20px;
+            transition: background 0.2s;
+        }
+
+        .layout-card .close-btn {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .layout-card .close-btn:hover {
+            background: #e5e7eb;
         }
 
         .chat-messages {
@@ -405,6 +495,10 @@
             outline: none;
         }
 
+        .chat-input:focus {
+            border-color: var(--primary-color, #1e40af);
+        }
+
         .send-btn {
             padding: 12px 24px;
             background: var(--primary-color, #1e40af);
@@ -413,23 +507,11 @@
             border-radius: 10px;
             cursor: pointer;
             font-weight: 600;
+            transition: opacity 0.2s;
         }
 
-        /* Theme Colors */
-        .theme-classic {
-            --primary-color: #1e40af;
-        }
-
-        .theme-elegant {
-            --primary-color: #7c3aed;
-        }
-
-        .theme-professional {
-            --primary-color: #0f766e;
-        }
-
-        .theme-luxury {
-            --primary-color: #d97706;
+        .send-btn:hover {
+            opacity: 0.9;
         }
 
         /* Responsive */
@@ -442,12 +524,19 @@
                 grid-template-columns: 1fr;
             }
 
-            .layout-sidebar #chat-container {
+            .layout-sidebar .chat-sidebar-container {
                 width: 100%;
             }
 
-            .layout-classic .chat-window {
+            .layout-classic .chat-window,
+            .layout-card .chat-window {
                 width: calc(100vw - 40px);
+                right: 20px;
+            }
+
+            .layout-modal .chat-window {
+                width: 95%;
+                height: 90vh;
             }
         }
     </style>
@@ -567,14 +656,59 @@
         </div>
     </div>
 
-    <!-- Chat Widget -->
-    <div id="chat-container" onclick="handleContainerClick(event)">
-        <button class="chat-toggle" onclick="toggleChat(); event.stopPropagation();">⚖️</button>
+    <!-- Chat Toggle Button (always visible) -->
+    <button class="chat-toggle" onclick="toggleChat()">⚖️</button>
+
+    <!-- LAYOUT: Classic & Card - Simple window -->
+    <div class="chat-window" id="chatWindow">
+        <div class="chat-header">
+            <div class="chat-title">Legal Assistant</div>
+            <button class="close-btn" onclick="closeChat()">×</button>
+        </div>
         
-        <div class="chat-window" id="chatWindow" onclick="event.stopPropagation();">
+        <div class="chat-messages">
+            <div class="message">
+                <div class="message-bubble">
+                    Hello! I'm here to help you 24/7. What type of legal assistance do you need today?
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input-area">
+            <input type="text" class="chat-input" placeholder="Type your message...">
+            <button class="send-btn">Send</button>
+        </div>
+    </div>
+
+    <!-- LAYOUT: Sidebar - Slide-in container -->
+    <div class="chat-sidebar-container" id="sidebarContainer">
+        <div class="chat-window">
             <div class="chat-header">
                 <div class="chat-title">Legal Assistant</div>
-                <button class="close-btn" onclick="toggleChat()">×</button>
+                <button class="close-btn" onclick="closeChat()">×</button>
+            </div>
+            
+            <div class="chat-messages">
+                <div class="message">
+                    <div class="message-bubble">
+                        Hello! I'm here to help you 24/7. What type of legal assistance do you need today?
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-input-area">
+                <input type="text" class="chat-input" placeholder="Type your message...">
+                <button class="send-btn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LAYOUT: Modal - Overlay with centered window -->
+    <div class="chat-modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+        <div class="chat-window" onclick="event.stopPropagation()">
+            <div class="chat-header">
+                <div class="chat-title">Legal Assistant</div>
+                <button class="close-btn" onclick="closeChat()">×</button>
             </div>
             
             <div class="chat-messages">
@@ -594,6 +728,9 @@
 
     <script>
         function setLayout(layout) {
+            // Close any open chats first
+            closeChat();
+            
             // Remove all layout classes
             document.body.className = document.body.className.replace(/layout-\w+/g, '');
             document.body.classList.add(`layout-${layout}`);
@@ -604,8 +741,7 @@
             });
             event.target.closest('.control-option').classList.add('active');
             
-            // Close chat if open
-            closeChat();
+            console.log('✅ Layout changed to:', layout);
         }
 
         function setTheme(theme) {
@@ -618,9 +754,46 @@
                 el.classList.remove('active');
             });
             event.target.closest('.control-option').classList.add('active');
+            
+            console.log('✅ Theme changed to:', theme);
+        }
+
+        function toggleChat() {
+            const currentLayout = document.body.className.match(/layout-(\w+)/)?.[1] || 'classic';
+            
+            if (currentLayout === 'sidebar') {
+                const sidebar = document.getElementById('sidebarContainer');
+                sidebar.classList.toggle('open');
+                console.log('Sidebar toggled:', sidebar.classList.contains('open'));
+            } else if (currentLayout === 'modal') {
+                const modal = document.getElementById('modalOverlay');
+                modal.classList.toggle('open');
+                console.log('Modal toggled:', modal.classList.contains('open'));
+            } else {
+                // Classic or Card
+                const window = document.getElementById('chatWindow');
+                window.classList.toggle('open');
+                console.log('Window toggled:', window.classList.contains('open'));
+            }
+        }
+
+        function closeChat() {
+            // Close all possible open chats
+            document.getElementById('chatWindow').classList.remove('open');
+            document.getElementById('sidebarContainer').classList.remove('open');
+            document.getElementById('modalOverlay').classList.remove('open');
+        }
+
+        function handleOverlayClick(event) {
+            // Close modal when clicking the dark overlay
+            if (event.target.id === 'modalOverlay') {
+                closeChat();
+            }
         }
 
         function applyPreset(preset) {
+            closeChat();
+            
             const presets = {
                 traditional: { layout: 'classic', theme: 'classic' },
                 premium: { layout: 'sidebar', theme: 'elegant' },
@@ -634,61 +807,29 @@
                 document.body.className = `layout-${config.layout} theme-${config.theme}`;
                 
                 // Update layout active states
+                const layouts = ['classic', 'sidebar', 'modal', 'card'];
                 document.querySelectorAll('.control-section:nth-child(1) .control-option').forEach((el, index) => {
                     el.classList.remove('active');
-                    const layouts = ['classic', 'sidebar', 'modal', 'card'];
                     if (layouts[index] === config.layout) {
                         el.classList.add('active');
                     }
                 });
                 
                 // Update theme active states
+                const themes = ['classic', 'elegant', 'professional', 'luxury'];
                 document.querySelectorAll('.control-section:nth-child(2) .control-option').forEach((el, index) => {
                     el.classList.remove('active');
-                    const themes = ['classic', 'elegant', 'professional', 'luxury'];
                     if (themes[index] === config.theme) {
                         el.classList.add('active');
                     }
                 });
                 
-                closeChat();
+                console.log('✅ Preset applied:', preset, config);
             }
-        }
-
-        function toggleChat() {
-            const container = document.getElementById('chat-container');
-            const window = document.getElementById('chatWindow');
-            
-            // Different behavior for different layouts
-            if (document.body.classList.contains('layout-sidebar')) {
-                // Sidebar: toggle container (slides in from side)
-                container.classList.toggle('open');
-                window.classList.add('open'); // Window always visible in sidebar
-            } else if (document.body.classList.contains('layout-modal')) {
-                // Modal: toggle container (shows overlay)
-                container.classList.toggle('open');
-                window.classList.add('open'); // Window always visible in modal
-            } else {
-                // Classic & Card: toggle window only
-                window.classList.toggle('open');
-            }
-        }
-
-        function handleContainerClick(event) {
-            // Only close if clicking the dark overlay (modal/sidebar background)
-            if (event.target.id === 'chat-container') {
-                closeChat();
-            }
-        }
-
-        function closeChat() {
-            const container = document.getElementById('chat-container');
-            const window = document.getElementById('chatWindow');
-            container.classList.remove('open');
-            window.classList.remove('open');
         }
 
         function reset() {
+            closeChat();
             document.body.className = 'layout-classic theme-classic';
             
             // Reset active states
@@ -699,7 +840,7 @@
             document.querySelector('.control-section:nth-child(1) .control-option:first-child').classList.add('active');
             document.querySelector('.control-section:nth-child(2) .control-option:first-child').classList.add('active');
             
-            closeChat();
+            console.log('✅ Reset to defaults');
         }
     </script>
 </body>
