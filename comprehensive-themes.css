@@ -1,0 +1,544 @@
+/* =====================================================
+   LAWBOT 360 - COMPREHENSIVE THEME SYSTEM
+   Different shapes, sizes, spacing, and aesthetics
+   ===================================================== */
+
+/* ============================================
+   THEME 1: CLASSIC PROFESSIONAL
+   - Moderate rounding
+   - Balanced spacing
+   - Traditional chat bubbles
+   - Clean and trustworthy
+   ============================================ */
+body.theme-classic {
+    /* Colors */
+    --primary-color: #1e40af;
+    --primary-light: #3b82f6;
+    --secondary-color: #10b981;
+    --bg-light: #f9fafb;
+    --bg-white: #ffffff;
+    --border-color: #e5e7eb;
+    
+    /* Shapes & Sizes */
+    --widget-size: 60px;
+    --widget-border-radius: 50%;
+    --widget-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+    
+    --chat-window-width: 400px;
+    --chat-window-height: 600px;
+    --chat-border-radius: 16px;
+    --chat-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    
+    --header-padding: 20px;
+    --header-height: auto;
+    
+    --message-border-radius: 16px;
+    --message-padding: 12px 16px;
+    --message-font-size: 14px;
+    --message-max-width: 80%;
+    
+    --button-border-radius: 8px;
+    --button-padding: 12px 16px;
+    --button-font-size: 14px;
+    --button-border-width: 2px;
+    
+    --input-border-radius: 10px;
+    --input-padding: 12px 16px;
+    --input-border-width: 2px;
+    
+    --spacing-small: 8px;
+    --spacing-medium: 16px;
+    --spacing-large: 20px;
+}
+
+/* Chat window styling for classic */
+body.theme-classic #lawfirm-chat-window {
+    border-radius: var(--chat-border-radius);
+    box-shadow: var(--chat-shadow);
+}
+
+body.theme-classic #lawfirm-chat-button {
+    width: var(--widget-size);
+    height: var(--widget-size);
+    border-radius: var(--widget-border-radius);
+    box-shadow: var(--widget-shadow);
+}
+
+body.theme-classic .message-content {
+    border-radius: var(--message-border-radius);
+    padding: var(--message-padding);
+    font-size: var(--message-font-size);
+}
+
+body.theme-classic .script-button,
+body.theme-classic .choice-button {
+    border-radius: var(--button-border-radius);
+    padding: var(--button-padding);
+    font-size: var(--button-font-size);
+    border-width: var(--button-border-width);
+}
+
+/* ============================================
+   THEME 2: MODERN MINIMAL
+   - Sharp corners (almost no rounding)
+   - Compact spacing
+   - Square/rectangular shapes
+   - Sleek and technical
+   ============================================ */
+body.theme-modern {
+    /* Colors */
+    --primary-color: #111827;
+    --primary-light: #374151;
+    --secondary-color: #6b7280;
+    --bg-light: #f3f4f6;
+    --bg-white: #ffffff;
+    --border-color: #e5e7eb;
+    
+    /* Shapes & Sizes */
+    --widget-size: 56px;
+    --widget-border-radius: 8px; /* SQUARE! */
+    --widget-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    
+    --chat-window-width: 380px;
+    --chat-window-height: 580px;
+    --chat-border-radius: 4px; /* SHARP! */
+    --chat-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    
+    --header-padding: 16px;
+    --header-height: auto;
+    
+    --message-border-radius: 4px; /* SHARP BUBBLES! */
+    --message-padding: 10px 14px;
+    --message-font-size: 13px;
+    --message-max-width: 75%;
+    
+    --button-border-radius: 4px; /* SHARP! */
+    --button-padding: 10px 14px;
+    --button-font-size: 13px;
+    --button-border-width: 1px; /* THIN BORDERS */
+    
+    --input-border-radius: 4px;
+    --input-padding: 10px 14px;
+    --input-border-width: 1px;
+    
+    --spacing-small: 6px;
+    --spacing-medium: 12px;
+    --spacing-large: 16px;
+}
+
+body.theme-modern #lawfirm-chat-window {
+    border-radius: var(--chat-border-radius);
+    box-shadow: var(--chat-shadow);
+}
+
+body.theme-modern #lawfirm-chat-button {
+    width: var(--widget-size);
+    height: var(--widget-size);
+    border-radius: var(--widget-border-radius);
+    box-shadow: var(--widget-shadow);
+}
+
+body.theme-modern .message-content {
+    border-radius: var(--message-border-radius);
+    padding: var(--message-padding);
+    font-size: var(--message-font-size);
+}
+
+body.theme-modern .script-button,
+body.theme-modern .choice-button {
+    border-radius: var(--button-border-radius);
+    padding: var(--button-padding);
+    font-size: var(--button-font-size);
+    border-width: var(--button-border-width);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+/* ============================================
+   THEME 3: ELEGANT LUXURY
+   - Maximum rounding (pill shapes)
+   - Generous spacing
+   - Soft shadows
+   - Luxurious and premium feel
+   ============================================ */
+body.theme-elegant {
+    /* Colors */
+    --primary-color: #7c3aed;
+    --primary-light: #a78bfa;
+    --secondary-color: #c084fc;
+    --bg-light: #f5f3ff;
+    --bg-white: #ffffff;
+    --border-color: #ede9fe;
+    
+    /* Shapes & Sizes */
+    --widget-size: 70px; /* BIGGER! */
+    --widget-border-radius: 50%;
+    --widget-shadow: 0 8px 30px rgba(124, 58, 237, 0.5);
+    
+    --chat-window-width: 420px;
+    --chat-window-height: 640px;
+    --chat-border-radius: 24px; /* VERY ROUNDED! */
+    --chat-shadow: 0 20px 60px rgba(124, 58, 237, 0.2);
+    
+    --header-padding: 28px;
+    --header-height: auto;
+    
+    --message-border-radius: 24px; /* PILL SHAPED! */
+    --message-padding: 14px 20px;
+    --message-font-size: 15px;
+    --message-max-width: 85%;
+    
+    --button-border-radius: 999px; /* FULL PILLS! */
+    --button-padding: 14px 24px;
+    --button-font-size: 15px;
+    --button-border-width: 2px;
+    
+    --input-border-radius: 999px; /* PILL SHAPED! */
+    --input-padding: 14px 20px;
+    --input-border-width: 2px;
+    
+    --spacing-small: 12px;
+    --spacing-medium: 20px;
+    --spacing-large: 28px;
+}
+
+body.theme-elegant #lawfirm-chat-window {
+    border-radius: var(--chat-border-radius);
+    box-shadow: var(--chat-shadow);
+}
+
+body.theme-elegant #lawfirm-chat-button {
+    width: var(--widget-size);
+    height: var(--widget-size);
+    border-radius: var(--widget-border-radius);
+    box-shadow: var(--widget-shadow);
+}
+
+body.theme-elegant .message-content {
+    border-radius: var(--message-border-radius);
+    padding: var(--message-padding);
+    font-size: var(--message-font-size);
+}
+
+body.theme-elegant .script-button,
+body.theme-elegant .choice-button {
+    border-radius: var(--button-border-radius);
+    padding: var(--button-padding);
+    font-size: var(--button-font-size);
+    border-width: var(--button-border-width);
+    font-weight: 500;
+}
+
+body.theme-elegant .chat-header {
+    border-radius: 24px 24px 0 0;
+}
+
+/* ============================================
+   THEME 4: PROFESSIONAL CORPORATE
+   - Medium rounding
+   - Efficient spacing
+   - Business-appropriate
+   - Teal/green colors
+   ============================================ */
+body.theme-professional {
+    /* Colors */
+    --primary-color: #0f766e;
+    --primary-light: #14b8a6;
+    --secondary-color: #2dd4bf;
+    --bg-light: #f0fdfa;
+    --bg-white: #ffffff;
+    --border-color: #ccfbf1;
+    
+    /* Shapes & Sizes */
+    --widget-size: 58px;
+    --widget-border-radius: 50%;
+    --widget-shadow: 0 4px 16px rgba(15, 118, 110, 0.3);
+    
+    --chat-window-width: 390px;
+    --chat-window-height: 590px;
+    --chat-border-radius: 12px;
+    --chat-shadow: 0 8px 32px rgba(15, 118, 110, 0.15);
+    
+    --header-padding: 18px;
+    --header-height: auto;
+    
+    --message-border-radius: 14px;
+    --message-padding: 12px 16px;
+    --message-font-size: 14px;
+    --message-max-width: 78%;
+    
+    --button-border-radius: 10px;
+    --button-padding: 11px 18px;
+    --button-font-size: 14px;
+    --button-border-width: 2px;
+    
+    --input-border-radius: 10px;
+    --input-padding: 11px 16px;
+    --input-border-width: 2px;
+    
+    --spacing-small: 8px;
+    --spacing-medium: 14px;
+    --spacing-large: 18px;
+}
+
+body.theme-professional #lawfirm-chat-window {
+    border-radius: var(--chat-border-radius);
+    box-shadow: var(--chat-shadow);
+}
+
+body.theme-professional #lawfirm-chat-button {
+    width: var(--widget-size);
+    height: var(--widget-size);
+    border-radius: var(--widget-border-radius);
+    box-shadow: var(--widget-shadow);
+}
+
+body.theme-professional .message-content {
+    border-radius: var(--message-border-radius);
+    padding: var(--message-padding);
+    font-size: var(--message-font-size);
+}
+
+body.theme-professional .script-button,
+body.theme-professional .choice-button {
+    border-radius: var(--button-border-radius);
+    padding: var(--button-padding);
+    font-size: var(--button-font-size);
+    border-width: var(--button-border-width);
+}
+
+/* ============================================
+   THEME 5: LUXURY PREMIUM
+   - Elegant shapes
+   - Gold accents
+   - High-end feel
+   - Spacious layout
+   ============================================ */
+body.theme-luxury {
+    /* Colors */
+    --primary-color: #78350f;
+    --primary-light: #d97706;
+    --secondary-color: #f59e0b;
+    --bg-light: #fef3c7;
+    --bg-white: #fffbeb;
+    --border-color: #fde68a;
+    
+    /* Shapes & Sizes */
+    --widget-size: 68px; /* LARGE */
+    --widget-border-radius: 50%;
+    --widget-shadow: 0 8px 32px rgba(217, 119, 6, 0.4);
+    
+    --chat-window-width: 410px;
+    --chat-window-height: 620px;
+    --chat-border-radius: 20px;
+    --chat-shadow: 0 16px 48px rgba(120, 53, 15, 0.25);
+    
+    --header-padding: 24px;
+    --header-height: auto;
+    
+    --message-border-radius: 20px;
+    --message-padding: 14px 18px;
+    --message-font-size: 15px;
+    --message-max-width: 82%;
+    
+    --button-border-radius: 16px;
+    --button-padding: 13px 20px;
+    --button-font-size: 15px;
+    --button-border-width: 2px;
+    
+    --input-border-radius: 16px;
+    --input-padding: 13px 18px;
+    --input-border-width: 2px;
+    
+    --spacing-small: 10px;
+    --spacing-medium: 18px;
+    --spacing-large: 24px;
+}
+
+body.theme-luxury #lawfirm-chat-window {
+    border-radius: var(--chat-border-radius);
+    box-shadow: var(--chat-shadow);
+    border: 2px solid var(--primary-light);
+}
+
+body.theme-luxury #lawfirm-chat-button {
+    width: var(--widget-size);
+    height: var(--widget-size);
+    border-radius: var(--widget-border-radius);
+    box-shadow: var(--widget-shadow);
+}
+
+body.theme-luxury .message-content {
+    border-radius: var(--message-border-radius);
+    padding: var(--message-padding);
+    font-size: var(--message-font-size);
+}
+
+body.theme-luxury .script-button,
+body.theme-luxury .choice-button {
+    border-radius: var(--button-border-radius);
+    padding: var(--button-padding);
+    font-size: var(--button-font-size);
+    border-width: var(--button-border-width);
+    font-weight: 600;
+}
+
+/* ============================================
+   THEME 6: MINIMAL CLEAN
+   - Ultra simple
+   - Lots of whitespace
+   - Subtle borders
+   - No shadows
+   ============================================ */
+body.theme-minimal {
+    /* Colors */
+    --primary-color: #111827;
+    --primary-light: #374151;
+    --secondary-color: #6b7280;
+    --bg-light: #f9fafb;
+    --bg-white: #ffffff;
+    --border-color: #e5e7eb;
+    
+    /* Shapes & Sizes */
+    --widget-size: 54px; /* SMALLER */
+    --widget-border-radius: 50%;
+    --widget-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* MINIMAL SHADOW */
+    
+    --chat-window-width: 360px; /* COMPACT */
+    --chat-window-height: 560px;
+    --chat-border-radius: 8px;
+    --chat-shadow: 0 2px 12px rgba(0, 0, 0, 0.08); /* SUBTLE */
+    
+    --header-padding: 16px;
+    --header-height: auto;
+    
+    --message-border-radius: 8px;
+    --message-padding: 10px 14px;
+    --message-font-size: 13px;
+    --message-max-width: 70%;
+    
+    --button-border-radius: 6px;
+    --button-padding: 9px 14px;
+    --button-font-size: 13px;
+    --button-border-width: 1px; /* THIN */
+    
+    --input-border-radius: 6px;
+    --input-padding: 9px 12px;
+    --input-border-width: 1px;
+    
+    --spacing-small: 6px;
+    --spacing-medium: 12px;
+    --spacing-large: 16px;
+}
+
+body.theme-minimal #lawfirm-chat-window {
+    border-radius: var(--chat-border-radius);
+    box-shadow: var(--chat-shadow);
+    border: 1px solid var(--border-color);
+}
+
+body.theme-minimal #lawfirm-chat-button {
+    width: var(--widget-size);
+    height: var(--widget-size);
+    border-radius: var(--widget-border-radius);
+    box-shadow: var(--widget-shadow);
+    border: 2px solid var(--border-color);
+}
+
+body.theme-minimal .message-content {
+    border-radius: var(--message-border-radius);
+    padding: var(--message-padding);
+    font-size: var(--message-font-size);
+    border: 1px solid var(--border-color);
+}
+
+body.theme-minimal .script-button,
+body.theme-minimal .choice-button {
+    border-radius: var(--button-border-radius);
+    padding: var(--button-padding);
+    font-size: var(--button-font-size);
+    border-width: var(--button-border-width);
+    font-weight: 500;
+    box-shadow: none;
+}
+
+body.theme-minimal .chat-header {
+    background: var(--bg-white) !important;
+    color: var(--primary-color) !important;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* ============================================
+   APPLY VARIABLES TO ALL ELEMENTS
+   ============================================ */
+
+/* Widget Button */
+#lawfirm-chat-button {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light)) !important;
+    transition: all 0.3s ease;
+}
+
+/* Chat Window */
+#lawfirm-chat-window {
+    width: var(--chat-window-width);
+    height: var(--chat-window-height);
+}
+
+/* Chat Header */
+.chat-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light)) !important;
+    padding: var(--header-padding) !important;
+}
+
+/* Messages */
+.chat-messages {
+    gap: var(--spacing-medium);
+    padding: var(--spacing-large);
+}
+
+.message-content {
+    background: var(--bg-light);
+    color: var(--text-dark);
+}
+
+.chat-message.user .message-content {
+    background: var(--primary-color) !important;
+    color: white !important;
+}
+
+/* Buttons */
+.script-button,
+.choice-button,
+.quick-action-btn {
+    transition: all 0.2s ease;
+}
+
+.script-button:hover,
+.choice-button:hover {
+    background: var(--primary-color) !important;
+    color: white !important;
+    transform: translateY(-2px);
+}
+
+/* Input */
+#chat-input {
+    border-radius: var(--input-border-radius) !important;
+    padding: var(--input-padding) !important;
+    border-width: var(--input-border-width) !important;
+    border-color: var(--border-color) !important;
+}
+
+#chat-input:focus {
+    border-color: var(--primary-color) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    #lawfirm-chat-window {
+        width: calc(100vw - 20px) !important;
+        height: calc(100vh - 100px) !important;
+        right: 10px;
+        bottom: 80px;
+    }
+}
