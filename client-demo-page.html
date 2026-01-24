@@ -231,6 +231,18 @@
             transform: translateX(0);
         }
 
+        /* Keep toggle button visible in sidebar */
+        .layout-sidebar .chat-toggle {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            z-index: 10001;
+        }
+
+        .layout-sidebar #chat-container.open .chat-toggle {
+            display: none; /* Hide button when sidebar is open */
+        }
+
         /* Layout: Modal */
         .layout-modal #chat-container {
             top: 0;
@@ -245,6 +257,19 @@
 
         .layout-modal #chat-container.open {
             display: flex;
+        }
+
+        /* Keep toggle button visible in modal */
+        .layout-modal .chat-toggle {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            z-index: 10001;
+        }
+
+        /* Hide toggle when modal is open */
+        .layout-modal #chat-container.open .chat-toggle {
+            display: none;
         }
 
         /* Layout: Card */
@@ -296,6 +321,7 @@
             width: 100%;
             height: 100%;
             border-radius: 0;
+            display: flex; /* Always visible in sidebar */
         }
 
         .layout-modal .chat-window {
@@ -304,6 +330,7 @@
             height: 80vh;
             max-height: 700px;
             border-radius: 24px;
+            display: flex; /* Always visible in modal */
         }
 
         .layout-card .chat-window {
@@ -436,9 +463,7 @@
                 <button class="action-btn btn-secondary" onclick="reset()">
                     🔄 Reset
                 </button>
-                <button class="action-btn btn-primary">
-                    📞 Book a Demo
-                </button>
+                
             </div>
         </div>
 
@@ -543,10 +568,10 @@
     </div>
 
     <!-- Chat Widget -->
-    <div id="chat-container">
-        <button class="chat-toggle" onclick="toggleChat()">⚖️</button>
+    <div id="chat-container" onclick="handleContainerClick(event)">
+        <button class="chat-toggle" onclick="toggleChat(); event.stopPropagation();">⚖️</button>
         
-        <div class="chat-window" id="chatWindow">
+        <div class="chat-window" id="chatWindow" onclick="event.stopPropagation();">
             <div class="chat-header">
                 <div class="chat-title">Legal Assistant</div>
                 <button class="close-btn" onclick="toggleChat()">×</button>
@@ -605,11 +630,25 @@
             
             const config = presets[preset];
             if (config) {
+                // Apply classes
                 document.body.className = `layout-${config.layout} theme-${config.theme}`;
                 
-                // Update active states
-                document.querySelectorAll('.control-option').forEach(el => {
+                // Update layout active states
+                document.querySelectorAll('.control-section:nth-child(1) .control-option').forEach((el, index) => {
                     el.classList.remove('active');
+                    const layouts = ['classic', 'sidebar', 'modal', 'card'];
+                    if (layouts[index] === config.layout) {
+                        el.classList.add('active');
+                    }
+                });
+                
+                // Update theme active states
+                document.querySelectorAll('.control-section:nth-child(2) .control-option').forEach((el, index) => {
+                    el.classList.remove('active');
+                    const themes = ['classic', 'elegant', 'professional', 'luxury'];
+                    if (themes[index] === config.theme) {
+                        el.classList.add('active');
+                    }
                 });
                 
                 closeChat();
@@ -620,12 +659,26 @@
             const container = document.getElementById('chat-container');
             const window = document.getElementById('chatWindow');
             
-            if (document.body.classList.contains('layout-sidebar') || 
-                document.body.classList.contains('layout-modal')) {
+            // Different behavior for different layouts
+            if (document.body.classList.contains('layout-sidebar')) {
+                // Sidebar: toggle container (slides in from side)
                 container.classList.toggle('open');
+                window.classList.add('open'); // Window always visible in sidebar
+            } else if (document.body.classList.contains('layout-modal')) {
+                // Modal: toggle container (shows overlay)
+                container.classList.toggle('open');
+                window.classList.add('open'); // Window always visible in modal
+            } else {
+                // Classic & Card: toggle window only
+                window.classList.toggle('open');
             }
-            
-            window.classList.toggle('open');
+        }
+
+        function handleContainerClick(event) {
+            // Only close if clicking the dark overlay (modal/sidebar background)
+            if (event.target.id === 'chat-container') {
+                closeChat();
+            }
         }
 
         function closeChat() {
