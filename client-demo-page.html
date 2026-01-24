@@ -17,48 +17,6 @@
             min-height: 100vh;
         }
 
-        /* Video Background for Video Layout */
-        .video-background {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            opacity: 0;
-            transition: opacity 0.5s ease;
-        }
-
-        .layout-video .video-background {
-            opacity: 1;
-        }
-
-        .video-background video {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            min-width: 100%;
-            min-height: 100%;
-            width: auto;
-            height: auto;
-            transform: translate(-50%, -50%);
-            object-fit: cover;
-        }
-
-        .video-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-        }
-
-        /* Hide gradient background for video layout */
-        .layout-video {
-            background: #000;
-        }
-
         /* Control Panel */
         .demo-controls {
             background: white;
@@ -203,11 +161,6 @@
             text-align: center;
         }
 
-        .layout-video .content-card {
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(20px);
-        }
-
         .content-card h1 {
             font-size: 42px;
             color: #111827;
@@ -314,6 +267,7 @@
             flex-direction: column;
             z-index: 9999;
             animation: slideUp 0.3s ease;
+            overflow: hidden;
         }
 
         .layout-classic .chat-window.open {
@@ -329,22 +283,6 @@
                 opacity: 1;
                 transform: translateY(0);
             }
-        }
-
-        /* Video layout button has glassmorphism */
-        .layout-video .chat-toggle {
-            width: 70px;
-            height: 70px;
-            background: rgba(30, 64, 175, 0.95);
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-        }
-
-        .layout-video .chat-toggle:hover {
-            background: rgba(30, 64, 175, 1);
-            transform: scale(1.15);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
         }
 
         /* ============================================
@@ -366,28 +304,73 @@
             animation: slideUp 0.3s ease;
         }
 
-        /* Video layout has glassmorphism effect */
+        /* ============================================
+           LAYOUT 2: VIDEO BACKGROUND CHAT
+           ============================================ */
         .layout-video .chat-window {
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(20px);
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 380px;
+            height: 600px;
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            display: none;
+            flex-direction: column;
+            z-index: 9999;
+            animation: slideUp 0.3s ease;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.3);
         }
 
-        .layout-classic .chat-window.open,
         .layout-video .chat-window.open {
             display: flex;
         }
 
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        /* Video Background Container inside Chat */
+        .chat-video-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .layout-video .chat-video-bg {
+            display: block;
+        }
+
+        .chat-video-bg video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            transform: translate(-50%, -50%);
+            object-fit: cover;
+        }
+
+        .chat-video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(2px);
+        }
+
+        /* Make chat content float above video */
+        .layout-video .chat-header,
+        .layout-video .chat-messages,
+        .layout-video .chat-input-area {
+            position: relative;
+            z-index: 1;
         }
 
         /* ============================================
@@ -493,8 +476,9 @@
 
         /* Video layout header has glassmorphism */
         .layout-video .chat-header {
-            background: linear-gradient(135deg, rgba(30, 64, 175, 0.95), rgba(59, 130, 246, 0.95));
+            background: rgba(30, 64, 175, 0.95);
             backdrop-filter: blur(10px);
+            border-radius: 20px 20px 0 0;
         }
 
         .layout-modal .chat-header {
@@ -545,8 +529,10 @@
             background: #f9fafb;
         }
 
+         /* Video layout messages are semi-transparent */
         .layout-video .chat-messages {
-            background: rgba(249, 250, 251, 0.95);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
         }
 
         .message {
@@ -569,8 +555,11 @@
             background: white;
         }
 
+         /* Video layout input area is semi-transparent */
         .layout-video .chat-input-area {
             background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .chat-input {
@@ -579,6 +568,13 @@
             border: 2px solid #e5e7eb;
             border-radius: 10px;
             outline: none;
+            background: white;
+        }
+
+        .layout-video .chat-input {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-color: rgba(255, 255, 255, 0.5);
         }
 
         .chat-input:focus {
@@ -750,8 +746,16 @@
     <!-- Chat Toggle Button (always visible) -->
     <button class="chat-toggle" onclick="toggleChat()">⚖️</button>
 
-    <!-- LAYOUT: Classic & Card - Simple window -->
+    <!-- LAYOUT: Classic, Video & Card - Simple window -->
     <div class="chat-window" id="chatWindow">
+        <!-- Video Background (only visible in video layout) -->
+        <div class="chat-video-bg">
+            <video autoplay muted loop playsinline>
+                <source src="graphics/video.mp4" type="video/mp4">
+            </video>
+            <div class="chat-video-overlay"></div>
+        </div>
+
         <div class="chat-header">
             <div class="chat-title">Legal Assistant</div>
             <button class="close-btn" onclick="closeChat()">×</button>
@@ -768,29 +772,6 @@
         <div class="chat-input-area">
             <input type="text" class="chat-input" placeholder="Type your message...">
             <button class="send-btn">Send</button>
-        </div>
-    </div>
-
-    <!-- LAYOUT: Sidebar - Slide-in container -->
-    <div class="chat-sidebar-container" id="sidebarContainer">
-        <div class="chat-window">
-            <div class="chat-header">
-                <div class="chat-title">Legal Assistant</div>
-                <button class="close-btn" onclick="closeChat()">×</button>
-            </div>
-            
-            <div class="chat-messages">
-                <div class="message">
-                    <div class="message-bubble">
-                        Hello! I'm here to help you 24/7. What type of legal assistance do you need today?
-                    </div>
-                </div>
-            </div>
-            
-            <div class="chat-input-area">
-                <input type="text" class="chat-input" placeholder="Type your message...">
-                <button class="send-btn">Send</button>
-            </div>
         </div>
     </div>
 
