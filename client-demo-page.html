@@ -746,16 +746,8 @@
     <!-- Chat Toggle Button (always visible) -->
     <button class="chat-toggle" onclick="toggleChat()">⚖️</button>
 
-    <!-- LAYOUT: Classic, Video & Card - Simple window -->
+    <!-- LAYOUT: Classic & Card - Simple window -->
     <div class="chat-window" id="chatWindow">
-        <!-- Video Background (only visible in video layout) -->
-        <div class="chat-video-bg">
-            <video autoplay muted loop playsinline>
-                <source src="graphics/video.mp4" type="video/mp4">
-            </video>
-            <div class="chat-video-overlay"></div>
-        </div>
-
         <div class="chat-header">
             <div class="chat-title">Legal Assistant</div>
             <button class="close-btn" onclick="closeChat()">×</button>
@@ -774,6 +766,35 @@
             <button class="send-btn">Send</button>
         </div>
     </div>
+
+        <!-- LAYOUT: Classic, Video & Card - Simple window -->
+        <div class="chat-window" id="chatWindow">
+            <!-- Video Background (only visible in video layout) -->
+            <div class="chat-video-bg">
+                <video autoplay muted loop playsinline>
+                    <source src="graphics/video.mp4" type="video/mp4">
+                </video>
+                <div class="chat-video-overlay"></div>
+            </div>
+
+            <div class="chat-header">
+                <div class="chat-title">Legal Assistant</div>
+                <button class="close-btn" onclick="closeChat()">×</button>
+            </div>
+            
+            <div class="chat-messages">
+                <div class="message">
+                    <div class="message-bubble">
+                        Hello! I'm here to help you 24/7. What type of legal assistance do you need today?
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-input-area">
+                <input type="text" class="chat-input" placeholder="Type your message...">
+                <button class="send-btn">Send</button>
+            </div>
+        </div>
 
     <!-- LAYOUT: Modal - Overlay with centered window -->
     <div class="chat-modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
