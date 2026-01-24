@@ -17,6 +17,48 @@
             min-height: 100vh;
         }
 
+        /* Video Background for Video Layout */
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .layout-video .video-background {
+            opacity: 1;
+        }
+
+        .video-background video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            transform: translate(-50%, -50%);
+            object-fit: cover;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        /* Hide gradient background for video layout */
+        .layout-video {
+            background: #000;
+        }
+
         /* Control Panel */
         .demo-controls {
             background: white;
@@ -161,6 +203,11 @@
             text-align: center;
         }
 
+        .layout-video .content-card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+        }
+
         .content-card h1 {
             font-size: 42px;
             color: #111827;
@@ -284,39 +331,63 @@
             }
         }
 
+        /* Video layout button has glassmorphism */
+        .layout-video .chat-toggle {
+            width: 70px;
+            height: 70px;
+            background: rgba(30, 64, 175, 0.95);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .layout-video .chat-toggle:hover {
+            background: rgba(30, 64, 175, 1);
+            transform: scale(1.15);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+        }
+
         /* ============================================
-           LAYOUT 2: SIDEBAR (FIXED!)
+           LAYOUT 1: CLASSIC CORNER
            ============================================ */
-        .layout-sidebar .chat-sidebar-container {
+        .layout-classic .chat-window,
+        .layout-video .chat-window {
             position: fixed;
-            top: 0;
-            right: 0;
-            width: 400px;
-            height: 100vh;
-            z-index: 9999;
-            pointer-events: none;
-        }
-
-        .layout-sidebar .chat-sidebar-container.open {
-            pointer-events: auto;
-        }
-
-        .layout-sidebar .chat-window {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 100%;
-            height: 100%;
+            bottom: 90px;
+            right: 20px;
+            width: 380px;
+            height: 600px;
             background: white;
-            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2);
-            display: flex;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: none;
             flex-direction: column;
-            transform: translateX(100%);
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 9999;
+            animation: slideUp 0.3s ease;
         }
 
-        .layout-sidebar .chat-sidebar-container.open .chat-window {
-            transform: translateX(0);
+        /* Video layout has glassmorphism effect */
+        .layout-video .chat-window {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .layout-classic .chat-window.open,
+        .layout-video .chat-window.open {
+            display: flex;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* ============================================
@@ -420,9 +491,14 @@
             border-radius: 16px 16px 0 0;
         }
 
-        .layout-sidebar .chat-header,
+        /* Video layout header has glassmorphism */
+        .layout-video .chat-header {
+            background: linear-gradient(135deg, rgba(30, 64, 175, 0.95), rgba(59, 130, 246, 0.95));
+            backdrop-filter: blur(10px);
+        }
+
         .layout-modal .chat-header {
-            border-radius: 0;
+            border-radius: 24px 24px 0 0;
         }
 
         .layout-card .chat-header {
@@ -466,6 +542,11 @@
             flex: 1;
             padding: 20px;
             overflow-y: auto;
+            background: #f9fafb;
+        }
+
+        .layout-video .chat-messages {
+            background: rgba(249, 250, 251, 0.95);
         }
 
         .message {
@@ -485,6 +566,11 @@
             border-top: 1px solid #e5e7eb;
             display: flex;
             gap: 10px;
+            background: white;
+        }
+
+        .layout-video .chat-input-area {
+            background: rgba(255, 255, 255, 0.98);
         }
 
         .chat-input {
@@ -524,11 +610,8 @@
                 grid-template-columns: 1fr;
             }
 
-            .layout-sidebar .chat-sidebar-container {
-                width: 100%;
-            }
-
             .layout-classic .chat-window,
+            .layout-video .chat-window,
             .layout-card .chat-window {
                 width: calc(100vw - 40px);
                 right: 20px;
@@ -542,6 +625,13 @@
     </style>
 </head>
 <body class="layout-classic theme-classic">
+    <!-- Video Background -->
+    <div class="video-background">
+        <video autoplay muted loop playsinline>
+            <source src="graphics/video.mp4" type="video/mp4">
+        </video>
+        <div class="video-overlay"></div>
+    </div>
     <!-- Control Panel -->
     <div class="demo-controls">
         <div class="controls-header">
@@ -566,9 +656,10 @@
                         <span class="option-label">Classic Corner</span>
                         <span class="option-badge">Popular</span>
                     </div>
-                    <div class="control-option" onclick="setLayout('sidebar')">
-                        <span class="option-icon">📋</span>
-                        <span class="option-label">Sidebar Panel</span>
+                    <div class="control-option active" onclick="setLayout('video')">
+                        <span class="option-icon">🎥</span>
+                        <span class="option-label">Video Background</span>
+                        <span class="option-badge">Premium</span>
                     </div>
                     <div class="control-option" onclick="setLayout('modal')">
                         <span class="option-icon">🎯</span>
@@ -615,7 +706,7 @@
                     </div>
                     <div class="control-option" onclick="applyPreset('premium')">
                         <span class="option-icon">👑</span>
-                        <span class="option-label">Premium Experience</span>
+                        <span class="option-label">Premium Video</span>
                     </div>
                     <div class="control-option" onclick="applyPreset('modern')">
                         <span class="option-icon">🚀</span>
@@ -761,26 +852,19 @@
         function toggleChat() {
             const currentLayout = document.body.className.match(/layout-(\w+)/)?.[1] || 'classic';
             
-            if (currentLayout === 'sidebar') {
-                const sidebar = document.getElementById('sidebarContainer');
-                sidebar.classList.toggle('open');
-                console.log('Sidebar toggled:', sidebar.classList.contains('open'));
-            } else if (currentLayout === 'modal') {
+            if (currentLayout === 'modal') {
                 const modal = document.getElementById('modalOverlay');
                 modal.classList.toggle('open');
-                console.log('Modal toggled:', modal.classList.contains('open'));
             } else {
-                // Classic or Card
+                // Classic, Video, or Card
                 const window = document.getElementById('chatWindow');
                 window.classList.toggle('open');
-                console.log('Window toggled:', window.classList.contains('open'));
             }
         }
 
         function closeChat() {
             // Close all possible open chats
             document.getElementById('chatWindow').classList.remove('open');
-            document.getElementById('sidebarContainer').classList.remove('open');
             document.getElementById('modalOverlay').classList.remove('open');
         }
 
@@ -796,7 +880,7 @@
             
             const presets = {
                 traditional: { layout: 'classic', theme: 'classic' },
-                premium: { layout: 'sidebar', theme: 'elegant' },
+                premium: { layout: 'video', theme: 'elegant' },
                 modern: { layout: 'modal', theme: 'professional' },
                 magnet: { layout: 'card', theme: 'luxury' }
             };
@@ -807,7 +891,7 @@
                 document.body.className = `layout-${config.layout} theme-${config.theme}`;
                 
                 // Update layout active states
-                const layouts = ['classic', 'sidebar', 'modal', 'card'];
+                const layouts = ['classic', 'video', 'modal', 'card'];
                 document.querySelectorAll('.control-section:nth-child(1) .control-option').forEach((el, index) => {
                     el.classList.remove('active');
                     if (layouts[index] === config.layout) {
