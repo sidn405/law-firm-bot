@@ -415,6 +415,7 @@
             display: flex;
             flex-direction: column;
             animation: scaleIn 0.3s ease;
+            overflow: hidden;
         }
 
         @keyframes scaleIn {
@@ -529,10 +530,9 @@
             background: #f9fafb;
         }
 
-         /* Video layout messages are semi-transparent */
-        .layout-video .chat-messages {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
+        .layout-video .message-bubble {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
         }
 
         .message {
@@ -555,7 +555,7 @@
             background: white;
         }
 
-         /* Video layout input area is semi-transparent */
+        /* Video layout input area is semi-transparent */
         .layout-video .chat-input-area {
             background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(20px);
@@ -746,8 +746,16 @@
     <!-- Chat Toggle Button (always visible) -->
     <button class="chat-toggle" onclick="toggleChat()">⚖️</button>
 
-    <!-- LAYOUT: Classic & Card - Simple window -->
+    <!-- LAYOUT: Classic, Video & Card - Simple window -->
     <div class="chat-window" id="chatWindow">
+        <!-- Video Background (only visible in video layout) -->
+        <div class="chat-video-bg">
+            <video autoplay muted loop playsinline>
+                <source src="graphics/video.mp4" type="video/mp4">
+            </video>
+            <div class="chat-video-overlay"></div>
+        </div>
+
         <div class="chat-header">
             <div class="chat-title">Legal Assistant</div>
             <button class="close-btn" onclick="closeChat()">×</button>
