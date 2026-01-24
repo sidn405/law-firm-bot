@@ -22,6 +22,8 @@
             background: white;
             padding: 24px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 100;
         }
 
         .controls-header {
@@ -146,11 +148,17 @@
             font-weight: 600;
         }
 
+        .option-badge.new {
+            background: #f59e0b;
+        }
+
         /* Demo Content */
         .demo-content {
             padding: 60px 20px;
             max-width: 1200px;
             margin: 0 auto;
+            position: relative;
+            z-index: 1;
         }
 
         .content-card {
@@ -223,7 +231,7 @@
         }
 
         /* ============================================
-           CHAT WIDGET - FIXED LAYOUTS
+           CHAT WIDGET LAYOUTS
            ============================================ */
 
         /* Chat Toggle Button - Always visible */
@@ -283,25 +291,6 @@
                 opacity: 1;
                 transform: translateY(0);
             }
-        }
-
-        /* ============================================
-           LAYOUT 1: CLASSIC CORNER
-           ============================================ */
-        .layout-classic .chat-window,
-        .layout-video .chat-window {
-            position: fixed;
-            bottom: 90px;
-            right: 20px;
-            width: 380px;
-            height: 600px;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            display: none;
-            flex-direction: column;
-            z-index: 9999;
-            animation: slideUp 0.3s ease;
         }
 
         /* ============================================
@@ -374,7 +363,7 @@
         }
 
         /* ============================================
-           LAYOUT 3: CENTER MODAL (FIXED!)
+           LAYOUT 3: CENTER MODAL
            ============================================ */
         .layout-modal .chat-modal-overlay {
             position: fixed;
@@ -445,6 +434,7 @@
             flex-direction: column;
             z-index: 9999;
             animation: floatIn 0.3s ease;
+            overflow: hidden;
         }
 
         .layout-card .chat-window.open {
@@ -475,7 +465,7 @@
             border-radius: 16px 16px 0 0;
         }
 
-        /* Video layout header has glassmorphism */
+        /* Video layout header is semi-transparent */
         .layout-video .chat-header {
             background: rgba(30, 64, 175, 0.95);
             backdrop-filter: blur(10px);
@@ -530,9 +520,10 @@
             background: #f9fafb;
         }
 
-        .layout-video .message-bubble {
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(10px);
+        /* Video layout messages are semi-transparent */
+        .layout-video .chat-messages {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
         }
 
         .message {
@@ -540,11 +531,17 @@
         }
 
         .message-bubble {
-            background: #f3f4f6;
+            background: white;
             padding: 12px 16px;
             border-radius: 16px;
             display: inline-block;
             max-width: 80%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .layout-video .message-bubble {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
         }
 
         .chat-input-area {
@@ -621,13 +618,6 @@
     </style>
 </head>
 <body class="layout-classic theme-classic">
-    <!-- Video Background -->
-    <div class="video-background">
-        <video autoplay muted loop playsinline>
-            <source src="graphics/video.mp4" type="video/mp4">
-        </video>
-        <div class="video-overlay"></div>
-    </div>
     <!-- Control Panel -->
     <div class="demo-controls">
         <div class="controls-header">
@@ -638,7 +628,6 @@
                 <button class="action-btn btn-secondary" onclick="reset()">
                     🔄 Reset
                 </button>
-                
             </div>
         </div>
 
@@ -652,10 +641,10 @@
                         <span class="option-label">Classic Corner</span>
                         <span class="option-badge">Popular</span>
                     </div>
-                    <div class="control-option active" onclick="setLayout('video')">
+                    <div class="control-option" onclick="setLayout('video')">
                         <span class="option-icon">🎥</span>
                         <span class="option-label">Video Background</span>
-                        <span class="option-badge">Premium</span>
+                        <span class="option-badge new">Premium</span>
                     </div>
                     <div class="control-option" onclick="setLayout('modal')">
                         <span class="option-icon">🎯</span>
@@ -774,35 +763,6 @@
             <button class="send-btn">Send</button>
         </div>
     </div>
-
-        <!-- LAYOUT: Classic, Video & Card - Simple window -->
-        <div class="chat-window" id="chatWindow">
-            <!-- Video Background (only visible in video layout) -->
-            <div class="chat-video-bg">
-                <video autoplay muted loop playsinline>
-                    <source src="graphics/video.mp4" type="video/mp4">
-                </video>
-                <div class="chat-video-overlay"></div>
-            </div>
-
-            <div class="chat-header">
-                <div class="chat-title">Legal Assistant</div>
-                <button class="close-btn" onclick="closeChat()">×</button>
-            </div>
-            
-            <div class="chat-messages">
-                <div class="message">
-                    <div class="message-bubble">
-                        Hello! I'm here to help you 24/7. What type of legal assistance do you need today?
-                    </div>
-                </div>
-            </div>
-            
-            <div class="chat-input-area">
-                <input type="text" class="chat-input" placeholder="Type your message...">
-                <button class="send-btn">Send</button>
-            </div>
-        </div>
 
     <!-- LAYOUT: Modal - Overlay with centered window -->
     <div class="chat-modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
