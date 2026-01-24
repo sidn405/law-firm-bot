@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LawBot 360 - Chat Widget Layout Styles Demo</title>
+    <link rel="stylesheet" href="chatbot-layout-styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .demo-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .demo-header h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 12px;
+        }
+
+        .demo-header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        .layout-selector {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .layout-selector h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #111827;
+        }
+
+        .layout-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .layout-option {
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .layout-option:hover {
+            border-color: #1e40af;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2);
+        }
+
+        .layout-option.active {
+            border-color: #1e40af;
+            background: #eff6ff;
+        }
+
+        .layout-option h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: #111827;
+        }
+
+        .layout-option p {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .layout-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        .demo-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            min-height: 400px;
+        }
+
+        .demo-content h2 {
+            font-size: 28px;
+            margin-bottom: 16px;
+            color: #111827;
+        }
+
+        .demo-content p {
+            font-size: 16px;
+            color: #6b7280;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-list li::before {
+            content: "✓";
+            color: #10b981;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 14px 28px;
+            background: #1e40af;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+
+        .cta-button:hover {
+            background: #1e3a8a;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="layout-classic">
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1>🎨 LawBot 360 - Chat Widget Styles</h1>
+            <p>Choose from 6 completely different chatbot layouts</p>
+        </div>
+
+        <div class="layout-selector">
+            <h2>Select a Layout Style</h2>
+            <div class="layout-grid">
+                <div class="layout-option active" data-layout="classic">
+                    <div class="layout-icon">💬</div>
+                    <h3>Classic Bottom-Right</h3>
+                    <p>Traditional chat bubble in bottom-right corner. Familiar and non-intrusive.</p>
+                </div>
+
+                <div class="layout-option" data-layout="sidebar">
+                    <div class="layout-icon">📋</div>
+                    <h3>Professional Sidebar</h3>
+                    <p>Full-height sidebar with agent photo. Professional and engaging.</p>
+                </div>
+
+                <div class="layout-option" data-layout="bottombar">
+                    <div class="layout-icon">📊</div>
+                    <h3>Bottom Bar</h3>
+                    <p>Slim bar across bottom. Compact and modern design.</p>
+                </div>
+
+                <div class="layout-option" data-layout="modal">
+                    <div class="layout-icon">🎯</div>
+                    <h3>Center Modal</h3>
+                    <p>Large centered modal that takes focus. Premium experience.</p>
+                </div>
+
+                <div class="layout-option" data-layout="mini">
+                    <div class="layout-icon">💼</div>
+                    <h3>Compact Mini</h3>
+                    <p>Very small and minimal. Discreet and efficient.</p>
+                </div>
+
+                <div class="layout-option" data-layout="card">
+                    <div class="layout-icon">📝</div>
+                    <h3>Floating Card</h3>
+                    <p>Preview card with quick actions. Engaging first impression.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-content">
+            <h2>Welcome to Our Law Firm</h2>
+            <p>We specialize in personal injury, family law, and criminal defense. Our experienced team is here to help you navigate your legal challenges.</p>
+            
+            <ul class="feature-list">
+                <li>Free initial consultation</li>
+                <li>24/7 emergency support</li>
+                <li>No fees unless we win your case</li>
+                <li>Bilingual English/Spanish support</li>
+                <li>30+ years combined experience</li>
+            </ul>
+
+            <p><strong>Click the chat widget button to see how it works!</strong></p>
+            <p>Each layout style offers a different user experience. Try switching between them to see which one fits your brand best.</p>
+
+            <a href="tel:555-123-4567" class="cta-button">📞 Call (555) 123-4567</a>
+        </div>
+    </div>
+
+    <!-- CHAT WIDGET CONTAINER -->
+    <div id="chat-widget-container">
+        <!-- Toggle Button -->
+        <button class="chat-toggle-button" onclick="toggleChat()">
+            ⚖️
+        </button>
+
+        <!-- Chat Window (Classic, Mini) -->
+        <div class="chat-window" id="chat-window">
+            <div class="chat-header">
+                <div class="agent-info">
+                    <div class="agent-avatar">👨‍💼</div>
+                    <div>
+                        <div class="agent-name">Legal Assistant</div>
+                        <div class="agent-status">
+                            <span class="status-dot"></span>
+                            Online • Available 24/7
+                        </div>
+                    </div>
+                </div>
+                <button class="close-button" onclick="toggleChat()">×</button>
+            </div>
+
+            <div class="chat-messages">
+                <div class="chat-message bot">
+                    <div class="message-bubble">
+                        Hello! I'm here to help you 24/7. What type of legal assistance do you need?
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <input type="text" class="chat-input" placeholder="Type your message...">
+                <button class="chat-send-button">Send</button>
+            </div>
+        </div>
+
+        <!-- Floating Card (Card Layout) -->
+        <div class="chat-preview-card" id="chat-preview">
+            <div class="card-header">
+                <div class="card-avatar">⚖️</div>
+                <div class="card-info">
+                    <h3>Legal Assistant</h3>
+                    <p>Online now</p>
+                </div>
+            </div>
+            <div class="card-message">
+                👋 Hi! I can help you with personal injury, family law, or criminal defense. What brings you here today?
+            </div>
+            <div class="card-actions">
+                <button class="card-button card-button-primary" onclick="openFullChat()">
+                    Start Chat
+                </button>
+                <button class="card-button card-button-secondary" onclick="toggleCard()">
+                    Dismiss
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Layout switching
+        const layoutOptions = document.querySelectorAll('.layout-option');
+        const body = document.body;
+
+        layoutOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Remove active class from all options
+                layoutOptions.forEach(opt => opt.classList.remove('active'));
+                
+                // Add active class to clicked option
+                this.classList.add('active');
+                
+                // Remove all layout classes
+                body.className = '';
+                
+                // Add new layout class
+                const layout = this.dataset.layout;
+                body.classList.add(`layout-${layout}`);
+                
+                // Close any open chats
+                closeAllChats();
+            });
+        });
+
+        // Chat controls
+        function toggleChat() {
+            const container = document.getElementById('chat-widget-container');
+            const window = document.getElementById('chat-window');
+            
+            if (body.classList.contains('layout-classic') || body.classList.contains('layout-mini')) {
+                window.classList.toggle('open');
+            } else {
+                container.classList.toggle('open');
+            }
+        }
+
+        function toggleCard() {
+            const card = document.getElementById('chat-preview');
+            card.classList.toggle('open');
+        }
+
+        function openFullChat() {
+            toggleCard();
+            setTimeout(() => {
+                toggleChat();
+            }, 300);
+        }
+
+        function closeAllChats() {
+            const container = document.getElementById('chat-widget-container');
+            const window = document.getElementById('chat-window');
+            const card = document.getElementById('chat-preview');
+            
+            container.classList.remove('open');
+            window.classList.remove('open');
+            card.classList.remove('open');
+        }
+
+        // Auto-open card layout demo after 2 seconds
+        setTimeout(() => {
+            if (body.classList.contains('layout-card')) {
+                const card = document.getElementById('chat-preview');
+                if (!card.classList.contains('open')) {
+                    card.classList.add('open');
+                }
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

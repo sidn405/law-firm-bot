@@ -1,0 +1,624 @@
+/* =====================================================
+   LAWBOT 360 - MULTIPLE CHATBOT LAYOUT STYLES
+   Different positions, structures, and interactions
+   ===================================================== */
+
+/* ============================================
+   STYLE 1: CLASSIC BOTTOM-RIGHT
+   Traditional chat widget in bottom-right
+   ============================================ */
+.layout-classic #chat-widget-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.layout-classic .chat-toggle-button {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    border: none;
+    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    transition: all 0.3s ease;
+}
+
+.layout-classic .chat-toggle-button:hover {
+    transform: scale(1.1);
+}
+
+.layout-classic .chat-window {
+    position: absolute;
+    bottom: 80px;
+    right: 0;
+    width: 380px;
+    height: 600px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    display: none;
+    flex-direction: column;
+    animation: slideUp 0.3s ease;
+}
+
+.layout-classic .chat-window.open {
+    display: flex;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================
+   STYLE 2: PROFESSIONAL SIDEBAR
+   Full-height sidebar on left or right
+   ============================================ */
+.layout-sidebar #chat-widget-container {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: 400px;
+    z-index: 9999;
+    transform: translateX(100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.layout-sidebar #chat-widget-container.open {
+    transform: translateX(0);
+}
+
+.layout-sidebar .chat-toggle-button {
+    position: fixed;
+    top: 50%;
+    right: 20px;
+    transform: translateY(-50%);
+    width: 56px;
+    height: 120px;
+    background: linear-gradient(180deg, #1e40af, #3b82f6);
+    border-radius: 28px 0 0 28px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    letter-spacing: 2px;
+    transition: all 0.3s ease;
+}
+
+.layout-sidebar .chat-toggle-button:hover {
+    width: 64px;
+}
+
+.layout-sidebar .chat-window {
+    width: 100%;
+    height: 100vh;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.layout-sidebar .chat-header {
+    padding: 30px 24px;
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    color: white;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.layout-sidebar .agent-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.layout-sidebar .agent-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    object-fit: cover;
+}
+
+.layout-sidebar .agent-name {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.layout-sidebar .agent-status {
+    font-size: 13px;
+    opacity: 0.9;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.layout-sidebar .status-dot {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+/* ============================================
+   STYLE 3: BOTTOM BAR
+   Slim bar across bottom of screen
+   ============================================ */
+.layout-bottombar #chat-widget-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.layout-bottombar #chat-widget-container.open {
+    transform: translateY(0);
+}
+
+.layout-bottombar .chat-toggle-button {
+    position: fixed;
+    bottom: 20px;
+    right: 50%;
+    transform: translateX(50%);
+    padding: 14px 32px;
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    color: white;
+    border: none;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(30, 64, 175, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+}
+
+.layout-bottombar .chat-toggle-button:hover {
+    transform: translateX(50%) translateY(-4px);
+    box-shadow: 0 8px 30px rgba(30, 64, 175, 0.4);
+}
+
+.layout-bottombar .chat-window {
+    width: 100%;
+    height: 400px;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+    display: flex;
+}
+
+.layout-bottombar .chat-sidebar-info {
+    width: 300px;
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    color: white;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.layout-bottombar .chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ============================================
+   STYLE 4: CENTER MODAL
+   Large centered modal that takes focus
+   ============================================ */
+.layout-modal #chat-widget-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.layout-modal #chat-widget-container.open {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.layout-modal .chat-toggle-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    border: none;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+    transition: all 0.3s ease;
+}
+
+.layout-modal .chat-toggle-button:hover {
+    transform: scale(1.1);
+}
+
+.layout-modal .chat-window {
+    width: 90%;
+    max-width: 900px;
+    height: 80vh;
+    max-height: 700px;
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    animation: scaleIn 0.3s ease;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.layout-modal .chat-header {
+    padding: 30px;
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    color: white;
+    border-radius: 24px 24px 0 0;
+    text-align: center;
+}
+
+.layout-modal .chat-header h2 {
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+
+.layout-modal .chat-header p {
+    font-size: 15px;
+    opacity: 0.9;
+}
+
+/* ============================================
+   STYLE 5: COMPACT MINI
+   Very small, minimal floating card
+   ============================================ */
+.layout-mini #chat-widget-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.layout-mini .chat-toggle-button {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #1e40af;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+}
+
+.layout-mini .chat-toggle-button:hover {
+    transform: scale(1.1);
+}
+
+.layout-mini .chat-window {
+    position: absolute;
+    bottom: 65px;
+    right: 0;
+    width: 320px;
+    height: 450px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    display: none;
+    flex-direction: column;
+    animation: slideUp 0.2s ease;
+}
+
+.layout-mini .chat-window.open {
+    display: flex;
+}
+
+.layout-mini .chat-header {
+    padding: 16px;
+    background: #1e40af;
+    color: white;
+    border-radius: 12px 12px 0 0;
+    font-size: 14px;
+}
+
+/* ============================================
+   STYLE 6: FLOATING CARD
+   Medium card that floats in corner
+   ============================================ */
+.layout-card #chat-widget-container {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.layout-card .chat-preview-card {
+    width: 340px;
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e5e7eb;
+    display: none;
+    animation: floatIn 0.4s ease;
+}
+
+.layout-card .chat-preview-card.open {
+    display: block;
+}
+
+@keyframes floatIn {
+    from {
+        transform: translateY(20px) scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.layout-card .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.layout-card .card-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+}
+
+.layout-card .card-info h3 {
+    font-size: 16px;
+    color: #111827;
+    margin-bottom: 2px;
+}
+
+.layout-card .card-info p {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.layout-card .card-message {
+    background: #f9fafb;
+    padding: 14px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #374151;
+}
+
+.layout-card .card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.layout-card .card-button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.layout-card .card-button-primary {
+    background: #1e40af;
+    color: white;
+    border: none;
+}
+
+.layout-card .card-button-secondary {
+    background: white;
+    color: #1e40af;
+    border: 2px solid #1e40af;
+}
+
+.layout-card .chat-toggle-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    border: none;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+    transition: all 0.3s ease;
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+@media (max-width: 768px) {
+    .layout-sidebar #chat-widget-container {
+        width: 100%;
+    }
+    
+    .layout-bottombar .chat-window {
+        height: 70vh;
+    }
+    
+    .layout-bottombar .chat-sidebar-info {
+        display: none;
+    }
+    
+    .layout-modal .chat-window {
+        width: 95%;
+        height: 90vh;
+        border-radius: 16px;
+    }
+    
+    .layout-card .chat-preview-card {
+        width: calc(100vw - 40px);
+        right: 20px;
+    }
+}
+
+/* ============================================
+   COMMON CHAT ELEMENTS
+   ============================================ */
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chat-message {
+    display: flex;
+    gap: 10px;
+    max-width: 80%;
+}
+
+.chat-message.bot {
+    align-self: flex-start;
+}
+
+.chat-message.user {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.message-bubble {
+    background: #f3f4f6;
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.chat-message.user .message-bubble {
+    background: #1e40af;
+    color: white;
+}
+
+.chat-input-area {
+    padding: 16px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    gap: 10px;
+}
+
+.chat-input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+}
+
+.chat-input:focus {
+    border-color: #1e40af;
+}
+
+.chat-send-button {
+    padding: 12px 24px;
+    background: #1e40af;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.chat-send-button:hover {
+    background: #1e3a8a;
+}
+
+.close-button {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.close-button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
