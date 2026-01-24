@@ -3,12 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LawBot 360 - Live Demo | Try Different Styles</title>
-    
-    <!-- Include your CSS files -->
-    <link rel="stylesheet" href="chatbot-layout-styles.css">
-    <link rel="stylesheet" href="comprehensive-themes.css">
-    
+    <title>LawBot 360 - Interactive Demo</title>
     <style>
         * {
             margin: 0;
@@ -22,337 +17,637 @@
             min-height: 100vh;
         }
 
-        /* Floating Control Panel */
-        .style-selector {
-            position: fixed;
-            top: 20px;
-            left: 20px;
+        /* Control Panel */
+        .demo-controls {
             background: white;
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            z-index: 10000;
-            max-width: 300px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
-        .style-selector h3 {
-            font-size: 16px;
-            margin-bottom: 12px;
-            color: #111827;
-            font-weight: 700;
-        }
-
-        .selector-group {
-            margin-bottom: 16px;
-        }
-
-        .selector-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-            display: block;
-        }
-
-        .selector-buttons {
+        .controls-header {
             display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
-        .selector-btn {
-            padding: 8px 14px;
-            background: #f3f4f6;
-            border: 2px solid #e5e7eb;
+        .demo-logo {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e40af;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .demo-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
             border-radius: 8px;
-            font-size: 13px;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
-            font-weight: 500;
+            font-size: 14px;
+            border: none;
         }
 
-        .selector-btn:hover {
-            border-color: #1e40af;
-            background: #eff6ff;
-        }
-
-        .selector-btn.active {
+        .btn-primary {
             background: #1e40af;
             color: white;
-            border-color: #1e40af;
         }
 
-        .reset-btn {
-            width: 100%;
-            padding: 10px;
-            background: #10b981;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 12px;
+        .btn-primary:hover {
+            background: #1e3a8a;
         }
 
-        .reset-btn:hover {
-            background: #059669;
+        .btn-secondary {
+            background: white;
+            color: #1e40af;
+            border: 2px solid #1e40af;
         }
 
-        /* Demo Content */
-        .demo-page {
-            padding: 100px 20px 20px;
-            max-width: 900px;
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
-        .demo-card {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            margin-bottom: 30px;
+        .control-section {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 12px;
         }
 
-        .demo-card h1 {
-            font-size: 36px;
-            color: #111827;
+        .control-section h3 {
+            font-size: 13px;
+            font-weight: 700;
+            color: #374151;
             margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .demo-card p {
-            font-size: 16px;
+        .control-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-option {
+            padding: 14px;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .control-option:hover {
+            border-color: #1e40af;
+            transform: translateX(4px);
+        }
+
+        .control-option.active {
+            background: #eff6ff;
+            border-color: #1e40af;
+        }
+
+        .option-icon {
+            font-size: 20px;
+        }
+
+        .option-label {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .option-badge {
+            font-size: 11px;
+            padding: 3px 8px;
+            background: #10b981;
+            color: white;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+
+        /* Demo Content */
+        .demo-content {
+            padding: 60px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .content-card {
+            background: white;
+            padding: 50px;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .content-card h1 {
+            font-size: 42px;
+            color: #111827;
+            margin-bottom: 20px;
+        }
+
+        .content-card p {
+            font-size: 18px;
             color: #6b7280;
             line-height: 1.6;
             margin-bottom: 16px;
         }
 
-        .features {
+        .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 40px;
         }
 
-        .feature {
-            padding: 20px;
+        .feature-card {
             background: #f9fafb;
-            border-radius: 12px;
+            padding: 30px;
+            border-radius: 16px;
             text-align: center;
         }
 
-        .feature h3 {
-            font-size: 18px;
-            margin-bottom: 8px;
-            color: #111827;
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
         }
 
-        .feature p {
+        .feature-card h3 {
+            font-size: 20px;
+            color: #111827;
+            margin-bottom: 12px;
+        }
+
+        .feature-card p {
             font-size: 14px;
             color: #6b7280;
             margin: 0;
         }
 
-        /* Instructions */
-        .instructions {
+        /* Chat Widget Styles */
+        #chat-container {
             position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+        }
+
+        /* Layout: Classic Corner */
+        .layout-classic #chat-container {
+            bottom: 20px;
+            right: 20px;
+        }
+
+        /* Layout: Sidebar */
+        .layout-sidebar #chat-container {
+            top: 0;
+            right: 0;
+            height: 100vh;
+            width: 400px;
+            transform: translateX(100%);
+            transition: transform 0.4s ease;
+        }
+
+        .layout-sidebar #chat-container.open {
+            transform: translateX(0);
+        }
+
+        /* Layout: Modal */
+        .layout-modal #chat-container {
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .layout-modal #chat-container.open {
+            display: flex;
+        }
+
+        /* Layout: Card */
+        .layout-card #chat-container {
+            bottom: 100px;
+            right: 20px;
+        }
+
+        /* Chat Toggle Button */
+        .chat-toggle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary-color, #1e40af);
+            border: none;
             color: white;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        /* Chat Window */
+        .chat-window {
+            display: none;
+            flex-direction: column;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .layout-classic .chat-window {
+            position: absolute;
+            bottom: 80px;
+            right: 0;
+            width: 380px;
+            height: 600px;
+        }
+
+        .layout-sidebar .chat-window {
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+        }
+
+        .layout-modal .chat-window {
+            width: 90%;
+            max-width: 900px;
+            height: 80vh;
+            max-height: 700px;
+            border-radius: 24px;
+        }
+
+        .layout-card .chat-window {
+            width: 340px;
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            position: absolute;
+            bottom: 0;
+            right: 0;
+        }
+
+        .chat-window.open {
+            display: flex;
+        }
+
+        .chat-header {
+            background: var(--primary-color, #1e40af);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .message {
+            margin-bottom: 16px;
+        }
+
+        .message-bubble {
+            background: #f3f4f6;
+            padding: 12px 16px;
+            border-radius: 16px;
+            display: inline-block;
+            max-width: 80%;
+        }
+
+        .chat-input-area {
+            padding: 16px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            outline: none;
+        }
+
+        .send-btn {
             padding: 12px 24px;
-            border-radius: 999px;
-            font-size: 14px;
-            font-weight: 500;
-            z-index: 9998;
-            animation: pulse 2s infinite;
+            background: var(--primary-color, #1e40af);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+        /* Theme Colors */
+        .theme-classic {
+            --primary-color: #1e40af;
         }
 
-        /* Mobile */
+        .theme-elegant {
+            --primary-color: #7c3aed;
+        }
+
+        .theme-professional {
+            --primary-color: #0f766e;
+        }
+
+        .theme-luxury {
+            --primary-color: #d97706;
+        }
+
+        /* Responsive */
         @media (max-width: 768px) {
-            .style-selector {
-                left: 10px;
-                right: 10px;
-                max-width: none;
+            .control-grid {
+                grid-template-columns: 1fr;
             }
 
-            .demo-page {
-                padding: 320px 20px 20px;
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .layout-sidebar #chat-container {
+                width: 100%;
+            }
+
+            .layout-classic .chat-window {
+                width: calc(100vw - 40px);
             }
         }
     </style>
 </head>
 <body class="layout-classic theme-classic">
-    <!-- Style Selector Panel -->
-    <div class="style-selector">
-        <h3>🎨 Try Different Styles</h3>
-        
-        <div class="selector-group">
-            <label class="selector-label">Layout</label>
-            <div class="selector-buttons">
-                <button class="selector-btn active" onclick="changeLayout('classic')">Classic</button>
-                <button class="selector-btn" onclick="changeLayout('sidebar')">Sidebar</button>
-                <button class="selector-btn" onclick="changeLayout('modal')">Modal</button>
-                <button class="selector-btn" onclick="changeLayout('card')">Card</button>
+    <!-- Control Panel -->
+    <div class="demo-controls">
+        <div class="controls-header">
+            <div class="demo-logo">
+                ⚖️ LawBot 360 Interactive Demo
+            </div>
+            <div class="demo-actions">
+                <button class="action-btn btn-secondary" onclick="reset()">
+                    🔄 Reset
+                </button>
+                <button class="action-btn btn-primary">
+                    📞 Book a Demo
+                </button>
             </div>
         </div>
 
-        <div class="selector-group">
-            <label class="selector-label">Color Theme</label>
-            <div class="selector-buttons">
-                <button class="selector-btn active" onclick="changeTheme('classic')">Blue</button>
-                <button class="selector-btn" onclick="changeTheme('elegant')">Purple</button>
-                <button class="selector-btn" onclick="changeTheme('professional')">Teal</button>
-                <button class="selector-btn" onclick="changeTheme('luxury')">Gold</button>
-            </div>
-        </div>
-
-        <button class="reset-btn" onclick="reset()">🔄 Reset to Default</button>
-    </div>
-
-    <!-- Demo Page Content -->
-    <div class="demo-page">
-        <div class="demo-card">
-            <h1>⚖️ Your Law Firm Name</h1>
-            <p>Welcome to our law firm. We specialize in personal injury, family law, and criminal defense. Our experienced attorneys are here to fight for your rights.</p>
-            <p><strong>Click the chat widget to see it in action!</strong> Use the controls on the left to try different styles and find what works best for your brand.</p>
-
-            <div class="features">
-                <div class="feature">
-                    <h3>⚡ 24/7 Intake</h3>
-                    <p>Capture leads around the clock</p>
-                </div>
-                <div class="feature">
-                    <h3>📅 Auto Schedule</h3>
-                    <p>Book consultations instantly</p>
-                </div>
-                <div class="feature">
-                    <h3>💳 Payments</h3>
-                    <p>Collect retainers online</p>
-                </div>
-                <div class="feature">
-                    <h3>📊 Analytics</h3>
-                    <p>Track your conversions</p>
+        <div class="control-grid">
+            <!-- Layout Style -->
+            <div class="control-section">
+                <h3>🎯 LAYOUT STYLE</h3>
+                <div class="control-options">
+                    <div class="control-option active" onclick="setLayout('classic')">
+                        <span class="option-icon">💬</span>
+                        <span class="option-label">Classic Corner</span>
+                        <span class="option-badge">Popular</span>
+                    </div>
+                    <div class="control-option" onclick="setLayout('sidebar')">
+                        <span class="option-icon">📋</span>
+                        <span class="option-label">Sidebar Panel</span>
+                    </div>
+                    <div class="control-option" onclick="setLayout('modal')">
+                        <span class="option-icon">🎯</span>
+                        <span class="option-label">Center Modal</span>
+                    </div>
+                    <div class="control-option" onclick="setLayout('card')">
+                        <span class="option-icon">📝</span>
+                        <span class="option-label">Floating Card</span>
+                    </div>
                 </div>
             </div>
+
+            <!-- Color Theme -->
+            <div class="control-section">
+                <h3>🎨 COLOR THEME</h3>
+                <div class="control-options">
+                    <div class="control-option active" onclick="setTheme('classic')">
+                        <span class="option-icon" style="color: #1e40af;">●</span>
+                        <span class="option-label">Professional Blue</span>
+                        <span class="option-badge">Popular</span>
+                    </div>
+                    <div class="control-option" onclick="setTheme('elegant')">
+                        <span class="option-icon" style="color: #7c3aed;">●</span>
+                        <span class="option-label">Elegant Purple</span>
+                    </div>
+                    <div class="control-option" onclick="setTheme('professional')">
+                        <span class="option-icon" style="color: #0f766e;">●</span>
+                        <span class="option-label">Corporate Teal</span>
+                    </div>
+                    <div class="control-option" onclick="setTheme('luxury')">
+                        <span class="option-icon" style="color: #d97706;">●</span>
+                        <span class="option-label">Luxury Gold</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Presets -->
+            <div class="control-section">
+                <h3>📦 QUICK PRESETS</h3>
+                <div class="control-options">
+                    <div class="control-option" onclick="applyPreset('traditional')">
+                        <span class="option-icon">🏛️</span>
+                        <span class="option-label">Traditional Firm</span>
+                    </div>
+                    <div class="control-option" onclick="applyPreset('premium')">
+                        <span class="option-icon">👑</span>
+                        <span class="option-label">Premium Experience</span>
+                    </div>
+                    <div class="control-option" onclick="applyPreset('modern')">
+                        <span class="option-icon">🚀</span>
+                        <span class="option-label">Modern Tech</span>
+                    </div>
+                    <div class="control-option" onclick="applyPreset('magnet')">
+                        <span class="option-icon">🎯</span>
+                        <span class="option-label">Lead Magnet</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Instructions -->
-    <div class="instructions">
-        👉 Try clicking different styles above!
+    <!-- Demo Content -->
+    <div class="demo-content">
+        <div class="content-card">
+            <h1>How LawBot 360 Helps Your Firm Win More Cases</h1>
+            <p>Capture leads even when your office is closed. Our AI-powered intake assistant qualifies leads automatically and books consultations 24/7.</p>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>24/7 Availability</h3>
+                    <p>Capture leads even when your office is closed. Never miss a potential client again.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Pre-Qualified Leads Only</h3>
+                    <p>AI screens and qualifies cases before they reach your desk. No more wasted time on unqualified leads.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📅</div>
+                    <h3>Auto Scheduling</h3>
+                    <p>Consultations booked directly into your calendar. No back-and-forth emails or phone tag.</p>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- CHAT WIDGET (Your actual chat widget code goes here) -->
-    <div id="chat-widget-container">
-        <button class="chat-toggle-button" onclick="toggleChat()">⚖️</button>
+    <!-- Chat Widget -->
+    <div id="chat-container">
+        <button class="chat-toggle" onclick="toggleChat()">⚖️</button>
         
         <div class="chat-window" id="chatWindow">
             <div class="chat-header">
-                <div class="agent-info">
-                    <div class="agent-avatar">👨‍💼</div>
-                    <div>
-                        <div class="agent-name">Legal Assistant</div>
-                        <div class="agent-status">
-                            <span class="status-dot"></span>
-                            Online • Available 24/7
-                        </div>
-                    </div>
-                </div>
-                <button class="close-button" onclick="toggleChat()">×</button>
+                <div class="chat-title">Legal Assistant</div>
+                <button class="close-btn" onclick="toggleChat()">×</button>
             </div>
-
+            
             <div class="chat-messages">
-                <div class="chat-message bot">
+                <div class="message">
                     <div class="message-bubble">
-                        Hello! I'm here to help you 24/7. What type of legal assistance do you need?
+                        Hello! I'm here to help you 24/7. What type of legal assistance do you need today?
                     </div>
                 </div>
             </div>
-
+            
             <div class="chat-input-area">
                 <input type="text" class="chat-input" placeholder="Type your message...">
-                <button class="chat-send-button">Send</button>
+                <button class="send-btn">Send</button>
             </div>
         </div>
     </div>
 
     <script>
-        function changeLayout(layout) {
+        function setLayout(layout) {
             // Remove all layout classes
             document.body.className = document.body.className.replace(/layout-\w+/g, '');
-            
-            // Add new layout class
             document.body.classList.add(`layout-${layout}`);
             
-            // Update button states
-            document.querySelectorAll('.selector-group:first-child .selector-btn').forEach(btn => {
-                btn.classList.remove('active');
+            // Update active state
+            document.querySelectorAll('.control-section:nth-child(1) .control-option').forEach(el => {
+                el.classList.remove('active');
             });
-            event.target.classList.add('active');
+            event.target.closest('.control-option').classList.add('active');
             
-            console.log('Layout changed to:', layout);
+            // Close chat if open
+            closeChat();
         }
 
-        function changeTheme(theme) {
+        function setTheme(theme) {
             // Remove all theme classes
             document.body.className = document.body.className.replace(/theme-\w+/g, '');
-            
-            // Add new theme class
             document.body.classList.add(`theme-${theme}`);
             
-            // Update button states
-            document.querySelectorAll('.selector-group:last-child .selector-btn').forEach(btn => {
-                btn.classList.remove('active');
+            // Update active state
+            document.querySelectorAll('.control-section:nth-child(2) .control-option').forEach(el => {
+                el.classList.remove('active');
             });
-            event.target.classList.add('active');
+            event.target.closest('.control-option').classList.add('active');
+        }
+
+        function applyPreset(preset) {
+            const presets = {
+                traditional: { layout: 'classic', theme: 'classic' },
+                premium: { layout: 'sidebar', theme: 'elegant' },
+                modern: { layout: 'modal', theme: 'professional' },
+                magnet: { layout: 'card', theme: 'luxury' }
+            };
             
-            console.log('Theme changed to:', theme);
+            const config = presets[preset];
+            if (config) {
+                document.body.className = `layout-${config.layout} theme-${config.theme}`;
+                
+                // Update active states
+                document.querySelectorAll('.control-option').forEach(el => {
+                    el.classList.remove('active');
+                });
+                
+                closeChat();
+            }
+        }
+
+        function toggleChat() {
+            const container = document.getElementById('chat-container');
+            const window = document.getElementById('chatWindow');
+            
+            if (document.body.classList.contains('layout-sidebar') || 
+                document.body.classList.contains('layout-modal')) {
+                container.classList.toggle('open');
+            }
+            
+            window.classList.toggle('open');
+        }
+
+        function closeChat() {
+            const container = document.getElementById('chat-container');
+            const window = document.getElementById('chatWindow');
+            container.classList.remove('open');
+            window.classList.remove('open');
         }
 
         function reset() {
             document.body.className = 'layout-classic theme-classic';
             
-            // Reset button states
-            document.querySelectorAll('.selector-btn').forEach(btn => {
-                btn.classList.remove('active');
+            // Reset active states
+            document.querySelectorAll('.control-option').forEach(el => {
+                el.classList.remove('active');
             });
-            document.querySelectorAll('.selector-group:first-child .selector-btn:first-child').forEach(btn => {
-                btn.classList.add('active');
-            });
-            document.querySelectorAll('.selector-group:last-child .selector-btn:first-child').forEach(btn => {
-                btn.classList.add('active');
-            });
-        }
-
-        function toggleChat() {
-            const chatWindow = document.getElementById('chatWindow');
-            const container = document.getElementById('chat-widget-container');
             
-            if (document.body.classList.contains('layout-classic') || 
-                document.body.classList.contains('layout-mini')) {
-                chatWindow.classList.toggle('open');
-            } else {
-                container.classList.toggle('open');
-            }
+            document.querySelector('.control-section:nth-child(1) .control-option:first-child').classList.add('active');
+            document.querySelector('.control-section:nth-child(2) .control-option:first-child').classList.add('active');
+            
+            closeChat();
         }
-
-        // Hide instructions after 5 seconds
-        setTimeout(() => {
-            const instructions = document.querySelector('.instructions');
-            if (instructions) {
-                instructions.style.transition = 'opacity 1s';
-                instructions.style.opacity = '0';
-                setTimeout(() => instructions.remove(), 1000);
-            }
-        }, 5000);
     </script>
 </body>
 </html>
