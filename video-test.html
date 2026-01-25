@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #667eea;
+        }
+        
+        .test-container {
+            position: relative;
+            width: 380px;
+            height: 600px;
+            border: 3px solid red;
+            border-radius: 20px;
+            overflow: hidden;
+            background: transparent;
+        }
+        
+        .video-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background: yellow; /* Fallback color if video doesn't load */
+        }
+        
+        .video-bg video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            transform: translate(-50%, -50%);
+            object-fit: cover;
+        }
+        
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+        }
+        
+        .content {
+            position: relative;
+            z-index: 1;
+            padding: 20px;
+            color: white;
+        }
+        
+        .header {
+            background: rgba(30, 64, 175, 0.95);
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .messages {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            flex: 1;
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="color: white;">Video Background Test</h1>
+    <p style="color: white;">If you see a YELLOW background, the video isn't loading.</p>
+    <p style="color: white;">If you see VIDEO playing, it's working!</p>
+    
+    <div class="test-container">
+        <!-- Video Background -->
+        <div class="video-bg">
+            <video autoplay muted loop playsinline>
+                <source src="graphics/video.mp4" type="video/mp4">
+            </video>
+            <div class="video-overlay"></div>
+        </div>
+        
+        <!-- Content -->
+        <div class="header">
+            <h2>Legal Assistant</h2>
+        </div>
+        
+        <div class="messages">
+            <p>Hello! I'm here to help you 24/7.</p>
+            <p>If you can see the video behind this text, it's working!</p>
+        </div>
+    </div>
+    
+    <div style="margin-top: 20px; color: white;">
+        <h3>Troubleshooting:</h3>
+        <ul>
+            <li>Yellow background = Video file not found at graphics/video.mp4</li>
+            <li>Black/dark background = Video file exists but might be corrupt</li>
+            <li>Video playing = Everything works!</li>
+        </ul>
+    </div>
+    
+    <script>
+        // Check if video loaded
+        const video = document.querySelector('video');
+        video.addEventListener('loadeddata', function() {
+            console.log('✅ Video loaded successfully!');
+            console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+        });
+        
+        video.addEventListener('error', function() {
+            console.error('❌ Video failed to load!');
+            console.error('Check that graphics/video.mp4 exists');
+        });
+    </script>
+</body>
+</html>
