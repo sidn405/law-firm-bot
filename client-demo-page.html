@@ -302,7 +302,7 @@
             right: 20px;
             width: 380px;
             height: 600px;
-            background: "./graphics/video.mp4"; /* Let video show through */
+            background: transparent; /* Let video show through */
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
             display: none;
@@ -327,6 +327,7 @@
             z-index: 0;
             overflow: hidden;
             display: none;
+            background: yellow; /* Fallback - if you see yellow, video isn't loading */
         }
 
         .layout-video .chat-video-bg {
@@ -523,7 +524,7 @@
 
         /* Video layout messages are semi-transparent */
         .layout-video .chat-messages {
-            background: "./graphics/video.mp4";
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
         }
 
@@ -740,7 +741,7 @@
     <div class="chat-window" id="chatWindow">
         <!-- Video Background (only visible in video layout) -->
         <div class="chat-video-bg">
-            <video autoplay muted loop playsinline>
+            <video autoplay muted loop playsinline id="chatVideo">
                 <source src="graphics/video.mp4" type="video/mp4">
             </video>
             <div class="chat-video-overlay"></div>
@@ -896,6 +897,20 @@
             document.querySelector('.control-section:nth-child(2) .control-option:first-child').classList.add('active');
             
             console.log('✅ Reset to defaults');
+        }
+
+        // Video debugging
+        const chatVideo = document.getElementById('chatVideo');
+        if (chatVideo) {
+            chatVideo.addEventListener('loadeddata', function() {
+                console.log('✅ Chat video loaded successfully!');
+                console.log('Video dimensions:', chatVideo.videoWidth, 'x', chatVideo.videoHeight);
+            });
+            
+            chatVideo.addEventListener('error', function() {
+                console.error('❌ Chat video failed to load!');
+                console.error('Check that graphics/video.mp4 exists');
+            });
         }
     </script>
 </body>
