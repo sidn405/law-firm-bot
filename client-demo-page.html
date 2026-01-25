@@ -345,6 +345,7 @@
             transform: translate(-50%, -50%);
             object-fit: cover;
             z-index: 1 !important;
+            border: 5px solid red !important; /* DEBUG: Should see red border if video is positioned */
         }
 
         .chat-video-overlay {
@@ -353,9 +354,10 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.3); /* Lighter overlay - was 0.6 */
             backdrop-filter: blur(2px);
             z-index: 2 !important;
+            pointer-events: none; /* Don't block clicks */
         }
 
         /* Make chat content float above video */
@@ -469,9 +471,9 @@
             border-radius: 16px 16px 0 0;
         }
 
-        /* Video layout header is semi-transparent */
+        /* Video layout header is MORE transparent */
         .layout-video .chat-header {
-            background: rgba(30, 64, 175, 0.95);
+            background: rgba(30, 64, 175, 0.85) !important;
             backdrop-filter: blur(10px);
             border-radius: 20px 20px 0 0;
         }
@@ -524,10 +526,10 @@
             background: #f9fafb;
         }
 
-        /* Video layout messages are semi-transparent */
+        /* Video layout messages are MORE transparent */
         .layout-video .chat-messages {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.5) !important; /* 50% transparent */
+            backdrop-filter: blur(10px);
         }
 
         .message {
@@ -544,7 +546,7 @@
         }
 
         .layout-video .message-bubble {
-            background: rgba(255, 255, 255, 0.98);
+            background: rgba(255, 255, 255, 0.9) !important; /* Keep text readable */
             backdrop-filter: blur(10px);
         }
 
@@ -556,9 +558,9 @@
             background: white;
         }
 
-        /* Video layout input area is semi-transparent */
+        /* Video layout input area is MORE transparent */
         .layout-video .chat-input-area {
-            background: rgba(255, 255, 255, 0.98);
+            background: rgba(255, 255, 255, 0.85) !important; /* More transparent */
             backdrop-filter: blur(20px);
             border-top: 1px solid rgba(255, 255, 255, 0.3);
         }
@@ -947,9 +949,23 @@
             
             const video = document.getElementById('chatVideo');
             if (video) {
+                const vidStyles = window.getComputedStyle(video);
                 console.log('Video ready state:', video.readyState);
                 console.log('Video paused:', video.paused);
                 console.log('Video current time:', video.currentTime);
+                console.log('Video element display:', vidStyles.display);
+                console.log('Video element opacity:', vidStyles.opacity);
+                console.log('Video element visibility:', vidStyles.visibility);
+                console.log('Video element z-index:', vidStyles.zIndex);
+                console.log('Video src:', video.src);
+            }
+            
+            const overlay = document.querySelector('.chat-video-overlay');
+            if (overlay) {
+                const overlayStyles = window.getComputedStyle(overlay);
+                console.log('Overlay display:', overlayStyles.display);
+                console.log('Overlay background:', overlayStyles.background);
+                console.log('Overlay z-index:', overlayStyles.zIndex);
             }
         };
         
