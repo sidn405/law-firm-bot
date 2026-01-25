@@ -302,7 +302,7 @@
             right: 20px;
             width: 380px;
             height: 600px;
-            background: transparent; /* Let video show through */
+            background: transparent !important; /* Let video show through */
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
             display: none;
@@ -319,19 +319,19 @@
 
         /* Video Background Container inside Chat */
         .chat-video-bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-            overflow: hidden;
-            display: none;
-            background: yellow; /* Fallback - if you see yellow, video isn't loading */
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            z-index: 0 !important;
+            overflow: hidden !important;
+            display: none !important;
+            background: yellow !important; /* Fallback - if you see yellow, video isn't loading */
         }
 
         .layout-video .chat-video-bg {
-            display: block;
+            display: block !important;
         }
 
         .chat-video-bg video {
@@ -344,6 +344,7 @@
             height: auto;
             transform: translate(-50%, -50%);
             object-fit: cover;
+            z-index: 1 !important;
         }
 
         .chat-video-overlay {
@@ -354,6 +355,7 @@
             height: 100%;
             background: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(2px);
+            z-index: 2 !important;
         }
 
         /* Make chat content float above video */
@@ -361,7 +363,7 @@
         .layout-video .chat-messages,
         .layout-video .chat-input-area {
             position: relative;
-            z-index: 1;
+            z-index: 10 !important;
         }
 
         /* ============================================
@@ -905,6 +907,16 @@
             chatVideo.addEventListener('loadeddata', function() {
                 console.log('✅ Chat video loaded successfully!');
                 console.log('Video dimensions:', chatVideo.videoWidth, 'x', chatVideo.videoHeight);
+                
+                // Debug video background visibility
+                const videoBg = document.querySelector('.chat-video-bg');
+                if (videoBg) {
+                    const styles = window.getComputedStyle(videoBg);
+                    console.log('📺 Video BG display:', styles.display);
+                    console.log('📺 Video BG z-index:', styles.zIndex);
+                    console.log('📺 Video BG position:', styles.position);
+                    console.log('📺 Video BG background:', styles.background);
+                }
             });
             
             chatVideo.addEventListener('error', function() {
@@ -912,6 +924,36 @@
                 console.error('Check that graphics/video.mp4 exists');
             });
         }
+
+        // Debug function - call this in console if video doesn't show
+        window.debugVideo = function() {
+            console.log('=== VIDEO DEBUG INFO ===');
+            console.log('Body classes:', document.body.className);
+            
+            const chatWindow = document.getElementById('chatWindow');
+            if (chatWindow) {
+                const winStyles = window.getComputedStyle(chatWindow);
+                console.log('Chat window display:', winStyles.display);
+                console.log('Chat window background:', winStyles.background);
+            }
+            
+            const videoBg = document.querySelector('.chat-video-bg');
+            if (videoBg) {
+                const bgStyles = window.getComputedStyle(videoBg);
+                console.log('Video BG display:', bgStyles.display);
+                console.log('Video BG z-index:', bgStyles.zIndex);
+                console.log('Video BG visibility:', bgStyles.visibility);
+            }
+            
+            const video = document.getElementById('chatVideo');
+            if (video) {
+                console.log('Video ready state:', video.readyState);
+                console.log('Video paused:', video.paused);
+                console.log('Video current time:', video.currentTime);
+            }
+        };
+        
+        console.log('💡 Type debugVideo() in console to see detailed debug info');
     </script>
 </body>
 </html>
