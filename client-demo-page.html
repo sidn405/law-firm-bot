@@ -327,7 +327,6 @@
             z-index: 0 !important;
             overflow: hidden !important;
             display: none !important;
-            background: yellow !important; /* Fallback - if you see yellow, video isn't loading */
         }
 
         .layout-video .chat-video-bg {
@@ -345,7 +344,6 @@
             transform: translate(-50%, -50%);
             object-fit: cover;
             z-index: 1 !important;
-            border: 5px solid red !important; /* DEBUG: Should see red border if video is positioned */
         }
 
         .chat-video-overlay {
@@ -354,8 +352,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.3); /* Lighter overlay - was 0.6 */
-            backdrop-filter: blur(2px);
+            background: rgba(0, 0, 0, 0.25); /* Lighter overlay for clearer video */
+            backdrop-filter: none; /* Remove blur completely */
             z-index: 2 !important;
             pointer-events: none; /* Don't block clicks */
         }
@@ -473,8 +471,8 @@
 
         /* Video layout header is MORE transparent */
         .layout-video .chat-header {
-            background: rgba(30, 64, 175, 0.85) !important;
-            backdrop-filter: blur(10px);
+            background: rgba(30, 64, 175, 0.90) !important;
+            backdrop-filter: none; /* Remove blur for clarity */
             border-radius: 20px 20px 0 0;
         }
 
@@ -528,8 +526,8 @@
 
         /* Video layout messages are MORE transparent */
         .layout-video .chat-messages {
-            background: rgba(255, 255, 255, 0.5) !important; /* 50% transparent */
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.70) !important; /* 70% for better text readability */
+            backdrop-filter: none; /* Remove blur for video clarity */
         }
 
         .message {
@@ -546,8 +544,8 @@
         }
 
         .layout-video .message-bubble {
-            background: rgba(255, 255, 255, 0.9) !important; /* Keep text readable */
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95) !important; /* Keep text very readable */
+            backdrop-filter: none; /* Remove blur */
         }
 
         .chat-input-area {
@@ -560,8 +558,8 @@
 
         /* Video layout input area is MORE transparent */
         .layout-video .chat-input-area {
-            background: rgba(255, 255, 255, 0.85) !important; /* More transparent */
-            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.90) !important; /* Slightly more opaque for usability */
+            backdrop-filter: none; /* Remove blur for video clarity */
             border-top: 1px solid rgba(255, 255, 255, 0.3);
         }
 
