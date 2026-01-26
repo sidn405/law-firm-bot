@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LawBot 360 - Professional Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #667eea;
+        }
+
+        /* Theme Colors */
+        .theme-blue {
+            --primary-color: #1e40af;
+            --primary-dark: #1e3a8a;
+        }
+
+        .theme-purple {
+            --primary-color: #7c3aed;
+            --primary-dark: #6d28d9;
+        }
+
+        .theme-teal {
+            --primary-color: #0f766e;
+            --primary-dark: #0f5757;
+        }
+
+        .theme-gold {
+            --primary-color: #d97706;
+            --primary-dark: #b45309;
+        }
+
+        /* Chat Toggle Button */
+        .chat-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary-color, #1e40af);
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .chat-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        /* Chat Container */
+        .chat-container {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 800px;
+            height: 600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: none;
+            overflow: hidden;
+            z-index: 9999;
+            animation: slideUp 0.3s ease;
+        }
+
+        .chat-container.open {
+            display: flex;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Sidebar */
+        .chat-sidebar {
+            width: 240px;
+            background: #1a1a1a;
+            color: white;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .chat-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            overflow: hidden;
+            border: 3px solid var(--primary-color, #1e40af);
+        }
+
+        .chat-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .firm-name {
+            font-size: 18px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 5px;
+            line-height: 1.3;
+        }
+
+        .agent-subtitle {
+            font-size: 13px;
+            text-align: center;
+            color: #999;
+            margin-bottom: 25px;
+        }
+
+        .status-badge {
+            background: #10b981;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .status-subtitle {
+            text-align: center;
+            font-size: 13px;
+            color: #ccc;
+            margin-bottom: 25px;
+        }
+
+        .contact-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .contact-phone {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            text-decoration: none;
+        }
+
+        .sidebar-menu {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .powered-by {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 11px;
+            color: #666;
+        }
+
+        /* Chat Main Area */
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f5f5f5;
+        }
+
+        .chat-header {
+            background: white;
+            padding: 20px 25px;
+            border-bottom: 1px solid #e5e5e5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-disclaimer {
+            font-size: 11px;
+            color: #666;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .header-disclaimer a {
+            color: var(--primary-color, #1e40af);
+            text-decoration: underline;
+        }
+
+        .header-date {
+            font-size: 12px;
+            color: #999;
+            text-align: right;
+        }
+
+        .close-btn {
+            background: #f3f4f6;
+            border: none;
+            color: #374151;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .close-btn:hover {
+            background: #e5e7eb;
+        }
+
+        /* Messages Area */
+        .chat-messages {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.bot {
+            flex-direction: row;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            overflow: hidden;
+            background: var(--primary-color, #1e40af);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .message-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .message-bubble {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 16px;
+            max-width: 70%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message.user .message-bubble {
+            background: var(--primary-color, #1e40af);
+            color: white;
+        }
+
+        /* Input Area */
+        .chat-input-area {
+            padding: 20px 25px;
+            border-top: 1px solid #e5e5e5;
+            background: white;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .emoji-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .emoji-btn:hover {
+            opacity: 1;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #e5e5e5;
+            border-radius: 24px;
+            outline: none;
+            font-size: 14px;
+            background: #f9fafb;
+        }
+
+        .chat-input:focus {
+            border-color: var(--primary-color, #1e40af);
+            background: white;
+        }
+
+        .send-btn {
+            background: var(--primary-color, #1e40af);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover {
+            background: var(--primary-dark, #1e3a8a);
+            transform: scale(1.05);
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .chat-container {
+                width: calc(100vw - 40px);
+                height: 80vh;
+            }
+
+            .chat-sidebar {
+                width: 200px;
+                padding: 20px 15px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .chat-sidebar {
+                display: none;
+            }
+
+            .chat-container {
+                width: calc(100vw - 20px);
+                right: 10px;
+                bottom: 80px;
+            }
+        }
+    </style>
+</head>
+<body class="theme-blue">
+    <!-- Chat Toggle Button -->
+    <button class="chat-toggle" onclick="toggleChat()">⚖️</button>
+
+    <!-- Chat Container -->
+    <div class="chat-container" id="chatContainer">
+        <!-- Sidebar -->
+        <div class="chat-sidebar">
+            <div class="chat-avatar">
+                <img src="https://ui-avatars.com/api/?name=Legal+Assistant&background=1e40af&color=fff&size=80" alt="Legal Assistant">
+            </div>
+            
+            <div class="firm-name">LawBot 360 Legal Assistant</div>
+            <div class="agent-subtitle">Chatting with AI Assistant</div>
+            
+            <div class="status-badge">We are ONLINE!</div>
+            <div class="status-subtitle">We're here to help 24/7</div>
+            
+            <div class="contact-info">
+                <a href="tel:1-800-LAW-HELP" class="contact-phone">
+                    📞 1-800-LAW-HELP
+                </a>
+            </div>
+            
+            <div class="sidebar-menu">
+                <button class="menu-button">
+                    Menu ▼
+                </button>
+            </div>
+            
+            <div class="powered-by">
+                Powered By LawBot 360
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="chat-main">
+            <div class="chat-header">
+                <div class="header-info">
+                    <div class="header-disclaimer">
+                        This transcript will be recorded by Your Law Firm and its affiliates. By using this chat, you agree to our <a href="#">Terms of Use</a> and <a href="#">Privacy Policy</a>.
+                    </div>
+                    <div class="header-firm-name">Your Law Firm (<a href="#">Privacy Policy</a>)</div>
+                </div>
+                <div class="header-date">Sunday, 25 January</div>
+                <button class="close-btn" onclick="closeChat()">×</button>
+            </div>
+            
+            <div class="chat-messages" id="messages">
+                <div class="message bot">
+                    <div class="message-avatar">
+                        <img src="https://ui-avatars.com/api/?name=Legal+Assistant&background=1e40af&color=fff&size=40" alt="Bot">
+                    </div>
+                    <div class="message-bubble">
+                        Thanks for visiting our website. Is there anything I can assist you with?
+                    </div>
+                </div>
+                
+                <div class="message bot">
+                    <div class="message-avatar">
+                        <img src="https://ui-avatars.com/api/?name=Legal+Assistant&background=1e40af&color=fff&size=40" alt="Bot">
+                    </div>
+                    <div class="message-bubble">
+                        Were you able to find the information you were looking for?
+                    </div>
+                </div>
+                
+                <div class="message bot">
+                    <div class="message-avatar">
+                        <img src="https://ui-avatars.com/api/?name=Legal+Assistant&background=1e40af&color=fff&size=40" alt="Bot">
+                    </div>
+                    <div class="message-bubble">
+                        Would you like to set up a free consultation?
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-input-area">
+                <button class="emoji-btn">😊</button>
+                <input type="text" class="chat-input" placeholder="Type your message..." id="messageInput">
+                <button class="send-btn" onclick="sendMessage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleChat() {
+            const container = document.getElementById('chatContainer');
+            container.classList.toggle('open');
+        }
+
+        function closeChat() {
+            const container = document.getElementById('chatContainer');
+            container.classList.remove('open');
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (message) {
+                const messagesDiv = document.getElementById('messages');
+                
+                // Add user message
+                const userMsg = document.createElement('div');
+                userMsg.className = 'message user';
+                userMsg.innerHTML = `
+                    <div class="message-avatar">You</div>
+                    <div class="message-bubble">${message}</div>
+                `;
+                messagesDiv.appendChild(userMsg);
+                
+                // Clear input
+                input.value = '';
+                
+                // Scroll to bottom
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                
+                // Simulate bot response after delay
+                setTimeout(() => {
+                    const botMsg = document.createElement('div');
+                    botMsg.className = 'message bot';
+                    botMsg.innerHTML = `
+                        <div class="message-avatar">
+                            <img src="https://ui-avatars.com/api/?name=Legal+Assistant&background=1e40af&color=fff&size=40" alt="Bot">
+                        </div>
+                        <div class="message-bubble">Thank you for your message. A legal professional will review your case shortly.</div>
+                    `;
+                    messagesDiv.appendChild(botMsg);
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                }, 1000);
+            }
+        }
+
+        // Send on Enter key
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
