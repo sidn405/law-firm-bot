@@ -1340,14 +1340,14 @@
         .widget-right .lawfirm-chat-window { right: 0; left: auto; }
 
         /* ====== PICTURE BACKGROUND (classic + background image) ====== */
-        .layout-picture .lawfirm-chat-window::before {
+        .layout-image .lawfirm-chat-window::before {
             content: "";
             position: absolute;
             inset: 0;
-            background-image: url('https://images.unsplash.com/photo-1528747045269-390fe33c19f2?auto=format&fit=crop&w=1200&q=60');
+            background-image: url("./graphics/image.jpg");
             background-size: cover;
             background-position: center;
-            opacity: 0.12;
+            opacity: 0.9;
             pointer-events: none;
         }
 
@@ -1364,7 +1364,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            opacity: 0.18;
+            opacity: 0.9;
         }
         .layout-video .lawfirm-chat-window > *:not(.video-bg) {
             position: relative;
@@ -1384,7 +1384,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            opacity: 0.18;
+            opacity: 0.9;
         }
         .layout-image .lawfirm-chat-window > *:not(.iimage-bg) {
             position: relative;
