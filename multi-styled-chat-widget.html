@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LawBot 360 - Multi-Style Widget Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .demo-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .demo-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+
+        .demo-header h1 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .demo-header p {
+            font-size: 18px;
+            opacity: 0.95;
+        }
+
+        .widgets-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .widget-showcase {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .widget-label {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .widget-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+        }
+
+        .widget-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .widget-demo-btn {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+            transition: all 0.3s;
+        }
+
+        .widget-demo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+        }
+
+        /* ============= WIDGET STYLES ============= */
+        
+        /* Common Chat Styles */
+        :root {
+            --primary-blue: #1e40af;
+            --primary-purple: #7c3aed;
+            --primary-teal: #0f766e;
+            --primary-gold: #d97706;
+        }
+
+        /* Widget 1: Picture Background (Classic + Background) */
+        .chat-widget-1 .chat-window {
+            background-image: url('data:image/svg+xml,%3Csvg width="400" height="600" xmlns="http://www.w3.org/2000/svg"%3E%3Cdefs%3E%3ClinearGradient id="grad1" x1="0%25" y1="0%25" x2="100%25" y2="100%25"%3E%3Cstop offset="0%25" style="stop-color:%23667eea;stop-opacity:1" /%3E%3Cstop offset="100%25" style="stop-color:%23764ba2;stop-opacity:1" /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width="400" height="600" fill="url(%23grad1)"/%3E%3Ccircle cx="100" cy="100" r="80" fill="white" opacity="0.1"/%3E%3Ccircle cx="300" cy="400" r="100" fill="white" opacity="0.1"/%3E%3Ccircle cx="350" cy="150" r="60" fill="white" opacity="0.1"/%3E%3C/svg%3E');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .chat-widget-1 .chat-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        .chat-widget-1 .chat-messages {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Widget 2: Sidebar Style (from chatbot-side.html) */
+        .chat-widget-2 .chat-window {
+            width: 800px;
+            display: flex;
+        }
+
+        .chat-sidebar {
+            width: 240px;
+            background: #1a1a1a;
+            color: white;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            overflow: hidden;
+            border: 3px solid var(--primary-blue);
+            background: var(--primary-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+
+        .firm-name {
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .agent-subtitle {
+            font-size: 12px;
+            text-align: center;
+            color: #999;
+            margin-bottom: 20px;
+        }
+
+        .status-badge {
+            background: #10b981;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .status-subtitle {
+            text-align: center;
+            font-size: 12px;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-contact {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .powered-by {
+            margin-top: auto;
+            padding-top: 20px;
+            text-align: center;
+            font-size: 11px;
+            color: #666;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Widget 3: Floating Card (Compact) */
+        .chat-widget-3 .chat-window {
+            width: 380px;
+            height: 550px;
+            border-radius: 25px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        .chat-widget-3 .chat-header {
+            background: linear-gradient(135deg, #0f766e, #14b8a6);
+            color: white;
+            border-radius: 25px 25px 0 0;
+        }
+
+        .chat-widget-3 .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .chat-widget-3 .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Widget 4: Video Background */
+        .chat-widget-4 .chat-window {
+            background: #000;
+            overflow: hidden;
+        }
+
+        .chat-widget-4 .video-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.3;
+            z-index: 0;
+        }
+
+        .chat-widget-4 .chat-header,
+        .chat-widget-4 .chat-messages,
+        .chat-widget-4 .chat-input-area {
+            position: relative;
+            z-index: 1;
+        }
+
+        .chat-widget-4 .chat-header {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            color: white;
+        }
+
+        .chat-widget-4 .chat-messages {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+        }
+
+        .chat-widget-4 .chat-input-area {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Widget 5: Center Modal */
+        .chat-widget-5 .chat-window {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            height: 650px;
+            border-radius: 20px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+        }
+
+        .chat-widget-5 .chat-header {
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            color: white;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .chat-widget-5 .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .chat-widget-5.open::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+        }
+
+        /* Widget 6: Classic (Original) */
+        .chat-widget-6 .chat-header {
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            color: white;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .chat-widget-6 .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        /* ============= COMMON WIDGET STRUCTURE ============= */
+        
+        .chat-toggle {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #1e40af, #3b82f6);
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .chat-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .chat-widget {
+            position: relative;
+            height: 600px;
+            display: none;
+        }
+
+        .chat-widget.open {
+            display: block;
+        }
+
+        .chat-window {
+            width: 420px;
+            height: 600px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: #f3f4f6;
+            border: none;
+            color: #374151;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            transition: background 0.2s;
+        }
+
+        .close-btn:hover {
+            background: #e5e7eb;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f9fafb;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #1e40af;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: #6b7280;
+        }
+
+        .message-bubble {
+            background: white;
+            padding: 12px 16px;
+            border-radius: 16px;
+            max-width: 70%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message.user .message-bubble {
+            background: #1e40af;
+            color: white;
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            border-top: 1px solid #e5e7eb;
+            background: white;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 24px;
+            outline: none;
+            font-size: 14px;
+            background: #f9fafb;
+        }
+
+        .chat-input:focus {
+            border-color: #1e40af;
+            background: white;
+        }
+
+        .send-btn {
+            background: #1e40af;
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .send-btn:hover {
+            background: #1e3a8a;
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 1200px) {
+            .widgets-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+        }
+
+        .typing-indicator.show {
+            display: flex;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #9ca3af;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+                opacity: 0.5;
+            }
+            30% {
+                transform: translateY(-10px);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1>🎨 LawBot 360 Multi-Style Widget Demo</h1>
+            <p>Try all 6 chatbot styles - Each fully functional with unique design</p>
+        </div>
+
+        <div class="widgets-grid">
+            <!-- Widget 1: Picture Background -->
+            <div class="widget-showcase">
+                <span class="widget-label">Style 1</span>
+                <h2 class="widget-title">Picture Background</h2>
+                <p class="widget-description">Classic chatbot with an elegant gradient background overlay</p>
+                <button class="widget-demo-btn" onclick="toggleWidget(1)">Try Picture Background</button>
+                
+                <div class="chat-widget chat-widget-1" id="widget-1">
+                    <div class="chat-window">
+                        <div class="chat-header">
+                            <span class="header-title">LawBot 360</span>
+                            <button class="close-btn" onclick="toggleWidget(1)">×</button>
+                        </div>
+                        <div class="chat-messages" id="messages-1">
+                            <div class="message">
+                                <div class="message-avatar">⚖️</div>
+                                <div class="message-bubble">Hello! I'm here to help with your legal questions. How can I assist you today?</div>
+                            </div>
+                        </div>
+                        <div class="typing-indicator" id="typing-1">
+                            <div class="message-avatar">⚖️</div>
+                            <div class="typing-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                        <div class="chat-input-area">
+                            <input type="text" class="chat-input" placeholder="Type your message..." id="input-1" onkeypress="handleEnter(event, 1)">
+                            <button class="send-btn" onclick="sendMessage(1)">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Widget 2: Sidebar Style -->
+            <div class="widget-showcase">
+                <span class="widget-label">Style 2</span>
+                <h2 class="widget-title">Sidebar Professional</h2>
+                <p class="widget-description">Professional sidebar layout with firm branding and contact info</p>
+                <button class="widget-demo-btn" onclick="toggleWidget(2)">Try Sidebar Style</button>
+                
+                <div class="chat-widget chat-widget-2" id="widget-2">
+                    <div class="chat-window">
+                        <div class="chat-sidebar">
+                            <div class="chat-avatar">⚖️</div>
+                            <div class="firm-name">LawBot 360<br>Legal Assistant</div>
+                            <div class="agent-subtitle">AI Assistant</div>
+                            <div class="status-badge">We are ONLINE!</div>
+                            <div class="status-subtitle">Available 24/7</div>
+                            <a href="tel:1-800-LAW-HELP" class="sidebar-contact">📞 1-800-LAW-HELP</a>
+                            <div class="powered-by">Powered By LawBot 360</div>
+                        </div>
+                        <div style="flex: 1; display: flex; flex-direction: column;">
+                            <div class="chat-header">
+                                <span class="header-title">Chat with Legal AI</span>
+                                <button class="close-btn" onclick="toggleWidget(2)">×</button>
+                            </div>
+                            <div class="chat-messages" id="messages-2">
+                                <div class="message">
+                                    <div class="message-avatar">⚖️</div>
+                                    <div class="message-bubble">Welcome! I'm your AI legal assistant. How can I help you today?</div>
+                                </div>
+                            </div>
+                            <div class="typing-indicator" id="typing-2">
+                                <div class="message-avatar">⚖️</div>
+                                <div class="typing-dots">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                            </div>
+                            <div class="chat-input-area">
+                                <input type="text" class="chat-input" placeholder="Type your message..." id="input-2" onkeypress="handleEnter(event, 2)">
+                                <button class="send-btn" onclick="sendMessage(2)">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Widget 3: Floating Card -->
+            <div class="widget-showcase">
+                <span class="widget-label">Style 3</span>
+                <h2 class="widget-title">Floating Card</h2>
+                <p class="widget-description">Compact floating card design with gradient header</p>
+                <button class="widget-demo-btn" onclick="toggleWidget(3)">Try Floating Card</button>
+                
+                <div class="chat-widget chat-widget-3" id="widget-3">
+                    <div class="chat-window">
+                        <div class="chat-header">
+                            <span class="header-title">LawBot 360</span>
+                            <button class="close-btn" onclick="toggleWidget(3)">×</button>
+                        </div>
+                        <div class="chat-messages" id="messages-3">
+                            <div class="message">
+                                <div class="message-avatar">⚖️</div>
+                                <div class="message-bubble">Hi there! I'm your legal intake assistant. What brings you here today?</div>
+                            </div>
+                        </div>
+                        <div class="typing-indicator" id="typing-3">
+                            <div class="message-avatar">⚖️</div>
+                            <div class="typing-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                        <div class="chat-input-area">
+                            <input type="text" class="chat-input" placeholder="Type your message..." id="input-3" onkeypress="handleEnter(event, 3)">
+                            <button class="send-btn" onclick="sendMessage(3)">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Widget 4: Video Background -->
+            <div class="widget-showcase">
+                <span class="widget-label">Style 4</span>
+                <h2 class="widget-title">Video Background</h2>
+                <p class="widget-description">Immersive experience with animated background</p>
+                <button class="widget-demo-btn" onclick="toggleWidget(4)">Try Video Background</button>
+                
+                <div class="chat-widget chat-widget-4" id="widget-4">
+                    <div class="chat-window">
+                        <div class="video-background">
+                            <!-- Animated gradient as video replacement -->
+                            <div style="width: 100%; height: 100%; background: linear-gradient(45deg, #1e40af, #7c3aed, #1e40af); background-size: 200% 200%; animation: gradient 15s ease infinite;"></div>
+                        </div>
+                        <div class="chat-header">
+                            <span class="header-title">LawBot 360</span>
+                            <button class="close-btn" onclick="toggleWidget(4)">×</button>
+                        </div>
+                        <div class="chat-messages" id="messages-4">
+                            <div class="message">
+                                <div class="message-avatar">⚖️</div>
+                                <div class="message-bubble">Welcome to LawBot 360! I'm here to assist with your legal needs.</div>
+                            </div>
+                        </div>
+                        <div class="typing-indicator" id="typing-4">
+                            <div class="message-avatar">⚖️</div>
+                            <div class="typing-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                        <div class="chat-input-area">
+                            <input type="text" class="chat-input" placeholder="Type your message..." id="input-4" onkeypress="handleEnter(event, 4)">
+                            <button class="send-btn" onclick="sendMessage(4)">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Widget 5: Center Modal -->
+            <div class="widget-showcase">
+                <span class="widget-label">Style 5</span>
+                <h2 class="widget-title">Center Modal</h2>
+                <p class="widget-description">Full-screen modal overlay that opens in the center</p>
+                <button class="widget-demo-btn" onclick="toggleWidget(5)">Try Center Modal</button>
+                
+                <div class="chat-widget chat-widget-5" id="widget-5">
+                    <div class="chat-window">
+                        <div class="chat-header">
+                            <span class="header-title">LawBot 360</span>
+                            <button class="close-btn" onclick="toggleWidget(5)">×</button>
+                        </div>
+                        <div class="chat-messages" id="messages-5">
+                            <div class="message">
+                                <div class="message-avatar">⚖️</div>
+                                <div class="message-bubble">Hello! Ready to discuss your case? I'm here to help you 24/7.</div>
+                            </div>
+                        </div>
+                        <div class="typing-indicator" id="typing-5">
+                            <div class="message-avatar">⚖️</div>
+                            <div class="typing-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                        <div class="chat-input-area">
+                            <input type="text" class="chat-input" placeholder="Type your message..." id="input-5" onkeypress="handleEnter(event, 5)">
+                            <button class="send-btn" onclick="sendMessage(5)">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Widget 6: Classic Original -->
+            <div class="widget-showcase">
+                <span class="widget-label">Style 6</span>
+                <h2 class="widget-title">Classic Original</h2>
+                <p class="widget-description">The original LawBot 360 style with blue gradient header</p>
+                <button class="widget-demo-btn" onclick="toggleWidget(6)">Try Classic Style</button>
+                
+                <div class="chat-widget chat-widget-6" id="widget-6">
+                    <div class="chat-window">
+                        <div class="chat-header">
+                            <span class="header-title">LawBot 360</span>
+                            <button class="close-btn" onclick="toggleWidget(6)">×</button>
+                        </div>
+                        <div class="chat-messages" id="messages-6">
+                            <div class="message">
+                                <div class="message-avatar">⚖️</div>
+                                <div class="message-bubble">Good day! I'm LawBot 360, your AI legal assistant. How may I help you?</div>
+                            </div>
+                        </div>
+                        <div class="typing-indicator" id="typing-6">
+                            <div class="message-avatar">⚖️</div>
+                            <div class="typing-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                        <div class="chat-input-area">
+                            <input type="text" class="chat-input" placeholder="Type your message..." id="input-6" onkeypress="handleEnter(event, 6)">
+                            <button class="send-btn" onclick="sendMessage(6)">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+    </style>
+
+    <script>
+        function toggleWidget(widgetNum) {
+            const widget = document.getElementById('widget-' + widgetNum);
+            widget.classList.toggle('open');
+            
+            // For widget 5 (center modal), also toggle body scroll
+            if (widgetNum === 5) {
+                document.body.style.overflow = widget.classList.contains('open') ? 'hidden' : 'auto';
+            }
+        }
+
+        function handleEnter(event, widgetNum) {
+            if (event.key === 'Enter') {
+                sendMessage(widgetNum);
+            }
+        }
+
+        function sendMessage(widgetNum) {
+            const input = document.getElementById('input-' + widgetNum);
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            const messagesContainer = document.getElementById('messages-' + widgetNum);
+            const typingIndicator = document.getElementById('typing-' + widgetNum);
+            
+            // Add user message
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user';
+            userMessage.innerHTML = `
+                <div class="message-avatar">👤</div>
+                <div class="message-bubble">${escapeHtml(message)}</div>
+            `;
+            messagesContainer.appendChild(userMessage);
+            
+            // Clear input
+            input.value = '';
+            
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Show typing indicator
+            typingIndicator.classList.add('show');
+            
+            // Simulate bot response
+            setTimeout(() => {
+                typingIndicator.classList.remove('show');
+                
+                const botMessage = document.createElement('div');
+                botMessage.className = 'message';
+                botMessage.innerHTML = `
+                    <div class="message-avatar">⚖️</div>
+                    <div class="message-bubble">${getBotResponse(message)}</div>
+                `;
+                messagesContainer.appendChild(botMessage);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 1500);
+        }
+
+        function getBotResponse(userMessage) {
+            const responses = [
+                "Thank you for reaching out. I'd be happy to help you with that. Can you provide more details?",
+                "I understand your concern. Let me gather some information to better assist you.",
+                "That's a great question. Based on what you've told me, I can help you explore your options.",
+                "I'm here to help. Would you like to schedule a free consultation with one of our attorneys?",
+                "Thank you for sharing that information. This is definitely something we can assist with.",
+                "I appreciate you contacting us. Let me connect you with the right resources.",
+            ];
+            
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Close widgets when clicking outside (for center modal)
+        document.addEventListener('click', function(event) {
+            const widget5 = document.getElementById('widget-5');
+            if (widget5.classList.contains('open')) {
+                const chatWindow = widget5.querySelector('.chat-window');
+                if (!chatWindow.contains(event.target) && !event.target.closest('.widget-demo-btn')) {
+                    toggleWidget(5);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
