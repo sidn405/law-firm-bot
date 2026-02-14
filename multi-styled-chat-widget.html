@@ -1371,25 +1371,31 @@
             z-index: 1;
         }
 
-        /* ====== PICTURE BACKGROUND ====== */
-        .layout-image .lawfirm-chat-window {
+        /* ====== PICTURE BACKGROUND (img layer) ====== */
+        .layout-image.lawfirm-chat-window{
+            position: relative;
             overflow: hidden;
-        }
-        .layout-image .lawfirm-chat-window .image-bg {
+            }
+
+            .layout-image.lawfirm-chat-window .image-bg{
             position: absolute;
             inset: 0;
             z-index: 0;
-        }
-        .layout-image .lawfirm-chat-window .image-bg image {
+            }
+
+            .layout-image.lawfirm-chat-window .image-bg img{
             width: 100%;
             height: 100%;
             object-fit: cover;
             opacity: 0.9;
+            }
+
+        /* Put widget content above background */
+        .layout-image.lawfirm-chat-window > *:not(.image-bg){
+        position: relative;
+        z-index: 1;
         }
-        .layout-image .lawfirm-chat-window > *:not(.iimage-bg) {
-            position: relative;
-            z-index: 1;
-        }
+
 
         /* ====== FLOATING CARD ====== */
         .layout-floating .lawfirm-chat-window {
@@ -1670,8 +1676,10 @@
             <div id="w1-chat-notification" class="chat-notification" style="display:none;">1</div>
         </button>
 
-        <div id="w1-lawfirm-chat-window" class="lawfirm-chat-window" aria-hidden="true">
-            <div class="image-bg"><image><source src="graphics/image.jpg" type="image/jpg"></image></div>
+        <div id="w1-lawfirm-chat-window" class="lawfirm-chat-window layout-image" aria-hidden="true">
+            <div class="image-bg">
+                <img src="./graphics/image.jpg" alt="" />
+            </div>
             
             <div class="chat-header">
                 <div class="chat-header-info">
