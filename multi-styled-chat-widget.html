@@ -733,6 +733,16 @@
             justify-content: center;
             position: relative;
         }
+
+        /* Ensure toggle stays on top of its window (fixes w1 picture toggle disappearing) */
+        .lawfirm-chat-button{
+          z-index: 10002;
+        }
+
+        .lawfirm-chat-window{
+          z-index: 10001;
+        }
+
         
         .lawfirm-chat-button:hover {
             transform: scale(1.1);
@@ -788,6 +798,51 @@
         .lawfirm-chat-window.open {
             display: flex;
         }
+
+        /* ---------- Picture + Video behave like Classic ---------- */
+        /* Keep classic sizing behavior */
+        .layout-picture .lawfirm-chat-window,
+        .layout-video .lawfirm-chat-window{
+          width: 400px;
+          height: 600px;
+          max-width: calc(100vw - 48px);
+          max-height: calc(100vh - 140px);
+        }
+
+        /* On shorter screens, shrink height so it never clips */
+        @media (max-height: 900px){
+        .layout-picture .lawfirm-chat-window,
+        .layout-video .lawfirm-chat-window{
+            height: calc(100vh - 140px);
+          }
+        }
+
+        /* TOP widgets: if screen height is small, open DOWN instead of UP */
+        @media (max-height: 900px){
+        .widget-pos-left-top.layout-picture .lawfirm-chat-window,
+        .widget-pos-right-top.layout-video .lawfirm-chat-window{
+            top: 78px;        /* opens downward from the toggle */
+            bottom: auto;
+          }
+        }
+
+        /* ---------- Side opens like Modal on small screens ---------- */
+        @media (max-width: 980px), (max-height: 760px){
+          .layout-side .lawfirm-chat-window{
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            right: auto;
+            bottom: auto;
+            transform: translate(-50%, -50%);
+            width: min(800px, calc(100vw - 24px));
+            height: min(600px, calc(100vh - 24px));
+            max-height: calc(100vh - 24px);
+            z-index: 10050;
+          }
+        }
+
+
         
         @keyframes slideUp {
             from {
