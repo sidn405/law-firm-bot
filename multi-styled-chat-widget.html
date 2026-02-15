@@ -1414,10 +1414,84 @@
         }
 
 
-        /* ====== FLOATING CARD ====== */
-        .layout-floating .lawfirm-chat-window {
-            border-radius: 22px;
-            box-shadow: 0 30px 70px rgba(0,0,0,0.18);
+        /* ====== FLOATING CARD (match demo small card) ====== */
+        .layout-floating .lawfirm-chat-window{
+          width: 320px;
+          height: 360px;
+          border-radius: 22px;
+          box-shadow: 0 30px 70px rgba(0,0,0,0.18);
+          background: #ffffff;
+          overflow: hidden;
+        
+          /* IMPORTANT: floating card is not the 400x600 “full chat” */
+          bottom: 78px; /* keep opening above the toggle */
+        }
+
+        /* Floating header: white header + divider (not blue gradient) */
+        .layout-floating .chat-header{
+          background: #ffffff;
+          color: #111827;
+          padding: 16px 16px 12px 16px;
+          border-bottom: 1px solid rgba(17,24,39,0.08);
+        }
+
+        /* Hide avatar/subtitle for the small card look */
+        .layout-floating .chat-header-info .chat-avatar,
+        .layout-floating .chat-subtitle{
+          display: none !important;
+        }
+
+        .layout-floating .chat-title{
+          font-size: 18px;
+          font-weight: 700;
+        }
+
+        /* Close button should be dark in white header */
+        .layout-floating .chat-close{
+          color: #111827;
+          opacity: .7;
+        }
+        .layout-floating .chat-close:hover{ opacity: 1; }
+
+        /* Body area */
+        .layout-floating .chat-messages{
+          padding: 18px;
+          background: #f8fafc;
+        }
+
+        /* Single “assistant bubble” look */
+        .layout-floating .message-content{
+          background: #ffffff;
+          border: 1px solid rgba(17,24,39,0.08);
+          box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+          border-radius: 14px;
+        }
+
+        /* Input row like the demo: input + rectangular Send button */
+        .layout-floating .chat-input-area{
+          background: #ffffff;
+          border-top: 1px solid rgba(17,24,39,0.08);
+          padding: 14px 14px 16px 14px;
+          gap: 10px;
+        }
+
+        .layout-floating .upload-btn{ display:none !important; }
+
+        .layout-floating .chat-input{
+          border-radius: 10px;
+          height: 40px;
+          padding: 10px 12px;
+        }
+
+        .layout-floating .chat-send-btn{
+          width: auto;
+          height: 40px;
+          padding: 0 16px;
+          border-radius: 10px;
+          background: var(--primary-color);
+          color: #fff;
+          font-weight: 700;
+          box-shadow: none;
         }
 
         /* ====== CHATBOT SIDE (match chatbot-side.html) ====== */
@@ -1674,7 +1748,6 @@
           border-radius: 50% !important;
         }
 
-
         /* ====== CENTER MODAL ====== */
         .widget-modal .chat-modal-overlay {
             position: fixed;
@@ -1703,6 +1776,14 @@
             opacity: 1;
             pointer-events: auto;
             transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* ====== MODAL SIZE (match chatbot-side) ====== */
+        #w5-lawfirm-chat-window{
+          width: 800px !important;
+          height: 600px !important;
+          max-height: calc(100vh - 80px) !important;
+          max-width: calc(100vw - 40px) !important;
         }
 
     </style>
