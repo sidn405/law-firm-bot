@@ -1302,26 +1302,6 @@
         .file-input {
           display: none !important;
         }
-
-        /* Always keep widget windows inside the viewport */
-        .lawfirm-chat-window{
-         max-height: calc(100vh - 120px) !important; /* room for header + input + margins */
-        }
-
-        /* Let messages scroll instead of the widget getting cut off */
-        .lawfirm-chat-window{
-         display: flex;
-         flex-direction: column;
-        }
-
-        .lawfirm-chat-window .chat-messages{
-         flex: 1;
-         min-height: 0;                 /* IMPORTANT for flex scroll */
-         overflow-y: auto;
-         -webkit-overflow-scrolling: touch;
-        }
-
-
         
         /* Mobile Responsive */
         @media (max-width: 480px) {
@@ -1806,22 +1786,11 @@
           max-width: calc(100vw - 40px) !important;
         }
 
-        /* ====== Small screens: open DOWN (avoid top clipping) ====== */
-        @media (max-height: 760px), (max-width: 820px) {
-        /* For any widget window: anchor from the TOP of the container instead of bottom */
-        .lawfirm-chat-window {
-            top: 72px !important;     /* distance below the toggle button */
-            bottom: auto !important;
-            max-height: calc(100vh - 120px) !important;
+        /* Always keep widget windows inside the viewport */
+        .lawfirm-chat-window{
+        max-height: calc(100vh - 120px) !important; /* room for header + input + margins */
         }
-    
-        /* If you want the top-row widgets to sit a bit lower */
-        .widget-pos-left-top .lawfirm-chat-window,
-        .widget-pos-right-top .lawfirm-chat-window {
-            top: 24px !important;
-        }
-}
-
+        
 
     </style>
 </head>
