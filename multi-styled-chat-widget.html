@@ -1302,6 +1302,26 @@
         .file-input {
           display: none !important;
         }
+
+        /* Always keep widget windows inside the viewport */
+        .lawfirm-chat-window{
+         max-height: calc(100vh - 120px) !important; /* room for header + input + margins */
+        }
+
+        /* Let messages scroll instead of the widget getting cut off */
+        .lawfirm-chat-window{
+         display: flex;
+         flex-direction: column;
+        }
+
+        .lawfirm-chat-window .chat-messages{
+         flex: 1;
+         min-height: 0;                 /* IMPORTANT for flex scroll */
+         overflow-y: auto;
+         -webkit-overflow-scrolling: touch;
+        }
+
+
         
         /* Mobile Responsive */
         @media (max-width: 480px) {
