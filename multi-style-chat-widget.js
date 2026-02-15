@@ -1618,9 +1618,37 @@ Consultation Preference:
                 addMessage('bot', `I've saved all your information! Our scheduling team will contact you at ${phone} within 2 hours to confirm your consultation.\n\nPreferred time: ${preferredTime}\n\nFor immediate assistance, call (555) 123-4567`);
             }
         }
+
+function placeChatWindow(wid) {
+  // Center-modal widget uses fixed positioning; skip
+  if (wid === "w5") return;
+
+  const btn = document.getElementById(`${wid}-lawfirm-chat-button`);
+  const win = document.getElementById(`${wid}-lawfirm-chat-window`);
+  if (!btn || !win) return;
+
+  const rect = btn.getBoundingClientRect();
+  const vh = window.innerHeight;
+
+  const spaceAbove = rect.top - 16;
+  const spaceBelow = vh - rect.bottom - 16;
+
+  // If there's not enough room above for a tall window, open downward instead
+  const openDown = spaceAbove < 420 && spaceBelow > spaceAbove;
+
+  const avail = openDown ? spaceBelow : spaceAbove;
+  const maxH = Math.max(320, Math.min(600, avail - 40));
+  win.style.maxHeight = `${maxH}px`;
+
+  if (openDown) {
+    win.style.top = "78px";
+    win.style.bottom = "auto";
+  } else {
+    win.style.bottom = "78px";
+    win.style.top = "auto";
+  }
+}
     
-
-
 function openWidget(wid) {
   setActiveWidget(wid);
 
@@ -1748,6 +1776,7 @@ function bindWidgetEvents() {
     });
   }
 }
+
 
 async function handlePaymentReturn() {
   const urlParams = new URLSearchParams(window.location.search);
