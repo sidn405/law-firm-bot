@@ -1299,8 +1299,8 @@
         }
         
         /* File Upload */
-        #file-input {
-            display: none;
+        .file-input {
+          display: none !important;
         }
         
         /* Mobile Responsive */
@@ -1345,6 +1345,11 @@
         .widget-right .lawfirm-chat-window { right: 0; left: auto; }
 
         /* ====== PICTURE BACKGROUND (classic + background image) ====== */
+        .layout-image .lawfirm-chat-window {
+          overflow: hidden;
+          background: transparent; /* let the image show through */
+        }
+
         .layout-image .lawfirm-chat-window::before {
             content: "";
             position: absolute;
@@ -1354,6 +1359,13 @@
             background-position: center;
             opacity: 0.9;
             pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Put all real UI above the image */
+        .layout-image .lawfirm-chat-window > * {
+          position: relative;
+          z-index: 1;
         }
 
         /* ====== VIDEO BACKGROUND ====== */
