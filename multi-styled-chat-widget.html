@@ -779,7 +779,7 @@
             background: white;
             border-radius: 16px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-            display: none;
+            display: flex;
             flex-direction: column;
             overflow: hidden;
             animation: slideUp 0.3s ease;
@@ -881,11 +881,13 @@
         /* Messages */
         .chat-messages {
             flex: 1;
+            min-height: 0;                 /* IMPORTANT for flex scroll */
             overflow-y: auto;
             padding: 20px;
             display: flex;
             flex-direction: column;
             gap: 16px;
+            -webkit-overflow-scrolling: touch;
         }
         
         .chat-message {
@@ -1790,7 +1792,7 @@
         .lawfirm-chat-window{
         max-height: calc(100vh - 120px) !important; /* room for header + input + margins */
         }
-        
+
 
     </style>
 </head>
