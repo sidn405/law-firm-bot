@@ -1445,6 +1445,21 @@
             z-index: 1;
         }
 
+        /* Picture window should sit above the toggle stack (middle-left icon) */
+        #w1-lawfirm-chat-window{
+          z-index: 11050 !important;
+        }
+
+        .lawfirm-chat-window{ z-index: 10001; }
+        #w1-lawfirm-chat-window{ z-index: 11050 !important; }
+
+        /* Side widget: add left margin from viewport edge */
+        .widget-left.layout-side .lawfirm-chat-window{
+          left: 24px !important;
+        }
+
+
+
         /* ====== PICTURE BACKGROUND (img layer) ====== */
         .layout-image.lawfirm-chat-window{
             position: relative;
