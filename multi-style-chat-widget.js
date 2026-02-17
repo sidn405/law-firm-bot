@@ -1635,8 +1635,22 @@ function placeChatWindow(wid) {
 
   // Top widgets (w1 picture, w4 video) always open UPWARD —
   // cap height to whatever space is available above so it never clips.
-  const openDown = spaceBelow > spaceAbove;
+  const isTopWidget = (wid === "w1" || wid === "w4");
 
+  // If top widget doesn't have enough room above, drop to bottom of viewport
+  if (isTopWidget && spaceAbove < 420) {
+      win.style.position = "fixed";
+      win.style.bottom = "90px";
+      win.style.top = "auto";
+      win.style.left = (wid === "w1") ? "24px" : "auto";
+      win.style.right = (wid === "w4") ? "24px" : "auto";
+      win.style.height = Math.min(600, vh - 110) + "px";
+      win.style.maxHeight = win.style.height;
+      return;
+  }
+  
+  const openDown = spaceBelow > spaceAbove;
+  
   const avail = openDown ? spaceBelow : spaceAbove;
   const maxH = Math.min(600, avail - 78 - 16);
   win.style.minHeight = "0px"; // prevent any CSS min-height from overriding
