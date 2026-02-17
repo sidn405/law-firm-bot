@@ -20,7 +20,31 @@ function getElFor(wid, id) {
   return document.getElementById(`${wid}-${id}`);
 }
 
+function setFrontWidget(activeWid) {
+  WIDGET_IDS.forEach((wid) => {
+    const container = document.getElementById(`${wid}-lawfirm-chatbot-container`);
+    if (!container) return;
+    if (activeWid && wid === activeWid) container.classList.add("is-front");
+    else container.classList.remove("is-front");
+  });
+}
 
+function closeOtherWidgets(activeWid) {
+  WIDGET_IDS.forEach((wid) => {
+    if (wid === activeWid) return;
+
+    const win = getElFor(wid, "lawfirm-chat-window");
+    if (win) win.classList.remove("open");
+
+    const overlay1 = getElFor(wid, "lawfirm-overlay");
+    if (overlay1) overlay1.classList.remove("open");
+
+    const overlay2 = getElFor(wid, "chat-modal-overlay");
+    if (overlay2) overlay2.classList.remove("open");
+  });
+
+  setFrontWidget(activeWid || null);
+}
 
         // =====================================================
         // LAW FIRM CHATBOT - FRONTEND LOGIC W/ SCRIPTED INTAKE
@@ -1726,6 +1750,17 @@ function bindWidgetEvents() {
   WIDGET_IDS.forEach((wid) => {
     const root = document.getElementById(`${wid}-lawfirm-chatbot-container`);
     if (!root) return;
+
+    // If the user interacts with a widget, keep it on top (important when multiple toggles exist)
+    root.addEventListener("mousedown", () => {
+      const win = getElFor(wid, "lawfirm-chat-window");
+      if (win && win.classList.contains("open")) setFrontWidget(wid);
+    });
+    root.addEventListener("touchstart", () => {
+      const win = getElFor(wid, "lawfirm-chat-window");
+      if (win && win.classList.contains("open")) setFrontWidget(wid);
+    }, { passive: true });
+    
 
     const btn = document.getElementById(`${wid}-lawfirm-chat-button`);
     if (btn) {

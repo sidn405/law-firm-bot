@@ -1350,6 +1350,70 @@
         .file-input {
           display: none !important;
         }
+
+        /* ====== MULTI-WIDGET STACKING + SMALL-SCREEN SAFE POSITIONING ====== */
+        /* Keep toggle always clickable above its window */
+        .lawfirm-chatbot-container { z-index: 9999; }
+        .lawfirm-chatbot-container.is-front { z-index: 10050; }
+
+        .lawfirm-chat-window { z-index: 10001; }
+        .lawfirm-chat-button { position: relative; z-index: 10002; }
+
+        /* Give the SIDE layout a little breathing room from the edge on desktop */
+        .widget-left.layout-side .lawfirm-chat-window { left: 16px; }
+        .widget-right.layout-side .lawfirm-chat-window { right: 16px; }
+
+        /* On smaller screens, TOP-positioned widgets (Picture/Video) should behave like Classic/Floating
+           so they never open off-screen / clipped. Side layout also becomes modal-centered. */
+        @media (max-width: 1100px), (max-height: 760px) {
+        
+          /* Picture + Video: pin to bottom like classic so they are always fully visible */
+          .layout-picture .lawfirm-chat-window,
+          .layout-video .lawfirm-chat-window {
+            position: fixed;
+            bottom: 92px; /* leaves room for the floating toggle button */
+            top: auto;
+            width: min(420px, calc(100vw - 48px));
+            height: min(600px, calc(100vh - 120px));
+            max-height: calc(100vh - 120px);
+          }
+      
+          .widget-left.layout-picture .lawfirm-chat-window,
+          .widget-left.layout-video .lawfirm-chat-window {
+            left: 24px;
+            right: auto;
+          }
+      
+          .widget-right.layout-picture .lawfirm-chat-window,
+          .widget-right.layout-video .lawfirm-chat-window {
+            right: 24px;
+            left: auto;
+          }
+      
+          /* Side layout: center like modal to avoid clipping */
+          .layout-side .lawfirm-chat-window {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            right: auto;
+            bottom: auto;
+            width: min(960px, calc(100vw - 24px));
+            height: min(720px, calc(100vh - 24px));
+            max-height: calc(100vh - 24px);
+          }
+        }
+
+        /* Ultra-small: make picture/video span the viewport width */
+        @media (max-width: 520px) {
+          .layout-picture .lawfirm-chat-window,
+          .layout-video .lawfirm-chat-window {
+            left: 12px !important;
+            right: 12px !important;
+            width: auto !important;
+          }
+        }
+        
         
         /* Mobile Responsive */
         @media (max-width: 480px) {
@@ -2192,8 +2256,6 @@
             
         </div>
     </div>
-
-
     
     <div id="w3-lawfirm-chatbot-container" class="lawfirm-chatbot-container widget-pos-left-bot widget-left layout-floating" data-wid="w3">
         <button id="w3-lawfirm-chat-button" class="lawfirm-chat-button" type="button" aria-label="Open chat" data-action="toggle">
