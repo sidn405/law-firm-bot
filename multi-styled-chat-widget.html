@@ -1966,7 +1966,43 @@
           }
         }
 
+        /* =========================================================
+           SMALL SCREEN: Picture + Video windows ABOVE ALL toggles
+           (place at VERY BOTTOM of your CSS)
+           ========================================================= */
+        @media (max-width: 1100px), (max-height: 760px) {
         
+          /* 1) Push ALL toggle stacks down a layer */
+          .lawfirm-chatbot-container,
+          .lawfirm-chat-button {
+            z-index: 12000 !important;
+          }
+      
+          /* 2) Put picture/video chat windows ABOVE the toggle stacks */
+          #w1-lawfirm-chat-window,
+          #w4-lawfirm-chat-window {
+            z-index: 25000 !important;
+          }
+      
+          /* 3) If you ever want their toggle buttons still clickable while open,
+                keep them above everything too (optional) */
+          #w1-lawfirm-chat-button,
+          #w4-lawfirm-chat-button {
+            z-index: 26000 !important;
+            position: relative;
+          }
+      
+          /* 4) Ensure the toggle stack itself doesn't rise above (belt + suspenders) */
+          #w1-lawfirm-chatbot-container,
+          #w4-lawfirm-chatbot-container,
+          #w2-lawfirm-chatbot-container,
+          #w3-lawfirm-chatbot-container,
+          #w5-lawfirm-chatbot-container,
+          #w6-lawfirm-chatbot-container {
+            z-index: 12000 !important;
+          }
+        }
+
 
     </style>
 </head>
