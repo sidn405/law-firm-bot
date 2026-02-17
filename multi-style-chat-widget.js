@@ -1641,7 +1641,8 @@ function placeChatWindow(wid) {
   const openDown = spaceAbove < 420 && spaceBelow > spaceAbove;
 
   const avail = openDown ? spaceBelow : spaceAbove;
-  const maxH = Math.max(320, Math.min(600, avail - 40));
+  const maxH = Math.min(600, avail - 78 - 16);
+  win.style.minHeight = "0px"; // prevent any CSS min-height from overriding
   win.style.maxHeight = `${maxH}px`;
 
   if (openDown) {
