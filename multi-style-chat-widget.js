@@ -46,6 +46,18 @@ function closeOtherWidgets(activeWid) {
   setFrontWidget(activeWid || null);
 }
 
+function bringToFront(wid) {
+  // remove from all
+  WIDGET_IDS.forEach((id) => {
+    const c = document.getElementById(`${id}-lawfirm-chatbot-container`);
+    if (c) c.classList.remove("is-front");
+  });
+  // add to active
+  const active = document.getElementById(`${wid}-lawfirm-chatbot-container`);
+  if (active) active.classList.add("is-front");
+}
+
+
         // =====================================================
         // LAW FIRM CHATBOT - FRONTEND LOGIC W/ SCRIPTED INTAKE
         // =====================================================
@@ -1695,6 +1707,7 @@ function placeChatWindow(wid) {
     
 function openWidget(wid) {
   setActiveWidget(wid);
+  if (wid === "w1" || wid === "w4") bringToFront(wid);
 
   if (wid === "w5") {
     const overlay = getElFor(wid, "chat-modal-overlay");
@@ -1723,6 +1736,10 @@ function closeWidget(wid) {
 
   const win = getElFor(wid, "lawfirm-chat-window");
   if (win) win.classList.remove("open");
+
+  const c = document.getElementById(`${wid}-lawfirm-chatbot-container`);
+  if (c) c.classList.remove("is-front");
+
 }
 
 function toggleWidget(wid) {
