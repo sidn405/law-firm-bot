@@ -1633,6 +1633,10 @@ function placeChatWindow(wid) {
   const spaceAbove = rect.top - 16;
   const spaceBelow = vh - rect.bottom - 16;
 
+  // Top widgets (w1 picture, w4 video) always open UPWARD —
+  // cap height to whatever space is available above so it never clips.
+  const isTopWidget = (wid === "w1" || wid === "w4");
+
   // If there's not enough room above for a tall window, open downward instead
   const openDown = spaceAbove < 420 && spaceBelow > spaceAbove;
 

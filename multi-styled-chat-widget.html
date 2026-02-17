@@ -812,13 +812,11 @@
           }
         }
 
-        /* TOP widgets: if screen height is small, open DOWN instead of UP */
-        @media (max-height: 900px){
+        /* TOP widgets: always open UPWARD — JS caps maxHeight to available space */
         .widget-pos-left-top.layout-picture .lawfirm-chat-window,
         .widget-pos-right-top.layout-video .lawfirm-chat-window{
-            top: 78px;        /* opens downward from the toggle */
-            bottom: auto;
-          }
+            bottom: 78px;
+            top: auto;
         }
 
         /* ---------- Side opens like Modal on small screens ---------- */
