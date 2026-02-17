@@ -1413,7 +1413,7 @@
             width: auto !important;
           }
         }
-        
+
         
         /* Mobile Responsive */
         @media (max-width: 480px) {
@@ -1872,6 +1872,26 @@
           border-radius: 50% !important;
         }
 
+        /* ---------- SIDE: center like modal on small screens ---------- */
+        @media (max-width: 1100px), (max-height: 760px) {
+        
+          /* When side is OPEN, force fixed center */
+          #w2-lawfirm-chat-window.open {
+            position: fixed !important;
+            left: 50% !important;
+            top: 50% !important;
+            right: auto !important;
+            bottom: auto !important;
+            transform: translate(-50%, -50%) !important;
+        
+            width: min(960px, calc(100vw - 24px)) !important;
+            height: min(720px, calc(100vh - 24px)) !important;
+            max-height: calc(100vh - 24px) !important;
+            z-index: 20080 !important;
+          }
+        }
+
+
         /* ====== CENTER MODAL ====== */
         .widget-modal .chat-modal-overlay {
             position: fixed;
@@ -1914,6 +1934,38 @@
         .lawfirm-chat-window{
         max-height: calc(100vh - 120px) !important; /* room for header + input + margins */
         }
+
+        /* ---------- SMALL SCREEN: Picture/Video windows above toggle stacks ---------- */
+        @media (max-width: 1100px), (max-height: 760px) {
+        
+          /* Raise picture/video window above ALL toggles */
+          #w1-lawfirm-chat-window,
+          #w4-lawfirm-chat-window {
+            z-index: 20050 !important;
+          }
+      
+          /* Keep their toggle button also above (so it can always close) */
+          #w1-lawfirm-chat-button,
+          #w4-lawfirm-chat-button {
+            z-index: 20060 !important;
+            position: relative;
+          }
+      
+          /* Lower the left/right toggle stacks so the windows cover them */
+          #w1-lawfirm-chatbot-container,
+          #w4-lawfirm-chatbot-container {
+            z-index: 20040 !important;
+          }
+      
+          /* Make sure OTHER widget containers/toggles don't float above */
+          .lawfirm-chatbot-container {
+            z-index: 15000 !important;
+          }
+          .lawfirm-chat-button {
+            z-index: 15010 !important;
+          }
+        }
+
         
 
     </style>
