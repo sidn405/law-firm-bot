@@ -1620,7 +1620,6 @@ Consultation Preference:
         }
 
 function placeChatWindow(wid) {
-  // Center-modal widget uses fixed positioning; skip
   if (wid === "w5") return;
 
   const btn = document.getElementById(`${wid}-lawfirm-chat-button`);
@@ -1629,28 +1628,26 @@ function placeChatWindow(wid) {
 
   const rect = btn.getBoundingClientRect();
   const vh = window.innerHeight;
-
-  const spaceAbove = rect.top - 16;
-  const spaceBelow = vh - rect.bottom - 16;
-
-  // Top widgets (w1 picture, w4 video) always open UPWARD —
-  // cap height to whatever space is available above so it never clips.
   const isTopWidget = (wid === "w1" || wid === "w4");
+  const isLeftWidget = (wid === "w1" || wid === "w2" || wid === "w3");
 
-  // If there's not enough room above for a tall window, open downward instead
-  const openDown = spaceAbove < 420 && spaceBelow > spaceAbove;
+  // Switch to fixed so we can position directly against viewport
+  win.style.position = "fixed";
+  win.style.left = isLeftWidget ? rect.left + "px" : "auto";
+  win.style.right = isLeftWidget ? "auto" : (window.innerWidth - rect.right) + "px";
 
-  const avail = openDown ? spaceBelow : spaceAbove;
-  const maxH = Math.min(600, avail - 78 - 16);
-  win.style.minHeight = "0px"; // prevent any CSS min-height from overriding
-  win.style.maxHeight = `${maxH}px`;
+  const spaceAbove = rect.top - 24;
+  const spaceBelow = vh - rect.bottom - 24;
+  const openDown = !isTopWidget && (spaceBelow > spaceAbove);
 
   if (openDown) {
-    win.style.top = "78px";
+    win.style.top = (rect.bottom + 8) + "px";
     win.style.bottom = "auto";
+    win.style.maxHeight = spaceBelow - 8 + "px";
   } else {
-    win.style.bottom = "78px";
+    win.style.bottom = (vh - rect.top + 8) + "px";
     win.style.top = "auto";
+    win.style.maxHeight = spaceAbove - 8 + "px";
   }
 }
     
