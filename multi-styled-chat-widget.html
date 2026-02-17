@@ -1410,6 +1410,13 @@
             z-index: 0;
         }
 
+        #w1-lawfirm-chat-button {  /* change wN to whichever widget */
+          background: transparent;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          padding: 0;
+          overflow: hidden;
+        }
+
         /* Put all real UI above the image */
         .layout-image .lawfirm-chat-window > * {
           position: relative;
@@ -2036,7 +2043,7 @@
     
     <div id="w1-lawfirm-chatbot-container" class="lawfirm-chatbot-container widget-pos-left-top widget-left layout-picture" data-wid="w1">
         <button id="w1-lawfirm-chat-button" class="lawfirm-chat-button" type="button" aria-label="Open chat" data-action="toggle">
-            ⚖️
+            <img src="./graphics/profile.jpg" alt="Attorney" style="width:44px; height:44px; border-radius:50%; object-fit:cover; border:2px solid white;">
             <div id="w1-chat-notification" class="chat-notification" style="display:none;">1</div>
         </button>
 
