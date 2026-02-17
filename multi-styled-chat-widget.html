@@ -821,18 +821,22 @@
 
         /* ---------- Side opens like Modal on small screens ---------- */
         @media (max-width: 980px), (max-height: 760px){
-          .layout-side .lawfirm-chat-window{
-            position: fixed;
-            left: 50%;
-            top: 50%;
-            right: auto;
-            bottom: auto;
-            transform: translate(-50%, -50%);
-            width: min(800px, calc(100vw - 24px));
-            height: min(600px, calc(100vh - 24px));
-            max-height: calc(100vh - 24px);
-            z-index: 10050;
-          }
+         .layout-side .lawfirm-chat-window{
+           position: fixed;
+           left: 50%;
+           top: 50%;
+           right: auto;
+           bottom: auto;
+           transform: translate(-50%, -50%);
+           width: min(800px, calc(100vw - 24px));
+           height: min(600px, calc(100vh - 24px));
+           max-height: calc(100vh - 24px);
+           z-index: 10050;
+         }
+         /* Hide sidebar panel on small screens so chat takes full width */
+         .layout-side .chat-sidebar {
+           display: none;
+         }
         }
         
         @keyframes slideUp {
