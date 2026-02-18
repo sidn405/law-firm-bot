@@ -913,11 +913,11 @@ function bringToFront(wid) {
           // Add welcome message
           const welcomeStep = flowSteps['start'];
           if (welcomeStep && welcomeStep.prompt) {
-            addMessage(wid, 'bot', welcomeStep.prompt);
+            addMessage('bot', welcomeStep.prompt);  // ← removed wid param
             
             // Add quick action buttons if available
             if (welcomeStep.options) {
-              showOptions(wid, welcomeStep.options);
+              showOptions(welcomeStep.options);  // ← removed wid param
             }
           }
         }
