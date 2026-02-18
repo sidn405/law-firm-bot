@@ -967,6 +967,47 @@ function bringToFront(wid) {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
+        function showOptions(options) {
+        const messagesContainer = getEl('chat-messages');
+        
+        const optionsContainer = document.createElement('div');
+        optionsContainer.className = 'chat-options';
+        optionsContainer.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0;';
+        
+        options.forEach(option => {
+            const button = document.createElement('button');
+            button.className = 'quick-action-btn';
+            button.textContent = option.label;
+            button.type = 'button';
+            button.onclick = () => handleOptionClick(option.value, option.label, option.next_step);
+            optionsContainer.appendChild(button);
+        });
+        
+        messagesContainer.appendChild(optionsContainer);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        function handleOptionClick(value, label, nextStep) {
+            const state = widgetStates[ACTIVE_WID];
+            
+            // Remove all option buttons
+            const messagesContainer = getEl('chat-messages');
+            const optionDivs = messagesContainer.querySelectorAll('.chat-options');
+            optionDivs.forEach(div => div.remove());
+            
+            // Add user's choice as message
+            addMessage('user', label);
+            
+            // Save the data
+            state.collectedData[state.currentStep] = value;
+            
+            // Move to next step
+            if (nextStep) {
+                state.currentStep = nextStep;
+                addScriptStep(nextStep);
+            }
+        }
+        
         function addScriptStep(stepId) {
             const step = flowSteps[stepId];
             if (!step) return;
