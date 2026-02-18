@@ -905,20 +905,74 @@ function bringToFront(wid) {
           state.collectedData = {};
                 
           const messagesDiv = document.getElementById(`${wid}-chat-messages`);
-          if (!messagesDiv) return;
+          if (!messagesDiv) {
+            console.error(`Could not find messages div for ${wid}`);
+            return;
+          }
                 
           // Clear any existing messages
           messagesDiv.innerHTML = '';
                 
-          // Add welcome message
+          // Add welcome message directly
           const welcomeStep = flowSteps['start'];
           if (welcomeStep && welcomeStep.prompt) {
-            addMessage('bot', welcomeStep.prompt);  // ← removed wid param
+            // Create bot message
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message bot';
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = '🤖';
+            
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            content.textContent = welcomeStep.prompt;
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(content);
+            messagesDiv.appendChild(messageDiv);
             
             // Add quick action buttons if available
             if (welcomeStep.options) {
-              showOptions(welcomeStep.options);  // ← removed wid param
+              const optionsContainer = document.createElement('div');
+              optionsContainer.className = 'chat-options';
+              optionsContainer.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0;';
+            
+              welcomeStep.options.forEach(option => {
+                const button = document.createElement('button');
+                button.className = 'quick-action-btn';
+                button.textContent = option.label;
+                button.type = 'button';
+                button.onclick = () => {
+                  // Remove options
+                  optionsContainer.remove();
+                  // Add user message
+                  const userMsg = document.createElement('div');
+                  userMsg.className = 'chat-message user';
+                  const userAvatar = document.createElement('div');
+                  userAvatar.className = 'message-avatar';
+                  userAvatar.textContent = '👤';
+                  const userContent = document.createElement('div');
+                  userContent.className = 'message-content';
+                  userContent.textContent = option.label;
+                  userMsg.appendChild(userAvatar);
+                  userMsg.appendChild(userContent);
+                  messagesDiv.appendChild(userMsg);
+                
+                  // Save data and continue
+                  state.collectedData[state.currentStep] = option.value;
+                  if (option.next_step) {
+                    state.currentStep = option.next_step;
+                    // Continue flow here if needed
+                  }
+                };
+                optionsContainer.appendChild(button);
+              });
+              
+              messagesDiv.appendChild(optionsContainer);
             }
+            
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
           }
         }
 
