@@ -1720,6 +1720,12 @@ function openWidget(wid) {
     const win = getElFor(wid, "lawfirm-chat-window");
     if (overlay) overlay.classList.add("open");
     if (win) win.classList.add("open");
+
+    // Initialize if empty
+    const messagesDiv = document.getElementById(`${wid}-chat-messages`);
+    if (messagesDiv && messagesDiv.children.length === 0) {
+      initializeWidget(wid);
+    }
     const input = getElFor(wid, "chat-input");
     if (input) input.focus();
     return;
@@ -1733,7 +1739,7 @@ function openWidget(wid) {
   if (messagesDiv && messagesDiv.children.length === 0) {
     initializeWidget(wid);
   }
-  
+
   const input = getElFor(wid, "chat-input");
   if (input) input.focus();
 }
