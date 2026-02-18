@@ -1727,6 +1727,13 @@ function openWidget(wid) {
 
   const win = getElFor(wid, "lawfirm-chat-window");
   if (win) win.classList.add("open");
+
+  // Initialize if empty
+  const messagesDiv = document.getElementById(`${wid}-chat-messages`);
+  if (messagesDiv && messagesDiv.children.length === 0) {
+    initializeWidget(wid);
+  }
+  
   const input = getElFor(wid, "chat-input");
   if (input) input.focus();
 }
