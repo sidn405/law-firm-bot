@@ -1710,7 +1710,7 @@ function openWidget(wid) {
   if (wid === "w1" || wid === "w4") bringToFront(wid);
 
   // Add class for w1 and w4 to hide their toggles on small screens
-  if (wid === "w1" || wid === "w4" || wi === "w3" || wid === "w6") {
+  if (wid === "w1" || wid === "w4") {
     const container = document.getElementById(`${wid}-lawfirm-chatbot-container`);
     if (container) container.classList.add('widget-open');
   }
@@ -1733,7 +1733,7 @@ function openWidget(wid) {
 
 function closeWidget(wid) {
   // Remove class for w1 and w4
-  if (wid === "w1" || wid === "w4" || wi === "w3" || wid === "w6") {
+  if (wid === "w1" || wid === "w4") {
     const container = document.getElementById(`${wid}-lawfirm-chatbot-container`);
     if (container) container.classList.remove('widget-open');
   }
