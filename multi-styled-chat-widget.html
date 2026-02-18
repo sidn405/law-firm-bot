@@ -1987,12 +1987,13 @@
             }
         }
 
-        /* Ensure floating and classic windows render above picture/video toggles */
-        #w3-lawfirm-chat-window.open,
-        #w6-lawfirm-chat-window.open {
-            z-index: 25003 !important;
+        /* Hide picture and video toggles on small screens when ANY widget is open */
+        @media (max-width: 768px), (max-height: 700px) {
+            body:has(.lawfirm-chat-window.open) #w1-lawfirm-chat-button,
+            body:has(.lawfirm-chat-window.open) #w4-lawfirm-chat-button {
+                display: none !important;
+            }
         }
-
 
     </style>
 </head>
