@@ -1970,13 +1970,21 @@
         .lawfirm-chatbot-container.is-front {
           z-index: 20000 !important;
         }
-        
+
         /* On small screens, ensure picture/video also lift above everything */
         @media (max-width: 1100px), (max-height: 760px) {
           #w1-lawfirm-chatbot-container.is-front,
           #w4-lawfirm-chatbot-container.is-front {
             z-index: 30000 !important;
           }
+        }
+
+        /* Hide picture and video toggles on small screens */
+        @media (max-width: 768px), (max-height: 700px) {
+            #w1-lawfirm-chat-button,
+            #w4-lawfirm-chat-button {
+                display: none !important;
+            }
         }
         
 
