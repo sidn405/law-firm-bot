@@ -912,9 +912,12 @@ function bringToFront(wid) {
             return;
           }
 
-          // Add welcome message
+          // Clear any existing messages FIRST
+          messagesDiv.innerHTML = '';
+              
+          // THEN add welcome message
           const welcomeMsg = `Hello and welcome to our law firm. I can help you with a free case evaluation, scheduling, or questions about our services.\n\nWhat type of legal issue do you need help with?`;
-
+              
           const messageDiv = document.createElement('div');
           messageDiv.className = 'message bot';
           messageDiv.innerHTML = `
@@ -923,10 +926,6 @@ function bringToFront(wid) {
           `;
           messagesDiv.appendChild(messageDiv);
           messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        
-
-          // Clear any existing messages
-          messagesDiv.innerHTML = '';
 
           // Add welcome message directly
           const welcomeStep = flowSteps['start'];
