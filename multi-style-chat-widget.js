@@ -896,7 +896,31 @@ function bringToFront(wid) {
 
         // (DOMContentLoaded init moved to multi-style loader)
 
-;
+        function initializeWidget(wid) {
+          const state = widgetStates[wid];
+          if (!state) return;
+                
+          // Reset to start
+          state.currentStep = 'start';
+          state.collectedData = {};
+                
+          const messagesDiv = document.getElementById(`${wid}-chat-messages`);
+          if (!messagesDiv) return;
+                
+          // Clear any existing messages
+          messagesDiv.innerHTML = '';
+                
+          // Add welcome message
+          const welcomeStep = flowSteps['start'];
+          if (welcomeStep && welcomeStep.prompt) {
+            addMessage(wid, 'bot', welcomeStep.prompt);
+            
+            // Add quick action buttons if available
+            if (welcomeStep.options) {
+              showOptions(wid, welcomeStep.options);
+            }
+          }
+        }
 
         function generateSessionId() {
             return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
