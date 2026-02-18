@@ -8,6 +8,28 @@
 const WIDGET_IDS = ["w1","w2","w3","w4","w5","w6"];
 let ACTIVE_WID = "w6";
 
+// Widget state storage
+const widgetStates = {};
+WIDGET_IDS.forEach(wid => {
+  widgetStates[wid] = {
+    sessionId: null,
+    clientId: null,
+    currentStep: 'start',
+    intakeActive: true,
+    collectedData: {},
+    stripe: null,
+    paymentFlowActive: false,
+    paymentClientData: {},
+    awaitingFarewellResponse: false,
+    paymentFlow: {
+      active: false,
+      step: null,
+      selectedType: null,
+      clientInfo: {}
+    }
+  };
+});
+
 function setActiveWidget(wid) {
   ACTIVE_WID = wid;
 }
