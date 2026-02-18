@@ -899,39 +899,54 @@ function bringToFront(wid) {
         function initializeWidget(wid) {
           const state = widgetStates[wid];
           if (!state) return;
-                
+
           // Reset to start
           state.currentStep = 'start';
           state.collectedData = {};
-                
+
           const messagesDiv = document.getElementById(`${wid}-chat-messages`);
+          console.log('messagesDiv found:', messagesDiv);
+
           if (!messagesDiv) {
             console.error(`Could not find messages div for ${wid}`);
             return;
           }
-                
+
+          // Add welcome message
+          const welcomeMsg = `Hello and welcome to our law firm. I can help you with a free case evaluation, scheduling, or questions about our services.\n\nWhat type of legal issue do you need help with?`;
+
+          const messageDiv = document.createElement('div');
+          messageDiv.className = 'message bot';
+          messageDiv.innerHTML = `
+            <div class="message-avatar">🤖</div>
+            <div class="message-bubble">${welcomeMsg}</div>
+          `;
+          messagesDiv.appendChild(messageDiv);
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        
+
           // Clear any existing messages
           messagesDiv.innerHTML = '';
-                
+
           // Add welcome message directly
           const welcomeStep = flowSteps['start'];
           if (welcomeStep && welcomeStep.prompt) {
             // Create bot message
             const messageDiv = document.createElement('div');
             messageDiv.className = 'chat-message bot';
-            
+
             const avatar = document.createElement('div');
             avatar.className = 'message-avatar';
             avatar.textContent = '🤖';
-            
+
             const content = document.createElement('div');
             content.className = 'message-content';
             content.textContent = welcomeStep.prompt;
-            
+
             messageDiv.appendChild(avatar);
             messageDiv.appendChild(content);
             messagesDiv.appendChild(messageDiv);
-            
+
             // Add quick action buttons if available
             if (welcomeStep.options) {
               const optionsContainer = document.createElement('div');
@@ -968,10 +983,10 @@ function bringToFront(wid) {
                 };
                 optionsContainer.appendChild(button);
               });
-              
+
               messagesDiv.appendChild(optionsContainer);
             }
-            
+
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
           }
         }
@@ -1953,6 +1968,18 @@ function bindWidgetEvents() {
       });
     });
 
+    // Bind quick action buttons
+    const quickActionBtns = root.querySelectorAll('[data-quick-action]');
+    quickActionBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const action = btn.getAttribute('data-quick-action');
+        handleQuickAction(wid, action);
+      });
+    });
+
+    
+
     const sendBtn = root.querySelector('[data-action="send"]');
     if (sendBtn) {
       sendBtn.addEventListener("click", (e) => {
@@ -1990,6 +2017,25 @@ function bindWidgetEvents() {
       e.preventDefault();
       openWidget("w6");
     });
+  }
+}
+
+function handleQuickAction(wid, action) {
+  setActiveWidget(wid);
+  const state = widgetStates[wid];
+  
+  // Find the step for this action
+  const step = flowSteps[action] || flowSteps['start'];
+  state.currentStep = action;
+  
+  // Add user message
+  addMessage('user', `I need help with ${action.replace(/_/g, ' ')}`);
+  
+  // Add bot response
+  if (step && step.prompt) {
+    setTimeout(() => {
+      addMessage('bot', step.prompt);
+    }, 500);
   }
 }
 
