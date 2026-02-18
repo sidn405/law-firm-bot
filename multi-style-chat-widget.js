@@ -1709,6 +1709,9 @@ function openWidget(wid) {
   setActiveWidget(wid);
   if (wid === "w1" || wid === "w4") bringToFront(wid);
 
+  const container = document.getElementById(`${wid}-lawfirm-chatbot-container`);
+  if (container) container.classList.add('widget-open');
+
   if (wid === "w5") {
     const overlay = getElFor(wid, "chat-modal-overlay");
     const win = getElFor(wid, "lawfirm-chat-window");
@@ -1726,6 +1729,9 @@ function openWidget(wid) {
 }
 
 function closeWidget(wid) {
+  const container = document.getElementById(`${wid}-lawfirm-chatbot-container`);
+  if (container) container.classList.remove('widget-open');
+  
   if (wid === "w5") {
     const overlay = getElFor(wid, "chat-modal-overlay");
     const win = getElFor(wid, "lawfirm-chat-window");
