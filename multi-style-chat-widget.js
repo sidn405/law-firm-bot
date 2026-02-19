@@ -941,10 +941,10 @@ function bringToFront(wid) {
           const welcomeMsg = `Hello and welcome to our law firm. I can help you with a free case evaluation, scheduling, or questions about our services.\n\nWhat type of legal issue do you need help with?`;
               
           const messageDiv = document.createElement('div');
-          messageDiv.className = 'message bot';
+          messageDiv.className = 'chat-message bot';
           messageDiv.innerHTML = `
             <div class="message-avatar">🤖</div>
-            <div class="message-bubble">${welcomeMsg}</div>
+            <div class="message-content">${welcomeMsg.replace(/\n/g, '<br>')}</div>
           `;
           messagesDiv.appendChild(messageDiv);
           messagesDiv.scrollTop = messagesDiv.scrollHeight;
