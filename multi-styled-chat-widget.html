@@ -1734,6 +1734,41 @@
           color: #666;
         }
 
+        /* ✅ Keep the left rail from shrinking */
+        .layout-side .side-shell { display: flex; }
+        .layout-side .side-rail { flex: 0 0 120px; width: 120px; }
+
+        /* ✅ Let the main column shrink properly (required for overflow scrolling in flex layouts) */
+        .layout-side .side-main {
+          flex: 1 1 auto;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+        }
+
+        /* ✅ Make the messages area scroll (and not fight the quick-actions row) */
+        .layout-side .chat-body {
+          flex: 1 1 auto;
+          min-height: 0;          /* IMPORTANT: enables scrolling inside flex column */
+          overflow-y: auto;
+        }
+
+        /* ✅ Quick actions scroll like your other widgets */
+        .layout-side .chat-quick-actions {
+          flex: 0 0 auto;
+          max-width: 100%;
+          overflow-x: auto;
+          overflow-y: hidden;
+          white-space: nowrap;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        /* ✅ Ensure buttons don't wrap and force layout weirdness */
+        .layout-side .chat-quick-actions .quick-action-btn {
+          flex: 0 0 auto;
+        }
+
+
         /* RIGHT MAIN */
         .layout-side .side-v2 .chat-main {
           flex: 1;
@@ -2297,8 +2332,8 @@
                 <div class="header-date" id="headerDate"></div>
 
                 <button class="close-btn" type="button" aria-label="Close chat" data-action="close">×</button>
-                </div>
-
+                </div> 
+                
                 <div class="chat-quick-actions">
                     <button class="quick-action-btn" type="button" data-quick-action="personal_injury">Personal Injury</button>
                     <button class="quick-action-btn" type="button" data-quick-action="family_law">Family Law</button>
