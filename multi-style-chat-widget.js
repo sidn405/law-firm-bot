@@ -2127,28 +2127,16 @@ function bindWidgetEvents() {
         const action = qaBtn.getAttribute("data-quick-action");
         if (action) quickAction(action);
       });
-    });
+    });    
 
-    // Bind quick action buttons
-    const quickActionBtns = root.querySelectorAll('[data-quick-action]');
-    quickActionBtns.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const action = btn.getAttribute('data-quick-action');
-        handleQuickAction(wid, action);
-      });
-    });
-
-    
-
-    const sendBtn = root.querySelector('[data-action="send"]');
-    if (sendBtn) {
-      sendBtn.addEventListener("click", (e) => {
+    root.querySelectorAll("[data-quick-action]").forEach((qaBtn) => {
+      qaBtn.addEventListener("click", (e) => {
         e.preventDefault();
         setActiveWidget(wid);
-        sendMessage();
+        const action = qaBtn.getAttribute("data-quick-action");
+        if (action) quickAction(action);
       });
-    }
+    });
 
     const input = document.getElementById(`${wid}-chat-input`);
     if (input) {
