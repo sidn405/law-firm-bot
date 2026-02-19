@@ -1055,7 +1055,11 @@ function bringToFront(wid) {
 
         function showOptions(options) {
           const messagesContainer = getEl('chat-messages');
-          
+
+          // ✅ prevent duplicates
+          messagesContainer.querySelectorAll('.chat-options').forEach(el => el.remove());
+          messagesContainer.querySelectorAll('.script-button-group').forEach(el => el.remove());
+         
           const optionsContainer = document.createElement('div');
           optionsContainer.className = 'chat-options';
           optionsContainer.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0;';
@@ -1065,7 +1069,7 @@ function bringToFront(wid) {
               button.className = 'quick-action-btn';
               button.textContent = option.label;
               button.type = 'button';
-              button.onclick = () => handleQuickOptionClick(option.value, option.label, option.next_step);
+              button.onclick = () => handlePillQuickOptionClick(option.value, option.label, option.next_step);
               optionsContainer.appendChild(button);
         });
         
@@ -1073,7 +1077,7 @@ function bringToFront(wid) {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
         
-        function handleQuickOptionClick(value, label, nextStep) {
+        function handlePillQuickOptionClick(value, label, nextStep) {
           const state = widgetStates[ACTIVE_WID];
                 
           // remove all option rows
@@ -1093,6 +1097,11 @@ function bringToFront(wid) {
           }
         }
 
+        function shouldUsePills() {
+          const container = document.getElementById(`${ACTIVE_WID}-lawfirm-chatbot-container`);
+          if (!container) return false;
+          return container.classList.contains('layout-video') || container.classList.contains('layout-picture');
+        }
         
         function addScriptStep(stepId) {
             const state = getState();
@@ -1115,23 +1124,33 @@ function bringToFront(wid) {
             }
 
             if (step.options && step.options.length) {
+              const messagesContainer = getEl('chat-messages');
+
+              // ✅ remove any previous option UI so they can't stack
+              messagesContainer.querySelectorAll('.chat-options').forEach(el => el.remove());
+              messagesContainer.querySelectorAll('.script-button-group').forEach(el => el.remove());
+
+              if (shouldUsePills()) {
+                // ✅ picture/video -> pills
                 showOptions(step.options);
-                const messagesContainer = getEl('chat-messages');
+              } else {
+                // ✅ all others -> rectangles
                 const btnGroup = document.createElement('div');
                 btnGroup.className = 'script-button-group';
-
+            
                 step.options.forEach(opt => {
-                    const btn = document.createElement('button');
-                    btn.className = 'script-button';
-                    btn.textContent = opt.label;
-                    btn.onclick = () => handleFlowOptionClick(stepId, opt);
-                    btnGroup.appendChild(btn);
+                  const btn = document.createElement('button');
+                  btn.className = 'script-button';
+                  btn.textContent = opt.label;
+                  btn.onclick = () => handleFlowOptionClick(stepId, opt);
+                  btnGroup.appendChild(btn);
                 });
-
+            
                 messagesContainer.appendChild(btnGroup);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
+              }
             }
-            
+           
             // ✅ AUTO-ADVANCE FOR "NONE" STEPS - INSIDE THE FUNCTION!
             if (step.input_type === 'none' && step.next_step) {
                 console.log('🔄 Auto-advancing from', stepId, 'to', step.next_step);
