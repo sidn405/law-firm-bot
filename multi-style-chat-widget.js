@@ -941,7 +941,7 @@ function bringToFront(wid) {
           const welcomeMsg = `Hello and welcome to our law firm. I can help you with a free case evaluation, scheduling, or questions about our services.\n\nWhat type of legal issue do you need help with?`;
               
           const messageDiv = document.createElement('div');
-          messageDiv.className = 'chat-messages bot';
+          messageDiv.className = 'chat-message';
           messageDiv.innerHTML = `
             <div class="message-avatar">🤖</div>
             <div class="message-content">${welcomeMsg.replace(/\n/g, '<br>')}</div>
@@ -954,7 +954,7 @@ function bringToFront(wid) {
           if (welcomeStep && welcomeStep.prompt) {
             // Create bot message
             const messageDiv = document.createElement('div');
-            messageDiv.className = 'chat-messages bot';
+            messageDiv.className = 'chat-message';
 
             const avatar = document.createElement('div');
             avatar.className = 'message-avatar';
