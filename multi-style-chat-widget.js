@@ -38,6 +38,52 @@ function getEl(id) {
   return document.getElementById(`${ACTIVE_WID}-${id}`);
 }
 
+function getState() {
+  return widgetStates[ACTIVE_WID];
+}
+
+function normalizeText(s) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function matchOptionFromText(userText, options) {
+  const u = normalizeText(userText);
+  if (!u || !Array.isArray(options)) return null;
+
+  // strong matches first
+  for (const opt of options) {
+    const label = normalizeText(opt.label);
+    const value = normalizeText(opt.value);
+    if (u === label || u === value) return opt;
+  }
+
+  // then fuzzy contains
+  for (const opt of options) {
+    const label = normalizeText(opt.label);
+    const value = normalizeText(opt.value);
+    if ((label && u.includes(label)) || (value && u.includes(value))) return opt;
+  }
+
+  return null;
+}
+
+function detectQuickActionFromText(messageLower) {
+  const m = normalizeText(messageLower);
+
+  // Order matters: more specific first
+  if (m.includes("personal injury") || m.includes("injury")) return "personal_injury";
+  if (m.includes("family law") || m.includes("divorce") || m.includes("custody")) return "family_law";
+  if (m.includes("immigration") || m.includes("visa") || m.includes("green card")) return "immigration";
+  if (m.includes("criminal") || m.includes("arrest") || m.includes("charge") || m.includes("dui")) return "criminal_defense";
+  if (m.includes("schedule") || m.includes("consult") || m.includes("appointment")) return "schedule";
+
+  return null;
+}
+
 function getElFor(wid, id) {
   return document.getElementById(`${wid}-${id}`);
 }
@@ -1049,20 +1095,27 @@ function bringToFront(wid) {
         }
         
         function addScriptStep(stepId) {
+            const state = getState();
             const step = flowSteps[stepId];
-            if (!step) return;
+            if (!state || !step) return;
+
+            // ✅ keep widget state + globals in sync (your codebase mixes both)
+            state.currentStep = stepId;
+            state.intakeActive = true;
+
             currentStep = stepId;
+            intakeActive = true;
+            collectedData = state.collectedData;
 
-            addMessage('bot', step.prompt);
+            addMessage("bot", step.prompt);
 
-            if (stepId === 'payment_flow') {
-                setTimeout(() => {
-                    startPaymentFlow();
-                }, 500);
-                return;
+            if (stepId === "payment_flow") {
+              setTimeout(() => startPaymentFlow(), 500);
+              return;
             }
 
             if (step.options && step.options.length) {
+                addOptionButtons(step.options);
                 const messagesContainer = getEl('chat-messages');
                 const btnGroup = document.createElement('div');
                 btnGroup.className = 'script-button-group';
@@ -1501,80 +1554,89 @@ function bringToFront(wid) {
                 }
                 return;
             }
-            // ✅ COMPREHENSIVE DEBUG LOGGING
-            console.log('=== SEND MESSAGE DEBUG ===');
-            console.log('Message:', message);
-            console.log('intakeActive:', intakeActive);
-            console.log('currentStep:', currentStep);
-            console.log('flowSteps[currentStep]:', flowSteps[currentStep]);
+            // ✅ Use ACTIVE widget state (not globals)
+            const state = getState();
+            if (!state) return;
 
-            // ✅ NEW: If we're in a scripted CHOICE step, do NOT send typed text to backend
-            if (intakeActive && flowSteps[currentStep] && flowSteps[currentStep].input_type === 'choice') {
-              const step = flowSteps[currentStep];
+            // Keep globals loosely synced for older functions that still read them
+            intakeActive = state.intakeActive;
+            currentStep = state.currentStep;
+            collectedData = state.collectedData;
+
+            console.log("=== SEND MESSAGE DEBUG ===");
+            console.log("Message:", message);
+            console.log("intakeActive:", state.intakeActive);
+            console.log("currentStep:", state.currentStep);
+            console.log("flowSteps[currentStep]:", flowSteps[state.currentStep]);
+
+            const step = flowSteps[state.currentStep];
+
+            // ✅ 1) If we're in an intake step, handle it locally (NO backend)
+            if (state.intakeActive && step) {
+              // TEXT step
+              if (step.input_type === "text") {
+                state.collectedData[state.currentStep] = message;
             
-              // Try to auto-match what they typed to one of the visible options
-              const normalized = messageLower.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-            
-              const matched = (step.options || []).find(opt => {
-                const label = (opt.label || '').toLowerCase();
-                const value = String(opt.value || '').toLowerCase();
-            
-                return (
-                  normalized === label ||
-                  normalized === value ||
-                  normalized.includes(label) ||
-                  normalized.includes(value)
-                );
-              });
-          
-              // Remove any existing option button groups (same behavior as option click)
-              document.querySelectorAll('.script-button-group').forEach(el => el.remove());
-          
-              if (matched) {
-                // Save answer + advance (WITHOUT echoing another user message)
-                collectedData[currentStep] = matched.value;
-            
-                const nextId = matched.next_step || step.next_step;
+                const nextId = step.next_step;
                 if (nextId) {
                   addScriptStep(nextId);
                 } else {
-                  intakeActive = false;
-                  addMessage('bot', "Thank you. Your information has been received.");
-                }
-              } else {
-                // They typed something unrelated (ex: repeating “personal injury”)
-                // Keep them in the script instead of restarting the greeting via backend.
-                addMessage('bot', "To continue, please choose one of the options above.");
-                // Optional: re-ask the same question instead:
-                // addMessage('bot', step.prompt);
-              }
-          
-              return;
-            }
-
-            
-            // If we're in a scripted TEXT step, use it as the answer
-            if (intakeActive && flowSteps[currentStep] && flowSteps[currentStep].input_type === 'text') {
-                console.log('✅ IN TEXT INPUT MODE');
-                console.log('Saving to collectedData[' + currentStep + ']');
-                
-                collectedData[currentStep] = message;
-                const nextId = flowSteps[currentStep].next_step;
-                
-                console.log('Next step ID:', nextId);
-                
-                if (nextId) {
-                    console.log('✅ Moving to next step:', nextId);
-                    addScriptStep(nextId);
-                } else {
-                    console.log('⚠️ No next step - ending intake');
-                    intakeActive = false;
-                    addMessage('bot', "Thank you. Your information has been received.");
+                  state.intakeActive = false;
+                  addMessage("bot", "Thank you. Your information has been received.");
                 }
                 return;
-            }
+              }
+          
+              // CHOICE step (THIS is what was missing)
+              if (step.input_type === "choice") {
+                const matched = matchOptionFromText(message, step.options);
             
-            console.log('❌ NOT in text input mode - proceeding to backend');
+                if (matched) {
+                  // Remove option buttons currently displayed
+                  const messagesContainer = getEl("chat-messages");
+                  messagesContainer.querySelectorAll(".chat-options").forEach((div) => div.remove());
+                
+                  // Save + advance
+                  state.collectedData[state.currentStep] = matched.value;
+                
+                  const nextId = matched.next_step || step.next_step;
+                  if (nextId) {
+                    addScriptStep(nextId);
+                  } else {
+                    state.intakeActive = false;
+                    addMessage("bot", "Thank you. Your information has been received.");
+                  }
+                } else {
+                  // Stay in flow, don’t call backend
+                  addMessage("bot", "To continue, please choose one of the options above.");
+                }
+            
+                return;
+              }
+            }
+
+            // ✅ 2) If NOT in intake (or step missing), allow typed intent to jump into flow
+            const quickAction = detectQuickActionFromText(messageLower);
+            if (quickAction) {
+              const actionMap = {
+                personal_injury: "pi_intro",
+                family_law: "family_intro",
+                immigration: "imm_intro",
+                criminal_defense: "crim_intro",
+                schedule: "pi_consult"
+              };
+          
+              const stepId = actionMap[quickAction];
+              if (stepId) {
+                state.intakeActive = true;
+                state.collectedData["start"] = quickAction; // optional, keeps flow consistent
+                addScriptStep(stepId);
+                return;
+              }
+            }
+
+            console.log("❌ proceeding to backend");
+
 
             // Otherwise: GENERAL CHAT
             showTyping(true);
@@ -2052,22 +2114,46 @@ function bindWidgetEvents() {
 function handleQuickAction(wid, action) {
   setActiveWidget(wid);
   const state = widgetStates[wid];
-  
-  // Find the step for this action
-  const step = flowSteps[action] || flowSteps['start'];
-  state.currentStep = action;
-  
-  // Add user message
-  addMessage('user', `I need help with ${action.replace(/_/g, ' ')}`);
-  
-  // Add bot response
-  if (step && step.prompt) {
-    setTimeout(() => {
-      addMessage('bot', step.prompt);
-    }, 500);
-  }
-}
+  if (!state) return;
 
+  const actionMap = {
+    personal_injury: "pi_intro",
+    family_law: "family_intro",
+    immigration: "imm_intro",
+    criminal_defense: "crim_intro",
+    schedule: "pi_consult",
+    make_payment: "payment_flow"
+  };
+
+  // Sync globals to this widget (older functions still use globals)
+  intakeActive = state.intakeActive;
+  currentStep = state.currentStep;
+  collectedData = state.collectedData;
+
+  const stepId = actionMap[action] || "start";
+
+  state.intakeActive = true;
+
+  if (stepId === "payment_flow") {
+    addMessage("user", "I'd like to make a payment.");
+    addScriptStep("payment_flow");
+    return;
+  }
+
+  // Show a clean label (not "I need help with personal_injury")
+  const labels = {
+    personal_injury: "Personal Injury",
+    family_law: "Family Law",
+    immigration: "Immigration",
+    criminal_defense: "Criminal Defense",
+    schedule: "Schedule Consultation"
+  };
+
+  addMessage("user", labels[action] || action.replace(/_/g, " "));
+  state.collectedData["start"] = action;
+
+  addScriptStep(stepId);
+}
 
 async function handlePaymentReturn() {
   const urlParams = new URLSearchParams(window.location.search);
