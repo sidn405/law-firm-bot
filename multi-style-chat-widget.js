@@ -949,7 +949,7 @@ function bringToFront(wid) {
           const messageDiv = document.createElement('div');
           messageDiv.className = 'chat-message bot';
           messageDiv.innerHTML = `
-            <div class="message-avatar">🤖</div>
+            <div class="message-avatar">🏛️</div>
             <div class="message-content">${welcomeMsg.replace(/\n/g, '<br>')}</div>
           `;
 
@@ -982,7 +982,7 @@ function bringToFront(wid) {
 
             const avatar = document.createElement('div');
             avatar.className = 'message-avatar';
-            avatar.textContent = sender === 'user' ? '👤' : '🤖';
+            avatar.textContent = sender === 'user' ? '👤' : '🏛️';
 
             const content = document.createElement('div');
             content.className = 'message-content';
