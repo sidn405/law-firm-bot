@@ -1839,8 +1839,6 @@ function openWidget(wid) {
   const win = getElFor(wid, "lawfirm-chat-window");
   if (win) win.classList.add("open");
 
-  placeChatWindow(wid);
-
   // Initialize if empty
   const messagesDiv = document.getElementById(`${wid}-chat-messages`);
   if (messagesDiv && messagesDiv.children.length === 0) {
@@ -1876,22 +1874,22 @@ function closeWidget(wid) {
 
 function toggleWidget(wid) {
   setActiveWidget(wid);
-
+  
   if (wid === "w5") {
     const win = getElFor(wid, "lawfirm-chat-window");
     const isOpen = win && win.classList.contains("open");
     if (isOpen) closeWidget(wid); else openWidget(wid);
     return;
   }
-
+  
   const win = getElFor(wid, "lawfirm-chat-window");
   if (!win) return;
-  win.classList.toggle("open");
-  if (win.classList.contains("open")) {
-    const input = getElFor(wid, "chat-input");
-    if (input) input.focus();
-    const badge = getElFor(wid, "chat-notification");
-    if (badge) badge.style.display = "none";
+  
+  const isOpen = win.classList.contains("open");
+  if (isOpen) {
+    closeWidget(wid);
+  } else {
+    openWidget(wid);  // ← This calls initializeWidget
   }
 }
 
