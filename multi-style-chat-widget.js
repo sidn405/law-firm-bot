@@ -1991,6 +1991,19 @@ function bindWidgetEvents() {
   }
 }
 
+(function setHeaderDate() {
+  const el = document.getElementById("headerDate");
+  if (!el) return;
+
+  const d = new Date();
+  const weekday = d.toLocaleDateString(undefined, { weekday: "long" });
+  const day = d.toLocaleDateString(undefined, { day: "2-digit" });
+  const month = d.toLocaleDateString(undefined, { month: "long" });
+
+  el.textContent = `${weekday}, ${day} ${month}`;
+})();
+
+
 function handleQuickAction(wid, action) {
   setActiveWidget(wid);
   const state = widgetStates[wid];
