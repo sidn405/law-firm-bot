@@ -920,20 +920,20 @@ function bringToFront(wid) {
 
         function initializeWidget(wid) {
           console.log('=== INIT START for', wid);
-                
+
           const state = widgetStates[wid];
           console.log('State found:', state);
           if (!state) return;
-                
+
           // Reset to start
           state.currentStep = 'start';
           state.collectedData = {};
-                
+
           const messagesDiv = document.getElementById(`${wid}-chat-messages`);
           console.log('Messages div:', messagesDiv);
           console.log('Messages div display:', messagesDiv ? window.getComputedStyle(messagesDiv).display : 'N/A');
           console.log('Children count before clear:', messagesDiv ? messagesDiv.children.length : 'N/A');
-                
+
           if (!messagesDiv) {
             console.error(`Could not find messages div for ${wid}`);
             return;
@@ -952,12 +952,12 @@ function bringToFront(wid) {
             <div class="message-avatar">🤖</div>
             <div class="message-content">${welcomeMsg.replace(/\n/g, '<br>')}</div>
           `;
-          
+
           console.log('Created message div:', messageDiv);
           messagesDiv.appendChild(messageDiv);
           console.log('Appended message, children count:', messagesDiv.children.length);
           console.log('First child:', messagesDiv.children[0]);
-          
+
           messagesDiv.scrollTop = messagesDiv.scrollHeight;
           console.log('=== INIT END');
         }
@@ -1838,6 +1838,8 @@ function openWidget(wid) {
 
   const win = getElFor(wid, "lawfirm-chat-window");
   if (win) win.classList.add("open");
+
+  placeChatWindow(wid);
 
   // Initialize if empty
   const messagesDiv = document.getElementById(`${wid}-chat-messages`);
