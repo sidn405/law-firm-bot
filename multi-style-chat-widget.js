@@ -2088,6 +2088,10 @@ function bindWidgetEvents() {
     const root = document.getElementById(`${wid}-lawfirm-chatbot-container`);
     if (!root) return;
 
+    if (root.dataset.bound === "1") return;
+    root.dataset.bound = "1";
+
+
     // If the user interacts with a widget, keep it on top (important when multiple toggles exist)
     root.addEventListener("mousedown", () => {
       const win = getElFor(wid, "lawfirm-chat-window");
@@ -2128,15 +2132,6 @@ function bindWidgetEvents() {
         if (action) quickAction(action);
       });
     });    
-
-    root.querySelectorAll("[data-quick-action]").forEach((qaBtn) => {
-      qaBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        setActiveWidget(wid);
-        const action = qaBtn.getAttribute("data-quick-action");
-        if (action) quickAction(action);
-      });
-    });
 
     const input = document.getElementById(`${wid}-chat-input`);
     if (input) {
