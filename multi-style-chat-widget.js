@@ -2184,8 +2184,8 @@ function bindWidgetEvents() {
 
 function handleQuickAction(wid, action) {
   setActiveWidget(wid);
-  const state = widgetStates[wid];
-  if (!state) return;
+  if (action) quickAction(action);
+}
 
   const actionMap = {
     personal_injury: "pi_intro",
@@ -2224,7 +2224,6 @@ function handleQuickAction(wid, action) {
   state.collectedData["start"] = action;
 
   addScriptStep(stepId);
-}
 
 async function handlePaymentReturn() {
   const urlParams = new URLSearchParams(window.location.search);
