@@ -1507,6 +1507,51 @@ function bringToFront(wid) {
             console.log('intakeActive:', intakeActive);
             console.log('currentStep:', currentStep);
             console.log('flowSteps[currentStep]:', flowSteps[currentStep]);
+
+            // ✅ NEW: If we're in a scripted CHOICE step, do NOT send typed text to backend
+            if (intakeActive && flowSteps[currentStep] && flowSteps[currentStep].input_type === 'choice') {
+              const step = flowSteps[currentStep];
+            
+              // Try to auto-match what they typed to one of the visible options
+              const normalized = messageLower.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+            
+              const matched = (step.options || []).find(opt => {
+                const label = (opt.label || '').toLowerCase();
+                const value = String(opt.value || '').toLowerCase();
+            
+                return (
+                  normalized === label ||
+                  normalized === value ||
+                  normalized.includes(label) ||
+                  normalized.includes(value)
+                );
+              });
+          
+              // Remove any existing option button groups (same behavior as option click)
+              document.querySelectorAll('.script-button-group').forEach(el => el.remove());
+          
+              if (matched) {
+                // Save answer + advance (WITHOUT echoing another user message)
+                collectedData[currentStep] = matched.value;
+            
+                const nextId = matched.next_step || step.next_step;
+                if (nextId) {
+                  addScriptStep(nextId);
+                } else {
+                  intakeActive = false;
+                  addMessage('bot', "Thank you. Your information has been received.");
+                }
+              } else {
+                // They typed something unrelated (ex: repeating “personal injury”)
+                // Keep them in the script instead of restarting the greeting via backend.
+                addMessage('bot', "To continue, please choose one of the options above.");
+                // Optional: re-ask the same question instead:
+                // addMessage('bot', step.prompt);
+              }
+          
+              return;
+            }
+
             
             // If we're in a scripted TEXT step, use it as the answer
             if (intakeActive && flowSteps[currentStep] && flowSteps[currentStep].input_type === 'text') {
