@@ -1054,45 +1054,45 @@ function bringToFront(wid) {
         }
 
         function showOptions(options) {
-        const messagesContainer = getEl('chat-messages');
-        
-        const optionsContainer = document.createElement('div');
-        optionsContainer.className = 'chat-options';
-        optionsContainer.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0;';
-        
-        options.forEach(option => {
-            const button = document.createElement('button');
-            button.className = 'quick-action-btn';
-            button.textContent = option.label;
-            button.type = 'button';
-            button.onclick = () => handleOptionClick(option.value, option.label, option.next_step);
-            optionsContainer.appendChild(button);
+          const messagesContainer = getEl('chat-messages');
+          
+          const optionsContainer = document.createElement('div');
+          optionsContainer.className = 'chat-options';
+          optionsContainer.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0;';
+          
+          options.forEach(option => {
+              const button = document.createElement('button');
+              button.className = 'quick-action-btn';
+              button.textContent = option.label;
+              button.type = 'button';
+              button.onclick = () => handleQuickOptionClick(option.value, option.label, option.next_step);
+              optionsContainer.appendChild(button);
         });
         
         messagesContainer.appendChild(optionsContainer);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
         
-        function handleOptionClick(value, label, nextStep) {
-            const state = widgetStates[ACTIVE_WID];
-            
-            // Remove all option buttons
-            const messagesContainer = getEl('chat-messages');
-            const optionDivs = messagesContainer.querySelectorAll('.chat-options');
-            optionDivs.forEach(div => div.remove());
-            
-            // Add user's choice as message
-            addMessage('user', label);
-            
-            // Save the data
-            state.collectedData[state.currentStep] = value;
-            
-            // Move to next step
-            if (nextStep) {
-                state.currentStep = nextStep;
-                addScriptStep(nextStep);
-            }
+        function handleQuickOptionClick(value, label, nextStep) {
+          const state = widgetStates[ACTIVE_WID];
+                
+          // remove all option rows
+          const messagesContainer = getEl('chat-messages');
+          messagesContainer.querySelectorAll('.chat-options').forEach(div => div.remove());
+                
+          addMessage('user', label);
+                
+          // save
+          state.collectedData[state.currentStep] = value;
+                
+          // advance
+          if (nextStep) {
+            state.currentStep = nextStep;
+            state.intakeActive = true;
+            addScriptStep(nextStep);
+          }
         }
+
         
         function addScriptStep(stepId) {
             const state = getState();
@@ -1115,7 +1115,7 @@ function bringToFront(wid) {
             }
 
             if (step.options && step.options.length) {
-                addOptionButtons(step.options);
+                showOptions(step.options);
                 const messagesContainer = getEl('chat-messages');
                 const btnGroup = document.createElement('div');
                 btnGroup.className = 'script-button-group';
@@ -1124,7 +1124,7 @@ function bringToFront(wid) {
                     const btn = document.createElement('button');
                     btn.className = 'script-button';
                     btn.textContent = opt.label;
-                    btn.onclick = () => handleOptionClick(stepId, opt);
+                    btn.onclick = () => handleFlowOptionClick(stepId, opt);
                     btnGroup.appendChild(btn);
                 });
 
@@ -1152,25 +1152,30 @@ function bringToFront(wid) {
             }
         }  // ← FUNCTION ENDS HERE - AFTER THE AUTO-ADVANCE CODE!
     
-        function handleOptionClick(stepId, option) {
-            document.querySelectorAll('.script-button-group').forEach(el => el.remove());
-            addMessage('user', option.label);
-            collectedData[stepId] = option.value;
+        function handleFlowOptionClick(stepId, option) {
+          document.querySelectorAll('.script-button-group').forEach(el => el.remove());
+          addMessage('user', option.label);
 
-            const nextId = option.next_step || flowSteps[stepId].next_step;
-            
-            if (nextId === 'payment_flow') {
-                addScriptStep(nextId);
-                return;
-            }
-            
-            if (nextId) {
-                addScriptStep(nextId);
-            } else {
-                intakeActive = false;
-                addMessage('bot', "Thank you. Your information has been received.");
-            }
+          // use per-widget state as truth
+          const state = widgetStates[ACTIVE_WID];
+          state.collectedData[stepId] = option.value;
+
+          const nextId = option.next_step || flowSteps[stepId].next_step;
+
+          if (nextId === 'payment_flow') {
+            addScriptStep(nextId);
+            return;
+          }
+      
+          if (nextId) {
+            addScriptStep(nextId);
+          } else {
+            state.intakeActive = false;
+            intakeActive = false;
+            addMessage('bot', "Thank you. Your information has been received.");
+          }
         }
+
 
         function quickAction(action) {
             if (action === 'make_payment') {
@@ -1586,6 +1591,65 @@ function bringToFront(wid) {
                 }
                 return;
               }
+
+              // ✅ NEW: If we're in a scripted CHOICE step, typed messages should advance the flow (like original)
+              if (intakeActive && flowSteps[currentStep] && flowSteps[currentStep].input_type === 'choice') {
+                const step = flowSteps[currentStep];
+                const state = widgetStates[ACTIVE_WID];
+              
+                const msg = (messageLower || '').toLowerCase();
+              
+                // 1) If user typed something that matches an option label/value, treat it like a click
+                const norm = msg.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+              
+                const matched = (step.options || []).find(opt => {
+                  const label = String(opt.label || '').toLowerCase();
+                  const value = String(opt.value || '').toLowerCase();
+                  return norm === label || norm === value || norm.includes(label) || norm.includes(value);
+                });
+            
+                if (matched) {
+                  handleFlowOptionClick(currentStep, matched);
+                  return;
+                }
+            
+                // 2) If they typed an "intent", jump to the correct flow (same as clicking quick action)
+                const intentMap = [
+                  { test: /car accident|accident|injury|hurt|wreck|rear[-\s]?ended/, action: 'personal_injury' },
+                  { test: /divorce|custody|child support|family/, action: 'family_law' },
+                  { test: /immigration|visa|green card|citizen/, action: 'immigration' },
+                  { test: /criminal|arrest|charge|dui|felony|misdemeanor/, action: 'criminal_defense' },
+                  { test: /schedule|appointment|consult/, action: 'schedule' },
+                ];
+            
+                const found = intentMap.find(x => x.test.test(msg));
+                if (found) {
+                  const actionMap = {
+                    personal_injury: 'pi_intro',
+                    family_law: 'family_intro',
+                    immigration: 'imm_intro',
+                    criminal_defense: 'crim_intro',
+                    schedule: 'pi_consult'
+                  };
+              
+                  // remove visible option buttons
+                  document.querySelectorAll('.script-button-group, .chat-options').forEach(el => el.remove());
+              
+                  // store start intent so downstream formatting stays consistent
+                  state.collectedData['start'] = found.action;
+              
+                  // move to step
+                  intakeActive = true;
+                  state.intakeActive = true;
+                  addScriptStep(actionMap[found.action]);
+                  return;
+                }
+            
+                // 3) Otherwise: keep them in the scripted choice step (don’t call backend)
+                addMessage('bot', "Please choose one of the options above to continue.");
+                return;
+              }
+  
           
               // CHOICE step (THIS is what was missing)
               if (step.input_type === "choice") {
