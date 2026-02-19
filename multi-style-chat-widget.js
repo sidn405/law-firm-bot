@@ -919,97 +919,47 @@ function bringToFront(wid) {
         // (DOMContentLoaded init moved to multi-style loader)
 
         function initializeWidget(wid) {
+          console.log('=== INIT START for', wid);
+                
           const state = widgetStates[wid];
+          console.log('State found:', state);
           if (!state) return;
-
+                
           // Reset to start
           state.currentStep = 'start';
           state.collectedData = {};
-
+                
           const messagesDiv = document.getElementById(`${wid}-chat-messages`);
-          console.log('messagesDiv found:', messagesDiv);
-
+          console.log('Messages div:', messagesDiv);
+          console.log('Messages div display:', messagesDiv ? window.getComputedStyle(messagesDiv).display : 'N/A');
+          console.log('Children count before clear:', messagesDiv ? messagesDiv.children.length : 'N/A');
+                
           if (!messagesDiv) {
             console.error(`Could not find messages div for ${wid}`);
             return;
           }
-
+      
           // Clear any existing messages FIRST
           messagesDiv.innerHTML = '';
-              
+          console.log('Cleared messages');
+      
           // THEN add welcome message
           const welcomeMsg = `Hello and welcome to our law firm. I can help you with a free case evaluation, scheduling, or questions about our services.\n\nWhat type of legal issue do you need help with?`;
-              
+      
           const messageDiv = document.createElement('div');
-          messageDiv.className = 'chat-message';
+          messageDiv.className = 'chat-message bot';
           messageDiv.innerHTML = `
             <div class="message-avatar">🤖</div>
             <div class="message-content">${welcomeMsg.replace(/\n/g, '<br>')}</div>
           `;
+          
+          console.log('Created message div:', messageDiv);
           messagesDiv.appendChild(messageDiv);
+          console.log('Appended message, children count:', messagesDiv.children.length);
+          console.log('First child:', messagesDiv.children[0]);
+          
           messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-          // Add welcome message directly
-          const welcomeStep = flowSteps['start'];
-          if (welcomeStep && welcomeStep.prompt) {
-            // Create bot message
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'chat-message';
-
-            const avatar = document.createElement('div');
-            avatar.className = 'message-avatar';
-            avatar.textContent = '🤖';
-
-            const content = document.createElement('div');
-            content.className = 'message-content';
-            content.textContent = welcomeStep.prompt;
-
-            messageDiv.appendChild(avatar);
-            messageDiv.appendChild(content);
-            messagesDiv.appendChild(messageDiv);
-
-            // Add quick action buttons if available
-            if (welcomeStep.options) {
-              const optionsContainer = document.createElement('div');
-              optionsContainer.className = 'chat-options';
-              optionsContainer.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0;';
-            
-              welcomeStep.options.forEach(option => {
-                const button = document.createElement('button');
-                button.className = 'quick-action-btn';
-                button.textContent = option.label;
-                button.type = 'button';
-                button.onclick = () => {
-                  // Remove options
-                  optionsContainer.remove();
-                  // Add user message
-                  const userMsg = document.createElement('div');
-                  userMsg.className = 'chat-message user';
-                  const userAvatar = document.createElement('div');
-                  userAvatar.className = 'message-avatar';
-                  userAvatar.textContent = '👤';
-                  const userContent = document.createElement('div');
-                  userContent.className = 'message-content';
-                  userContent.textContent = option.label;
-                  userMsg.appendChild(userAvatar);
-                  userMsg.appendChild(userContent);
-                  messagesDiv.appendChild(userMsg);
-                
-                  // Save data and continue
-                  state.collectedData[state.currentStep] = option.value;
-                  if (option.next_step) {
-                    state.currentStep = option.next_step;
-                    // Continue flow here if needed
-                  }
-                };
-                optionsContainer.appendChild(button);
-              });
-
-              messagesDiv.appendChild(optionsContainer);
-            }
-
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-          }
+          console.log('=== INIT END');
         }
 
         function generateSessionId() {
