@@ -1475,6 +1475,15 @@
             z-index: 0;
         }
 
+        /* Slight zoom out while still covering */
+        .lawfirm-chat-window.layout-image .image-bg img{
+          object-fit: cover;
+          object-position: center;
+          transform: scale(0.88);     /* <— smaller = more zoomed out */
+          transform-origin: center;
+        }
+
+
         #w1-lawfirm-chat-button {  /* change wN to whichever widget */
           background: transparent;
           box-shadow: 0 4px 12px rgba(0,0,0,0.3);
@@ -1918,9 +1927,11 @@
 
         /* Example: w2 icon-only */
         #w2-lawfirm-chatbot-container{
-          background: transparent !important;
-          border: none !important;
-          box-shadow: none !important;
+        --toggle-bg: none !important;
+        --toggle-shadow: none !important;
+        --toggle-border: none !important;
+        --box-shadow: none  !important;
+        --filter: none !important;
         }
 
 
