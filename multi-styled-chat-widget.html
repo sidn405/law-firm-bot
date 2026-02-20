@@ -1515,6 +1515,7 @@
 
         /* ====== PICTURE BACKGROUND (img layer) ====== */
         .layout-image.lawfirm-chat-window{
+            position: relative;
             overflow: hidden;
         }
 
@@ -1528,7 +1529,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            opacity: 0.9;
+            display: block;
         }
 
         /* Put widget content above background */
@@ -1536,7 +1537,6 @@
             position: relative;
             z-index: 1;
         }
-
 
         /* ====== FLOATING CARD (match demo small card) ====== */
         .layout-floating .lawfirm-chat-window{
@@ -1616,6 +1616,12 @@
           color: #fff;
           font-weight: 700;
           box-shadow: none;
+        }
+
+        /* floating: gold */
+        .layout-floating .lawfirm-chat-window{
+             background: #DEBA3A;
+            
         }
 
         /* ====== CHATBOT SIDE (match chatbot-side.html) ====== */
@@ -1835,7 +1841,8 @@
         }
 
         .layout-side .side-v2 .close-btn:hover {
-         background: #4f5464;
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(30, 64, 175, 0.4);
         }
 
         /* Messages: override classic bubble look slightly */
