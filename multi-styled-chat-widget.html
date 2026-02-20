@@ -2051,39 +2051,6 @@
           min-width: 0;        /* important in flex layouts */
         }
 
-        /* ===== FIX: picture bg fills entire window ===== */
-        .lawfirm-chat-window.layout-image{
-          position: relative !important;
-          overflow: hidden !important;
-        }
-
-        .lawfirm-chat-window.layout-image .image-bg{
-          position: absolute !important;
-          inset: 0 !important;
-          z-index: 0 !important;
-          pointer-events: none !important;
-        }
-
-        .lawfirm-chat-window.layout-image .image-bg img{
-          width: 100% !important;
-          height: 100% !important;
-          object-fit: cover !important;
-          display: block !important;
-        }
-
-        /* content above image */
-        .lawfirm-chat-window.layout-image > :not(.image-bg){
-          position: relative !important;
-          z-index: 1 !important;
-        }
-
-        /* ===== FIX: floating widget gold background ===== */
-        .lawfirm-chatbot-container.layout-floating .lawfirm-chat-window{
-          background: #DEBA3A !important;
-        }
-
-
-
 
     </style>
 </head>
@@ -2294,7 +2261,7 @@
             <div class="chat-header">
                 <div class="chat-header-info">
                     <div class="chat-avatar">
-                        <img src="./graphics/image.jpg" alt="" />
+                        ⚖️
                     </div>
                     <div>
                         <div class="chat-title">Legal Assistant (Photo)</div>
