@@ -722,8 +722,9 @@
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            border: none;
+            background: var(--toggle-bg, linear-gradient(135deg, var(--primary-color), var(--secondary-color))) !important;
+            box-shadow: var(--toggle-shadow, 0 4px 12px rgba(30, 64, 175, 0.3));
+            border: var(--toggle-border, none);
             cursor: pointer;
             font-size: 28px;
             box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
@@ -1618,11 +1619,12 @@
           box-shadow: none;
         }
 
-        /* floating: gold */
-        .layout-floating .lawfirm-chat-window{
-             background: #DEBA3A;
-            
+        #w3-lawfirm-chatbot-container{
+        --toggle-bg: #DEBA3A;
+        --toggle-shadow: 0 6px 18px rgba(0,0,0,.18);
+        --toggle-border: none;
         }
+
 
         /* ====== CHATBOT SIDE (match chatbot-side.html) ====== */
         .layout-side .lawfirm-chat-window {
@@ -1914,6 +1916,14 @@
           border-radius: 50% !important;
         }
 
+        /* Example: w2 icon-only */
+        #w2-lawfirm-chatbot-container{
+        --toggle-bg: transparent;
+        --toggle-shadow: none;
+        --toggle-border: 2px solid #DEBA3A;
+        }
+
+
         /* ---------- SIDE: center like modal on small screens ---------- */
         @media (max-width: 1100px), (max-height: 760px) {
         
@@ -2036,6 +2046,25 @@
                 display: none !important;
             }
         }
+
+        /* Make ONLY w1 (picture) behave like w4 (video) */
+        #w1-lawfirm-chat-button{
+          background: transparent !important;
+          padding: 0 !important;
+          overflow: hidden;
+          position: relative;
+        }
+
+        /* Force the image to fill the entire circle */
+        #w1-lawfirm-chat-button > img{
+          position: absolute;
+          inset: 0;
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover;
+          border-radius: 50%;
+        }
+
 
         /* ✅ SIDE LAYOUT: lock sidebar width (stop shrinking) */
         .layout-side .side-v2 .chat-sidebar{
@@ -2249,7 +2278,7 @@
     
     <div id="w1-lawfirm-chatbot-container" class="lawfirm-chatbot-container widget-pos-left-top widget-left layout-picture" data-wid="w1">
         <button id="w1-lawfirm-chat-button" class="lawfirm-chat-button" type="button" aria-label="Open chat" data-action="toggle">
-            <img src="./graphics/profile.jpg" alt="Attorney" style="width:44px; height:44px; border-radius:50%; object-fit:cover; border:2px solid #DEBA3A;">
+            <img src="./graphics/profile.jpg" alt="Attorney" style="border:2px solid #DEBA3A;">
             <div id="w1-chat-notification" class="chat-notification" style="display:none;">1</div>
         </button>
 
