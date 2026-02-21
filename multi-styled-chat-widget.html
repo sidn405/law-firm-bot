@@ -2100,6 +2100,9 @@
           opacity: 0.95;
         }
 
+        #w1-lawfirm-chat-window .chat-avatar img{ display:none; }
+
+
         /* Make header / quick actions / input area transparent so the same image shows through */
         #w1-lawfirm-chat-window .chat-header,
         #w1-lawfirm-chat-window .chat-quick-actions,
@@ -2123,9 +2126,13 @@
 
         /* Divider line under quick actions */
         #w1-lawfirm-chat-window .chat-messages{
-          border-top: 1px solid rgba(255,255,255,0.35);
+          border-top: 1px solid rgba(255,255,255,0.35) !important;
         }
 
+        #w1-lawfirm-chat-window .image-bg img{
+          transform: scale(0.90);
+          transform-origin: center;
+        }
 
 
     </style>
