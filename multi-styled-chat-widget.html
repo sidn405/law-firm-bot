@@ -2100,9 +2100,6 @@
           opacity: 0.95;
         }
 
-        #w1-lawfirm-chat-window .chat-avatar img{ display:none; }
-
-
         /* Make header / quick actions / input area transparent so the same image shows through */
         #w1-lawfirm-chat-window .chat-header,
         #w1-lawfirm-chat-window .chat-quick-actions,
@@ -2133,6 +2130,11 @@
           transform: scale(1.15);
           transform-origin: center;
         }
+
+        #w1-lawfirm-chat-window .chat-avatar img{
+          display:none !important;
+        }
+
 
 
     </style>
@@ -2344,7 +2346,7 @@
             <div class="chat-header">
                 <div class="chat-header-info">
                     <div class="chat-avatar">
-                        <img src="./graphics/dg-logo.ico" alt="DG" />
+                        
                     </div>
                     <div>
                         <div class="chat-title">Legal Assistant (Photo)</div>
