@@ -2100,6 +2100,27 @@
           opacity: 0.95;
         }
 
+        /* Make header / quick actions / input area transparent so the same image shows through */
+        #w1-lawfirm-chat-window .chat-header,
+        #w1-lawfirm-chat-window .chat-quick-actions,
+        #w1-lawfirm-chat-window .chat-input-area{
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+        
+        /* Optional: add a subtle “glass” bar so text stays readable */
+        #w1-lawfirm-chat-window .chat-header{
+          background: rgba(0,0,0,0.20) !important;
+          backdrop-filter: blur(6px);
+        }
+        
+        /* If your header has an overlay/pseudo-element, neutralize it */
+        #w1-lawfirm-chat-window .chat-header::before,
+        #w1-lawfirm-chat-window .chat-header::after{
+          content: none !important;
+        }
+
 
     </style>
 </head>
