@@ -2140,8 +2140,7 @@
         #w4-lawfirm-chat-window .chat-header,
         #w4-lawfirm-chat-window .chat-quick-actions,
         #w4-lawfirm-chat-window .chat-input-area{
-          background: transparent !important;
-          border: none !important;
+          background: transparent !important;         
           box-shadow: none !important;
         }
 
@@ -2155,11 +2154,6 @@
         #w4-lawfirm-chat-window .chat-header::before,
         #w4-lawfirm-chat-window .chat-header::after{
           content: none !important;
-        }
-
-        /* Divider line under quick actions */
-        #w4-lawfirm-chat-window .chat-messages{
-          border-top: 1px solid rgba(255,255,255,0.35) !important;
         }
 
         #w4-lawfirm-chat-window .video-bg img{
@@ -2594,7 +2588,7 @@
     
     <div id="w4-lawfirm-chatbot-container" class="lawfirm-chatbot-container widget-pos-right-top widget-right layout-video" data-wid="w4">
         <button id="w4-lawfirm-chat-button" class="lawfirm-chat-button" type="button" aria-label="Open chat" data-action="toggle">
-            <video autoplay muted loop playsinline style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:50%; pointer-events:none;">
+            <video autoplay muted loop playsinline style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:50%; pointer-events:none; border:2px solid #DEBA3A;">
                 <source src="./graphics/video.mp4" type="video/mp4">
             </video>
             <div id="w4-chat-notification" class="chat-notification" style="display:none;">1</div>
