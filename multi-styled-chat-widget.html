@@ -727,7 +727,6 @@
             border: var(--toggle-border, none);
             cursor: pointer;
             font-size: 28px;
-            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
@@ -2127,12 +2126,11 @@
 
         /* Example: w2 icon-only */
         #w2-lawfirm-chatbot-container{
-          background: none !important;
-          border-radius: none !important;
-          border: none !important;
-          box-shadow: none  !important;
-        
+          --toggle-shadow: none;
+          --toggle-bg: transparent;
+          --toggle-border: none;
         }
+
 
         /* Make header / quick actions / input area transparent so the same video shows through */
         #w4-lawfirm-chat-window .chat-header,
