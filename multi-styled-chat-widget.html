@@ -2106,7 +2106,7 @@
         #w1-lawfirm-chat-window .chat-input-area{
           background: transparent !important;
           border: none !important;
-          
+          box-shadow: none !important;
         }
 
         /* Optional: add a subtle “glass” bar so text stays readable */
@@ -2131,8 +2131,45 @@
           transform-origin: center;
         }
 
-        #w1-lawfirm-chat-window .chat-avatar img{
+        #w1-lawfirm-chat-window .chat-avatar {
           display:none !important;
+          background: none;
+        }
+
+        /* Make header / quick actions / input area transparent so the same video shows through */
+        #w4-lawfirm-chat-window .chat-header,
+        #w4-lawfirm-chat-window .chat-quick-actions,
+        #w4-lawfirm-chat-window .chat-input-area{
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+
+        /* Optional: add a subtle “glass” bar so text stays readable */
+        #w4-lawfirm-chat-window .chat-header{
+          background: rgba(17, 15, 46, 0.2) !important;
+          backdrop-filter: blur(6px);
+        }
+
+        /* If your header has an overlay/pseudo-element, neutralize it */
+        #w4-lawfirm-chat-window .chat-header::before,
+        #w4-lawfirm-chat-window .chat-header::after{
+          content: none !important;
+        }
+
+        /* Divider line under quick actions */
+        #w4-lawfirm-chat-window .chat-messages{
+          border-top: 1px solid rgba(255,255,255,0.35) !important;
+        }
+
+        #w4-lawfirm-chat-window .video-bg img{
+          transform: scale(1.15);
+          transform-origin: center;
+        }
+
+        #w4-lawfirm-chat-window .chat-avatar {
+          display:none !important;
+          background: none;
         }
 
 
@@ -2568,7 +2605,7 @@
             
             <div class="chat-header">
                 <div class="chat-header-info">
-                    <div class="chat-avatar">⚖️</div>
+                    <div class="chat-avatar"></div>
                     <div>
                         <div class="chat-title">Legal Assistant (Video)</div>
                         <div class="chat-subtitle">Online • Available 24/7</div>
