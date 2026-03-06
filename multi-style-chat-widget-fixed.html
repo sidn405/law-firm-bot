@@ -19,7 +19,7 @@
     <script src="https://js.stripe.com/v3/"></script>
     
 
-<style>
+    <style>
 
         /* ============================================
            LAW FIRM CHATBOT - PROFESSIONAL DESIGN -
@@ -29,7 +29,7 @@
             --primary-color: #1e40af;
             --primary-light: #3b82f6;
             --secondary-color: #3b82f6;
-            --accent-color: #f59e0b;
+            --accent-color: #deba3a;
             --danger-color: #ef4444;
             --text-dark: #111827;
             --text-medium: #374151;
@@ -424,7 +424,7 @@
             font-size: 36px;
             font-weight: 800;
             display: block;
-            color: #f59e0b;
+            color: #deba3a;
         }
 
         .stat-label {
@@ -704,9 +704,11 @@
         
         .lawfirm-chatbot-container {
             position: fixed;
+            bottom: 20px;
+            right: 20px;
             z-index: 9999;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            pointer-events: none; /* allow only button/window to receive events */
+            /*pointer-events: none; /* allow only button/window to receive events */
         }
 
         .lawfirm-chatbot-container .lawfirm-chat-button,
@@ -714,26 +716,29 @@
         .lawfirm-chatbot-container .chat-modal-overlay {
             pointer-events: auto;
         }
-
-        
         
         /* Chat Button */
         .lawfirm-chat-button {
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            border: none;
+            background: var(--toggle-bg, linear-gradient(135deg, var(--primary-color), var(--secondary-color))) !important;
+            box-shadow: var(--toggle-shadow, 0 4px 12px rgba(30, 64, 175, 0.3));
+            border: var(--toggle-border, none);
             cursor: pointer;
             font-size: 28px;
-            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
         }
-        
+
+        /* Ensure toggle stays on top of its window (fixes w1 picture toggle disappearing) */
+        .lawfirm-chat-button{
+          z-index: 10002;
+        }
+          
         .lawfirm-chat-button:hover {
             transform: scale(1.1);
             box-shadow: 0 6px 20px rgba(30, 64, 175, 0.4);
@@ -781,12 +786,53 @@
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
             display: none;
             flex-direction: column;
-            overflow: hidden;
+            overflow: auto;
             animation: slideUp 0.3s ease;
         }
         
         .lawfirm-chat-window.open {
             display: flex;
+        }
+
+        /* ---------- Picture + Video behave like Classic ---------- */
+        /* Keep classic sizing behavior */
+        .layout-picture .lawfirm-chat-window,
+        .layout-video .lawfirm-chat-window{
+          width: 400px;
+          height: 600px;
+          max-width: calc(100vw - 48px);
+          max-height: calc(100vh - 140px);
+        }
+
+        /* On shorter screens, shrink height so it never clips */
+        @media (max-height: 900px){
+        .layout-picture .lawfirm-chat-window,
+        .layout-video .lawfirm-chat-window{
+            height: calc(100vh - 140px);
+          }
+        }
+
+        /* TOP widgets: always open UPWARD — JS caps maxHeight to available space */
+        .widget-pos-left-top.layout-picture .lawfirm-chat-window,
+        .widget-pos-right-top.layout-video .lawfirm-chat-window{
+            bottom: 78px;
+            top: auto;
+        }
+
+        /* ---------- Side opens like Modal on small screens ---------- */
+        @media (max-width: 980px), (max-height: 760px){
+          .layout-side .lawfirm-chat-window{
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            right: auto;
+            bottom: auto;
+            transform: translate(-50%, -50%);
+            width: min(800px, calc(100vw - 24px));
+            height: min(600px, calc(100vh - 24px));
+            max-height: calc(100vh - 24px);
+            z-index: 10050;
+          }
         }
         
         @keyframes slideUp {
@@ -881,11 +927,13 @@
         /* Messages */
         .chat-messages {
             flex: 1;
+            min-height: 0;
             overflow-y: auto;
             padding: 20px;
             display: flex;
             flex-direction: column;
             gap: 16px;
+            -webkit-overflow-scrolling: touch;
         }
         
         .chat-message {
@@ -1299,22 +1347,129 @@
         }
         
         /* File Upload */
-        #file-input {
-            display: none;
+        .file-input {
+          display: none !important;
+        }
+
+        /* ====== MULTI-WIDGET STACKING + SMALL-SCREEN SAFE POSITIONING ====== */
+        /* Keep toggle always clickable above its window */
+        .lawfirm-chatbot-container { z-index: 9999; }
+        .lawfirm-chatbot-container.is-front { z-index: 10050; }
+
+        .lawfirm-chat-window { z-index: 10001; }
+        .lawfirm-chat-button { position: relative; z-index: 10002; }
+
+        /* Give the SIDE layout a little breathing room from the edge on desktop */
+        .widget-left.layout-side .lawfirm-chat-window { left: 16px; }
+        .widget-right.layout-side .lawfirm-chat-window { right: 16px; }
+
+        /* On smaller screens, TOP-positioned widgets (Picture/Video) should behave like Classic/Floating
+           so they never open off-screen / clipped. Side layout also becomes modal-centered. */
+        @media (max-width: 1100px), (max-height: 760px) {
+        
+          /* Picture + Video: pin to bottom like classic so they are always fully visible */
+          .layout-picture .lawfirm-chat-window,
+          .layout-video .lawfirm-chat-window {
+            position: fixed;
+            bottom: 92px; /* leaves room for the floating toggle button */
+            top: auto;
+            width: min(420px, calc(100vw - 48px));
+            height: min(600px, calc(100vh - 120px));
+            max-height: calc(100vh - 120px);
+          }
+      
+          .widget-left.layout-picture .lawfirm-chat-window,
+          .widget-left.layout-video .lawfirm-chat-window {
+            left: 24px;
+            right: auto;
+          }
+      
+          .widget-right.layout-picture .lawfirm-chat-window,
+          .widget-right.layout-video .lawfirm-chat-window {
+            right: 24px;
+            left: auto;
+          }
+      
+          /* Side layout: center like modal to avoid clipping */
+          .layout-side .lawfirm-chat-window {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            right: auto;
+            bottom: auto;
+            width: min(960px, calc(100vw - 24px));
+            height: min(720px, calc(100vh - 24px));
+            max-height: calc(100vh - 24px);
+          }
+        }
+
+        /* Ultra-small: make picture/video span the viewport width */
+        @media (max-width: 520px) {
+          .layout-picture .lawfirm-chat-window,
+          .layout-video .lawfirm-chat-window {
+            left: 12px !important;
+            right: 12px !important;
+            width: auto !important;
+          }
         }
         
-        /* Mobile Responsive */
-        @media (max-width: 480px) {
+        /* FIX: Prevent right-side clipping on mobile */
+        @media (max-width: 768px) {
             .lawfirm-chat-window {
-                width: 100%;
-                height: 100%;
-                max-height: 100vh;
-                bottom: 0;
-                right: 0;
-                border-radius: 0;
+                max-width: calc(100vw - 32px) !important;
             }
             
-            /* .lawfirm-chatbot-container position is controlled per-widget; no global override */
+            /* Right-positioned widgets */
+            .widget-right .lawfirm-chat-window {
+                right: 16px !important;
+            }
+            
+            /* Left-positioned widgets */
+            .widget-left .lawfirm-chat-window {
+                left: 16px !important;
+            }
+            
+            /* Make toggle visible and properly sized */
+            .lawfirm-chat-button {
+                width: 56px !important;
+                height: 56px !important;
+                z-index: 20000 !important;
+            }
+        }
+
+        
+        /* Mobile Responsive - FIXED FOR ANDROID PORTRAIT */
+        @media (max-width: 480px) {
+            /* Chat windows - DON'T go full screen, stay above toggle */
+            .lawfirm-chat-window {
+                width: calc(100vw - 24px) !important;
+                height: calc(100vh - 90px) !important;
+                max-height: calc(100vh - 90px) !important;
+                bottom: 80px !important; /* Space for toggle below */
+                left: 12px !important;
+                right: 12px !important;
+                border-radius: 16px 16px 0 0 !important; /* Rounded top corners */
+            }
+            
+            /* Keep classic/floating layouts above toggle */
+            .layout-classic .lawfirm-chat-window,
+            .layout-floating .lawfirm-chat-window {
+                position: fixed !important;
+                bottom: 80px !important;
+            }
+            
+            .lawfirm-chatbot-container {
+                bottom: 12px !important;
+                right: 12px !important;
+            }
+            
+            /* Make toggle smaller on mobile */
+            .lawfirm-chat-button {
+                width: 52px !important;
+                height: 52px !important;
+                font-size: 22px !important;
+            }
         }
     
         /* ====== MULTI-WIDGET POSITIONS ====== */
@@ -1342,15 +1497,43 @@
         .widget-right .lawfirm-chat-window { right: 0; left: auto; }
 
         /* ====== PICTURE BACKGROUND (classic + background image) ====== */
-        .layout-picture .lawfirm-chat-window::before {
+        .layout-image .lawfirm-chat-window {
+          overflow: hidden;
+          background: transparent; /* let the image show through */
+        }
+
+        .layout-image .lawfirm-chat-window::before {
             content: "";
             position: absolute;
             inset: 0;
-            background-image: url('https://images.unsplash.com/photo-1528747045269-390fe33c19f2?auto=format&fit=crop&w=1200&q=60');
+            background-image: url("./graphics/image.jpg");
             background-size: cover;
             background-position: center;
-            opacity: 0.12;
+            opacity: 0.9;
             pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Slight zoom out while still covering */
+        .lawfirm-chat-window.layout-image .image-bg img{
+          object-fit: contain;
+          object-position: center;
+          transform: scale(0.88);     /* <— smaller = more zoomed out */
+          transform-origin: center;
+        }
+
+
+        #w1-lawfirm-chat-button {  /* change wN to whichever widget */
+          background: transparent;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+          padding: 0;
+          overflow: hidden;
+        }
+
+        /* Put all real UI above the image */
+        .layout-image .lawfirm-chat-window > * {
+          position: relative;
+          z-index: 1;
         }
 
         /* ====== VIDEO BACKGROUND ====== */
@@ -1366,54 +1549,439 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            opacity: 0.18;
+            opacity: 0.9;
         }
         .layout-video .lawfirm-chat-window > *:not(.video-bg) {
             position: relative;
             z-index: 1;
         }
 
-        /* ====== FLOATING CARD ====== */
-        .layout-floating .lawfirm-chat-window {
-            border-radius: 22px;
-            box-shadow: 0 30px 70px rgba(0,0,0,0.18);
+        #w4-lawfirm-chat-button {
+            background: #000;
+            overflow: hidden;
+            padding: 0;
         }
 
-        /* ====== CHATBOT SIDE (sidebar) ====== */
-        .layout-side .lawfirm-chat-window {
-            width: 420px;
+        /* ====== PICTURE BACKGROUND (img layer) ======== */
+        .layout-image.lawfirm-chat-window{
+            
+            overflow: hidden;
         }
-        .layout-side .side-shell {
-            display: flex;
+
+        .layout-image.lawfirm-chat-window .image-bg{
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+        }
+
+        .layout-image.lawfirm-chat-window .image-bg img{
+            width: 100%;
             height: 100%;
+            object-fit: cover;
+            display: block;
         }
-        .layout-side .side-rail {
-            width: 120px;
-            background: linear-gradient(180deg, rgba(30,64,175,0.12), rgba(59,130,246,0.08));
-            border-right: 1px solid rgba(229,231,235,0.8);
-            padding: 14px 10px;
+
+        /* Put widget content above background */
+        .layout-image.lawfirm-chat-window > *:not(.image-bg){
+            position: relative;
+            z-index: 1;
         }
-        .layout-side .side-rail .rail-title {
-            font-weight: 800;
-            font-size: 12px;
-            color: var(--text-dark);
-            margin-bottom: 10px;
+
+        /* ====== FLOATING CARD (match demo small card) ====== */
+        .layout-floating .lawfirm-chat-window{
+          width: 320px;
+          height: 360px;
+          border-radius: 22px;
+          box-shadow: 0 30px 70px rgba(0,0,0,0.18);
+          background: #DEBA3A;
+          overflow: hidden;
+        
+          /* IMPORTANT: floating card is not the 400x600 “full chat” */
+          bottom: 78px; /* keep opening above the toggle */
         }
-        .layout-side .side-rail .rail-item {
-            font-size: 12px;
-            color: var(--text-medium);
-            padding: 8px 10px;
-            border-radius: 10px;
-            margin-bottom: 8px;
-            background: rgba(255,255,255,0.55);
-            border: 1px solid rgba(229,231,235,0.8);
+
+        /* Floating header: white header + divider (not blue gradient) */
+        .layout-floating .chat-header{
+          background: #DEBA3A;
+          color: #111827;
+          padding: 16px 16px 12px 16px;
+          border-bottom: 1px solid rgba(17,24,39,0.08);
         }
+
+        /* Hide avatar/subtitle for the small card look */
+        .layout-floating .chat-header-info .chat-avatar,
+        .layout-floating .chat-subtitle{
+          display: none !important;
+        }
+
+        .layout-floating .chat-title{
+          font-size: 18px;
+          font-weight: 700;
+        }
+
+        /* Close button should be dark in white header */
+        .layout-floating .chat-close{
+          color: #111827;
+          opacity: .7;
+        }
+        .layout-floating .chat-close:hover{ opacity: 1; }
+
+        /* Body area */
+        .layout-floating .chat-messages{
+          padding: 18px;
+          background: #f8fafc;
+        }
+
+        /* Single “assistant bubble” look */
+        .layout-floating .message-content{
+          background: #DEBA3A;
+          border: 1px solid rgba(17,24,39,0.08);
+          box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+          border-radius: 14px;
+        }
+
+        /* Input row like the demo: input + rectangular Send button */
+        .layout-floating .chat-input-area{
+          background: #DEBA3A;
+          border-top: 1px solid rgba(17,24,39,0.08);
+          padding: 14px 14px 16px 14px;
+          gap: 10px;
+        }
+
+        .layout-floating .upload-btn{ display:inline-flex !important; }
+
+        .layout-floating .chat-input{
+          border-radius: 10px;
+          height: 40px;
+          padding: 10px 12px;
+        }
+
+        .layout-floating .chat-send-btn{
+          width: 40px !important;
+          height: 40px;
+          border-radius: 50px;
+          background: var(--primary-color);
+          color: #fff;
+          font-weight: 700;
+          box-shadow: none;
+        }
+
+        #w3-lawfirm-chatbot-container{
+        --toggle-bg: #DEBA3A;
+        --toggle-shadow: 0 6px 18px rgba(0,0,0,.18);
+        --toggle-border: none;
+        }
+
+
+        /* ====== CHATBOT SIDE (match chatbot-side.html) ====== */
+        .layout-side .lawfirm-chat-window {
+          width: 800px;
+          height: 600px;
+          border-radius: 20px;
+          overflow: hidden;
+        }
+
+        /* 2-column layout wrapper */
+        .layout-side .lawfirm-chat-window .side-v2 {
+          display: flex;
+          width: 100%;
+          height: 100%;
+        }
+
+        /* LEFT SIDEBAR */
+        .layout-side .side-v2 .chat-sidebar {
+          width: 240px;
+          background: #1a1a1a;
+          color: #fff;
+          padding: 30px 20px;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .layout-side .side-v2 .chat-avatar-lg {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          margin: 0 auto 15px;
+          overflow: hidden;
+          border: 3px solid var(--primary-color);
+          background: var(--primary-color);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+        }
+
+        .layout-side .side-v2 .firm-name {
+          font-size: 18px;
+          font-weight: 700;
+          text-align: center;
+          margin-bottom: 5px;
+          line-height: 1.3;
+        }
+
+        .layout-side .side-v2 .agent-subtitle {
+          font-size: 13px;
+          text-align: center;
+          color: #999;
+          margin-bottom: 25px;
+        }
+
+        .layout-side .side-v2 .status-badge {
+          background: #deba3a;
+          color: #111827;
+          padding: 12px 20px;
+          border-radius: 8px;
+          text-align: center;
+          font-weight: 600;
+          margin-bottom: 10px;
+          font-size: 14px;
+        }
+
+        .layout-side .side-v2 .status-subtitle {
+          text-align: center;
+          font-size: 13px;
+          color: #ccc;
+          margin-bottom: 25px;
+        }
+
+        .layout-side .side-v2 .contact-info {
+          background: rgba(255,255,255,0.1);
+          padding: 15px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+        }
+
+        .layout-side .side-v2 .contact-phone {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 16px;
+          font-weight: 600;
+          color: #fff;
+          text-decoration: none;
+        }
+
+        .layout-side .side-v2 .sidebar-menu {
+          margin-top: auto;
+          padding-top: 20px;
+          border-top: 1px solid rgba(222, 187, 58, 0.164);
+        }
+
+        .layout-side .side-v2 .menu-button {
+          background: rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.2);
+          color: #fff;
+          padding: 10px 15px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 13px;
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .layout-side .side-v2 .powered-by {
+          margin-top: 20px;
+          text-align: center;
+          font-size: 11px;
+          color: #666;
+        }
+
+        /* ✅ Keep the left rail from shrinking */
+        .layout-side .side-shell { display: flex; }
+        .layout-side .side-rail { flex: 0 0 120px; width: 120px; }
+
+        /* ✅ Let the main column shrink properly (required for overflow scrolling in flex layouts) */
         .layout-side .side-main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
+          flex: 1 1 auto;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
         }
+
+        /* ✅ Make the messages area scroll (and not fight the quick-actions row) */
+        .layout-side .chat-body {
+          flex: 1 1 auto;
+          min-height: 0;          /* IMPORTANT: enables scrolling inside flex column */
+          overflow-y: auto;
+        }
+
+        /* ✅ Quick actions scroll like your other widgets */
+        .layout-side .chat-quick-actions {
+          flex: 0 0 auto;
+          max-width: 100%;
+          overflow-x: auto;
+          overflow-y: hidden;
+          white-space: nowrap;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        /* ✅ Ensure buttons don't wrap and force layout weirdness */
+        .layout-side .chat-quick-actions .quick-action-btn {
+          flex: 0 0 auto;
+        }
+
+
+        /* RIGHT MAIN */
+        .layout-side .side-v2 .chat-main {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          background: #f5f5f5;
+        }
+
+        /* Override the classic header gradient */
+        .layout-side .side-v2 .chat-header {
+          background: #DEBA3A !important;
+          color: #111827 !important;
+          padding: 20px 25px !important;
+          border-bottom: 1px solid #e5e5e5 !important;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .layout-side .side-v2 .header-info {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .layout-side .side-v2 .header-disclaimer {
+          font-size: 11px;
+          color: #666;
+          line-height: 1.4;
+          margin-bottom: 8px;
+        }
+
+        .layout-side .side-v2 .header-disclaimer a {
+          color: var(--primary-color);
+          text-decoration: underline;
+        }
+
+        .layout-side .side-v2 .header-firm-name {
+          font-size: 14px;
+          font-weight: 600;
+          color: #111827;
+        }
+
+        .layout-side .side-v2 .header-date {
+          font-size: 12px;
+          color: #111827;
+          text-align: right;
+          margin-left: 12px;
+          white-space: nowrap;
+        }
+
+        /* Close button (circle) */
+        .layout-side .side-v2 .close-btn {
+          background: #1e40af;
+          border: none;
+          color: #e5e7eb;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 20px;
+          transition: background 0.2s;
+          flex-shrink: 0;
+          line-height: 1;
+        }
+
+        .layout-side .side-v2 .close-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(30, 64, 175, 0.4);
+        }
+
+        /* Messages: override classic bubble look slightly */
+        .layout-side .side-v2 .chat-messages {
+          padding: 25px !important;
+          gap: 15px !important;
+        }
+
+        .layout-side .side-v2 .chat-message {
+         gap: 12px !important;
+        }
+
+        .layout-side .side-v2 .message-avatar {
+          width: 40px !important;
+          height: 40px !important;
+          font-weight: 700;
+        }
+
+        .layout-side .side-v2 .message-content {
+          background: #DEBA3A !important;
+          border-radius: 16px !important;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+        }
+
+        /* Keep user bubble blue */
+        .layout-side .side-v2 .chat-message.user .message-content {
+          background: var(--primary-color) !important;
+          color: #fff !important;
+        }
+
+        /* Input bar: match chatbot-side.html */
+        .layout-side .side-v2 .chat-input-area {
+          padding: 20px 25px !important;
+          border-top: 1px solid #e5e5e5 !important;
+          background: #DEBA3A !important;
+          display: flex;
+          gap: 12px;
+          align-items: center;
+        }
+
+        .layout-side .side-v2 .emoji-btn {
+          background: none;
+          border: none;
+          font-size: 24px;
+          cursor: pointer;
+          padding: 5px;
+          opacity: 0.6;
+          transition: opacity 0.2s;
+        }
+
+        .layout-side .side-v2 .emoji-btn:hover {
+         opacity: 1;
+        }
+
+        .layout-side .side-v2 .chat-input {
+          background: #f9fafb !important;
+          border: 1px solid #e5e5e5 !important;
+          border-radius: 24px !important;
+        }
+
+        .layout-side .side-v2 .chat-input:focus {
+          border-color: var(--primary-color) !important;
+          background: #fff !important;
+        }
+
+        .layout-side .side-v2 .chat-send-btn {
+          width: 40px !important;
+          height: 40px !important;
+          border-radius: 50% !important;
+        }
+
+        /* ---------- SIDE: center like modal on small screens ---------- */
+        @media (max-width: 1100px), (max-height: 760px) {
+        
+          /* When side is OPEN, force fixed center */
+          #w2-lawfirm-chat-window.open {
+            position: fixed !important;
+            left: 50% !important;
+            top: 50% !important;
+            right: auto !important;
+            bottom: auto !important;
+            transform: translate(-50%, -50%) !important;
+        
+            width: min(960px, calc(100vw - 24px)) !important;
+            height: min(720px, calc(100vh - 24px)) !important;
+            max-height: calc(100vh - 24px) !important;
+            z-index: 20080 !important;
+          }
+        }
+
 
         /* ====== CENTER MODAL ====== */
         .widget-modal .chat-modal-overlay {
@@ -1434,7 +2002,7 @@
             right: auto !important;
             bottom: auto !important;
             transform: translate(-50%, -50%) scale(0.98);
-            opacity: 0;
+            opacity: 0.9;
             pointer-events: none;
             transition: all 0.22s ease;
             z-index: 9999;
@@ -1445,7 +2013,192 @@
             transform: translate(-50%, -50%) scale(1);
         }
 
-</style>
+        /* ====== MODAL SIZE (match chatbot-side) ====== */
+        #w5-lawfirm-chat-window{
+          width: 800px !important;
+          height: 600px !important;
+          max-height: calc(100vh - 80px) !important;
+          max-width: calc(100vw - 40px) !important;
+        }
+
+        /* Always keep widget windows inside the viewport */
+        .lawfirm-chat-window{
+        max-height: calc(100vh - 120px) !important; /* room for header + input + margins */
+        }
+
+        /* ---------- SMALL SCREEN: Picture/Video windows above toggle stacks ---------- */
+        @media (max-width: 1100px), (max-height: 760px) {
+        
+          /* Raise picture/video window above ALL toggles */
+          #w1-lawfirm-chat-window,
+          #w4-lawfirm-chat-window {
+            z-index: 20050 !important;
+          }
+      
+          /* Keep their toggle button also above (so it can always close) */
+          #w1-lawfirm-chat-button,
+          #w4-lawfirm-chat-button {
+            z-index: 20060 !important;
+            position: relative;
+          }
+      
+          /* Lower the left/right toggle stacks so the windows cover them */
+          #w1-lawfirm-chatbot-container,
+          #w4-lawfirm-chatbot-container {
+            z-index: 20040 !important;
+          }
+      
+          /* Make sure OTHER widget containers/toggles don't float above */
+          .lawfirm-chatbot-container {
+            z-index: 15000 !important;
+          }
+          .lawfirm-chat-button {
+            z-index: 15010 !important;
+          }
+        }
+
+        /* When a widget is active, lift its entire container above other toggles */
+        .lawfirm-chatbot-container.is-front {
+          z-index: 20000 !important;
+        }
+
+        /* On small screens, ensure picture/video also lift above everything */
+        @media (max-width: 1100px), (max-height: 760px) {
+          #w1-lawfirm-chatbot-container.is-front,
+          #w4-lawfirm-chatbot-container.is-front {
+            z-index: 30000 !important;
+          }
+        }
+
+        /* NOTE: Toggle visibility on mobile is now handled by JavaScript
+           (iOS doesn't fully support :has() selector) */
+
+
+        /* Make ONLY w1 (picture) behave like w4 (video) */
+        #w1-lawfirm-chat-button{
+          background: transparent !important;
+          padding: 0 !important;
+          overflow: hidden;
+          position: relative;
+        }
+
+        /* Force the image to fill the entire circle */
+        #w1-lawfirm-chat-button > img{
+          position: absolute;
+          inset: 0;
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover;
+          border-radius: 50%;
+        }
+
+
+        /* ✅ SIDE LAYOUT: lock sidebar width (stop shrinking) */
+        .layout-side .side-v2 .chat-sidebar{
+          flex: 0 0 240px;     /* fixed column */
+          width: 240px;
+          min-width: 240px;
+          flex-shrink: 0;
+        }
+
+        /* ✅ Let the main panel take the squeeze instead */
+        .layout-side .side-v2 .chat-main{
+          flex: 1 1 auto;
+          min-width: 0;        /* important in flex layouts */
+        }
+
+        #w1-lawfirm-chat-window .image-bg img{
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center; /* adjust if you want */
+          display: block;
+          opacity: 0.95;
+        }
+
+        /* Make header / quick actions / input area transparent so the same image shows through */
+        #w1-lawfirm-chat-window .chat-header,
+        #w1-lawfirm-chat-window .chat-quick-actions,
+        #w1-lawfirm-chat-window .chat-input-area{
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        /* Optional: add a subtle “glass” bar so text stays readable */
+        #w1-lawfirm-chat-window .chat-header{
+          background: rgba(17, 15, 46, 0.2) !important;
+          backdrop-filter: blur(6px);
+        }
+
+        /* If your header has an overlay/pseudo-element, neutralize it */
+        #w1-lawfirm-chat-window .chat-header::before,
+        #w1-lawfirm-chat-window .chat-header::after{
+          content: none !important;
+        }
+
+        /* Divider line under quick actions */
+        #w1-lawfirm-chat-window .chat-messages{
+          border-top: 1px solid rgba(255,255,255,0.35) !important;
+        }
+
+        #w1-lawfirm-chat-window .image-bg img{
+          transform: scale(1.15);
+          transform-origin: center;
+        }
+
+        #w1-lawfirm-chat-window .chat-avatar {
+          display:none !important;
+          background: none;
+        }
+
+        /* Example: w2 icon-only */
+        #w2-lawfirm-chatbot-container{
+          --toggle-shadow: none;
+          --toggle-bg: transparent;
+          --toggle-border: none;
+        }
+
+        /* Example: w5 icon-only */
+        #w5-lawfirm-chatbot-container{
+          --toggle-shadow: none;
+          --toggle-bg: transparent;
+          --toggle-border: none;
+        }
+
+
+        /* Make header / quick actions / input area transparent so the same video shows through */
+        #w4-lawfirm-chat-window .chat-header,
+        #w4-lawfirm-chat-window .chat-quick-actions,
+        #w4-lawfirm-chat-window .chat-input-area{
+          background: transparent !important;         
+          box-shadow: none !important;
+        }
+
+        /* Optional: add a subtle “glass” bar so text stays readable */
+        #w4-lawfirm-chat-window .chat-header{
+          background: rgba(17, 15, 46, 0.2) !important;
+          backdrop-filter: blur(6px);
+        }
+
+        /* If your header has an overlay/pseudo-element, neutralize it */
+        #w4-lawfirm-chat-window .chat-header::before,
+        #w4-lawfirm-chat-window .chat-header::after{
+          content: none !important;
+        }
+
+        #w4-lawfirm-chat-window .video-bg img{
+          transform: scale(1.15);
+          transform-origin: center;
+        }
+
+        #w4-lawfirm-chat-window .chat-avatar {
+          display:none !important;
+          background: none;
+        }
+
+
+
+    </style>
 </head>
 <body>
 
@@ -1456,7 +2209,9 @@
             <h1 class="hero-title">Never Lose Another Lead</h1>
             <p class="hero-subtitle">
                 AI intake assistant that captures, qualifies, and books consultations 24/7 
-                — even when your office is closed. Try the live demo below.
+                — even when your office is closed. Try the live demos below, same functionality but styled differently.
+                <br><br>
+                <strong>Built with privacy in mind:</strong> client intake data is processed through separated infrastructure, encrypted connections, and access-controlled systems designed to help protect sensitive information.
             </p>
             <button class="hero-cta" type="button" id="try-live-demo-btn">
                 <span>🎮</span>
@@ -1583,6 +2338,65 @@
         </div>
     </div>
 
+    <!-- PRIVACY & SECURITY SECTION -->
+    <div class="benefits-section">
+        <h2 class="section-title">Privacy & Security You Can Trust</h2>
+        
+        <div class="benefits-grid">
+            <div class="benefit-card">
+                <div class="benefit-icon">🔒</div>
+                <h3 class="benefit-title">Separated Infrastructure</h3>
+                <p class="benefit-description">
+                    LawBot 360 is deployed using separated project infrastructure so intake records are not stored alongside unrelated applications or services.
+                </p>
+            </div>
+
+            <div class="benefit-card">
+                <div class="benefit-icon">🛡️</div>
+                <h3 class="benefit-title">Encrypted Transmission</h3>
+                <p class="benefit-description">
+                    Information submitted through the chatbot is transmitted over secure, encrypted connections to help protect sensitive client communications.
+                </p>
+            </div>
+
+            <div class="benefit-card">
+                <div class="benefit-icon">👤</div>
+                <h3 class="benefit-title">Restricted Access</h3>
+                <p class="benefit-description">
+                    Intake records, uploaded documents, and payment-related workflows are limited to authorized systems and approved administrative access only.
+                </p>
+            </div>
+
+            <div class="benefit-card">
+                <div class="benefit-icon">📂</div>
+                <h3 class="benefit-title">Controlled Document Handling</h3>
+                <p class="benefit-description">
+                    Uploaded files and case details are routed through defined storage and intake workflows rather than mixed with public-facing website content.
+                </p>
+            </div>
+
+            <div class="benefit-card">
+                <div class="benefit-icon">📨</div>
+                <h3 class="benefit-title">Built for Confidential Intake</h3>
+                <p class="benefit-description">
+                    From first contact to staff handoff, LawBot 360 is designed to support responsible intake collection for firms that take client confidentiality seriously.
+                </p>
+            </div>
+
+            <div class="benefit-card">
+                <div class="benefit-icon">🔄</div>
+                <h3 class="benefit-title">Controlled Human Handoff</h3>
+                <p class="benefit-description">
+                    When staff review is needed, information is transferred through structured workflows to reduce unnecessary exposure and keep intake organized.
+                </p>
+            </div>
+        </div>
+
+        <p style="max-width: 900px; margin: 30px auto 0; text-align: center; color: #6b7280; font-size: 15px; line-height: 1.7;">
+            <strong>Security-first architecture:</strong> LawBot 360 processes intake data in a separate project environment across isolated Railway and AWS resources, with encrypted transport and controlled access designed to help protect client information.
+        </p>
+    </div>
+
     <!-- PRICING SECTION -->
     <div class="pricing-section">
         <h2 class="pricing-title">Custom Solution for Your Firm</h2>
@@ -1592,7 +2406,7 @@
         
         <div class="pricing-card">
             <div class="price-amount">$25K</div>
-            <p class="price-description">One-time setup fee • No monthly charges</p>
+            <p class="price-description">One-time setup fee • Optional monthly maintenance plans</p>
             
             <div class="included-list">
                 <div class="included-item">
@@ -1602,6 +2416,10 @@
                 <div class="included-item">
                     <span class="check-icon">✓</span>
                     <span>Unlimited practice area configurations</span>
+                </div>
+                <div class="included-item">
+                    <span class="check-icon">✓</span>
+                    <span>Custom conversation scripts</span>
                 </div>
                 <div class="included-item">
                     <span class="check-icon">✓</span>
@@ -1636,28 +2454,52 @@
             <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
                 <strong>ROI Guarantee:</strong> Most firms see positive ROI within 60-90 days through increased consultations and reduced staffing costs.
             </p>
-        </div>
-    </div>
-    
-    <div style="max-width:1100px;margin:18px auto 0;padding:0 24px;color:#374151;font-family:Inter,system-ui,Arial;">
-        <p style="margin:0;font-size:14px;">
-            Demo: six fully functional chat widgets (different styles). Click any ⚖️ toggle to open its widget.
-        </p>
-    </div>
+
+            <!-- Escrow Payment Block -->
+            <div style="margin-top: 1.25rem; padding: 1rem 1.1rem; background: linear-gradient(135deg, #1e1b4b, #312e81); border-radius: 10px; color: white;">
+                <div style="font-size: 0.7rem; font-weight: 700; color: #a5b4fc; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 0.5rem;">🔐 Secure Escrow Payments</div>
+                <div style="font-size: 0.875rem; color: #e0e7ff; line-height: 1.55;">
+                    Your $25K is never paid all at once. Funds are held by <strong style="color: white;">Escrow.com</strong> and released in <strong style="color: white;">3 milestones</strong> as work is delivered and approved by you.
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.85rem;">
+                    <div style="flex:1; background: rgba(255,255,255,0.09); border-radius: 8px; padding: 0.6rem 0.4rem; text-align: center;">
+                        <div style="font-size: 1.05rem; font-weight: 700; color: #6ee7b7;">30%</div>
+                        <div style="font-size: 0.67rem; color: #a5b4fc; margin-top: 3px; line-height: 1.3;">Discovery<br>& Design</div>
+                    </div>
+                    <div style="flex:1; background: rgba(255,255,255,0.09); border-radius: 8px; padding: 0.6rem 0.4rem; text-align: center;">
+                        <div style="font-size: 1.05rem; font-weight: 700; color: #6ee7b7;">50%</div>
+                        <div style="font-size: 0.67rem; color: #a5b4fc; margin-top: 3px; line-height: 1.3;">Build &<br>Integration</div>
+                    </div>
+                    <div style="flex:1; background: rgba(255,255,255,0.09); border-radius: 8px; padding: 0.6rem 0.4rem; text-align: center;">
+                        <div style="font-size: 1.05rem; font-weight: 700; color: #6ee7b7;">20%</div>
+                        <div style="font-size: 0.67rem; color: #a5b4fc; margin-top: 3px; line-height: 1.3;">Testing &<br>Launch</div>
+                    </div>
+                </div>
+                <div style="margin-top: 0.75rem; font-size: 0.7rem; color: #818cf8; text-align: center;">
+                    🔒 Funds release only after <em>you</em> approve each milestone &nbsp;·&nbsp; Dispute resolution included
+                </div>
+            </div>
+
+        </div>  <!-- END .pricing-card -->
+    </div>  <!-- END .pricing-section -->
 
     
     <div id="w1-lawfirm-chatbot-container" class="lawfirm-chatbot-container widget-pos-left-top widget-left layout-picture" data-wid="w1">
         <button id="w1-lawfirm-chat-button" class="lawfirm-chat-button" type="button" aria-label="Open chat" data-action="toggle">
-            ⚖️
+            <img src="./graphics/image.jpg" alt="Attorney" style="border:2px solid #DEBA3A;">
             <div id="w1-chat-notification" class="chat-notification" style="display:none;">1</div>
         </button>
 
-        <div id="w1-lawfirm-chat-window" class="lawfirm-chat-window" aria-hidden="true">
-            
+        <div id="w1-lawfirm-chat-window" class="lawfirm-chat-window layout-image" aria-hidden="true">
+            <div class="image-bg">
+                <img src="./graphics/image.jpg" alt="" />
+            </div>
             
             <div class="chat-header">
                 <div class="chat-header-info">
-                    <div class="chat-avatar">⚖️</div>
+                    <div class="chat-avatar">
+                        
+                    </div>
                     <div>
                         <div class="chat-title">Legal Assistant (Photo)</div>
                         <div class="chat-subtitle">Online • Available 24/7</div>
@@ -1683,7 +2525,7 @@
             <div class="chat-messages" id="w1-chat-messages"></div>
 
             <div class="typing-indicator" id="w1-typing-indicator">
-                <div class="message-avatar">🤖</div>
+                <div class="message-avatar">🏛️</div>
                 <div class="typing-dots">
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
@@ -1709,78 +2551,99 @@
             
         </div>
     </div>
-
-
     
     <div id="w2-lawfirm-chatbot-container" class="lawfirm-chatbot-container widget-pos-left-mid widget-left layout-side" data-wid="w2">
         <button id="w2-lawfirm-chat-button" class="lawfirm-chat-button" type="button" aria-label="Open chat" data-action="toggle">
-            ⚖️
+            💼
             <div id="w2-chat-notification" class="chat-notification" style="display:none;">1</div>
         </button>
 
         <div id="w2-lawfirm-chat-window" class="lawfirm-chat-window" aria-hidden="true">
-            
-            <div class="side-shell"><div class="side-rail"><div class="rail-title">Quick Links</div><div class="rail-item">Intake</div><div class="rail-item">Payments</div><div class="rail-item">Scheduling</div></div><div class="side-main">
-            <div class="chat-header">
-                <div class="chat-header-info">
-                    <div class="chat-avatar">⚖️</div>
-                    <div>
-                        <div class="chat-title">Legal Assistant (Side)</div>
-                        <div class="chat-subtitle">Online • Available 24/7</div>
-                    </div>
+            <div class="side-v2">
+            <!-- Sidebar -->
+            <div class="chat-sidebar">
+                <div class="chat-avatar-lg">
+                    <img src="./graphics/logo.png" alt="KP" />
                 </div>
-                <button class="chat-close" type="button" aria-label="Close chat" data-action="close">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
+
+                <div class="firm-name">Katlin Penn Law Firm</div>
+                <div class="agent-subtitle">Chatting with AI Assistant</div>
+
+                <div class="status-badge">We are ONLINE!</div>
+                <div class="status-subtitle">We're here to help 24/7</div>
+
+                <div class="contact-info">
+                <a href="tel:1-800-LAW-HELP" class="contact-phone">📞 1-800-LAW-HELP</a>
+                </div>
+
+                <div class="sidebar-menu">
+                <!--<button class="menu-button" type="button">Menu ▼</button>-->
+                </div>
+
+                <div class="powered-by">Powered By LawBot 360</div>
             </div>
 
-            <div class="chat-quick-actions">
-                <button class="quick-action-btn" type="button" data-quick-action="personal_injury">Personal Injury</button>
-                <button class="quick-action-btn" type="button" data-quick-action="family_law">Family Law</button>
-                <button class="quick-action-btn" type="button" data-quick-action="immigration">Immigration</button>
-                <button class="quick-action-btn" type="button" data-quick-action="criminal_defense">Criminal Defense</button>
-                <button class="quick-action-btn" type="button" data-quick-action="schedule">Schedule Consultation</button>
-                <button class="quick-action-btn payment-quick-btn" type="button" data-quick-action="make_payment">💳 Make a Payment</button>
-            </div>
+            <!-- Main -->
+            <div class="chat-main">
+                <div class="chat-header">
+                <div class="header-info">
+                    
+                </div>
 
-            <div class="chat-messages" id="w2-chat-messages"></div>
+                <div class="header-date" id="headerDate"></div>
 
-            <div class="typing-indicator" id="w2-typing-indicator">
-                <div class="message-avatar">🤖</div>
+                <button class="close-btn" type="button" aria-label="Close chat" data-action="close">×</button>
+                </div> 
+                
+                <div class="chat-quick-actions" id="w2-chat-quick-actions">
+                    <button class="quick-action-btn" type="button" data-quick-action="personal_injury">Personal Injury</button>
+                    <button class="quick-action-btn" type="button" data-quick-action="family_law">Family Law</button>
+                    <button class="quick-action-btn" type="button" data-quick-action="immigration">Immigration</button>
+                    <button class="quick-action-btn" type="button" data-quick-action="criminal_defense">Criminal Defense</button>
+                    <button class="quick-action-btn" type="button" data-quick-action="schedule">Schedule Consultation</button>
+                    <button class="quick-action-btn payment-quick-btn" type="button" data-quick-action="make_payment">💳 Make a Payment</button>
+                </div>
+
+                <div class="chat-messages" id="w2-chat-messages"></div>
+
+                <div class="typing-indicator" id="w2-typing-indicator">
+                <div class="message-avatar">🏛️</div>
                 <div class="typing-dots">
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
                 </div>
-            </div>
+                </div>
 
-            <div class="chat-input-area">
-                <input type="file" id="w2-file-input" class="file-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-                <button class="upload-btn" type="button" aria-label="Upload a file" data-action="upload">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-                    </svg>
-                </button>
-                <input type="text" id="w2-chat-input" class="chat-input" placeholder="Type your message...">
-                <button class="chat-send-btn" type="button" aria-label="Send message" data-action="send">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="22" y1="2" x2="11" y2="13"/>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                    </svg>
-                </button>
+                <div class="chat-input-area">
+                    <input type="file" id="w2-file-input" class="file-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                    <button class="upload-btn" type="button" aria-label="Upload a file" data-action="upload">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                        </svg>
+                    </button>
+                    <!-- keep this ID + class because your JS uses it -->
+                    <input type="text" id="w2-chat-input" class="chat-input" placeholder="Type your message...">
+
+                    <button class="chat-send-btn" type="button" aria-label="Send message" data-action="send">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
+                </div>
             </div>
-            </div></div>
+            </div>
+        </div>
+
+
+            
         </div>
     </div>
-
-
     
     <div id="w3-lawfirm-chatbot-container" class="lawfirm-chatbot-container widget-pos-left-bot widget-left layout-floating" data-wid="w3">
         <button id="w3-lawfirm-chat-button" class="lawfirm-chat-button" type="button" aria-label="Open chat" data-action="toggle">
-            ⚖️
+            🏛️
             <div id="w3-chat-notification" class="chat-notification" style="display:none;">1</div>
         </button>
 
@@ -1815,7 +2678,7 @@
             <div class="chat-messages" id="w3-chat-messages"></div>
 
             <div class="typing-indicator" id="w3-typing-indicator">
-                <div class="message-avatar">🤖</div>
+                <div class="message-avatar">🏛️</div>
                 <div class="typing-dots">
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
@@ -1846,16 +2709,18 @@
     
     <div id="w4-lawfirm-chatbot-container" class="lawfirm-chatbot-container widget-pos-right-top widget-right layout-video" data-wid="w4">
         <button id="w4-lawfirm-chat-button" class="lawfirm-chat-button" type="button" aria-label="Open chat" data-action="toggle">
-            ⚖️
+            <video autoplay muted loop playsinline style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:50%; pointer-events:none; border:2px solid #DEBA3A;">
+                <source src="./graphics/video.mp4" type="video/mp4">
+            </video>
             <div id="w4-chat-notification" class="chat-notification" style="display:none;">1</div>
         </button>
 
         <div id="w4-lawfirm-chat-window" class="lawfirm-chat-window" aria-hidden="true">
-            <div class="video-bg"><video autoplay muted loop playsinline><source src="https://cdn.coverr.co/videos/coverr-city-lights-8943/1080p.mp4" type="video/mp4"></video></div>
+            <div class="video-bg"><video autoplay muted loop playsinline><source src="graphics/video.mp4" type="video/mp4"></video></div>
             
             <div class="chat-header">
                 <div class="chat-header-info">
-                    <div class="chat-avatar">⚖️</div>
+                    <div class="chat-avatar"></div>
                     <div>
                         <div class="chat-title">Legal Assistant (Video)</div>
                         <div class="chat-subtitle">Online • Available 24/7</div>
@@ -1881,7 +2746,7 @@
             <div class="chat-messages" id="w4-chat-messages"></div>
 
             <div class="typing-indicator" id="w4-typing-indicator">
-                <div class="message-avatar">🤖</div>
+                <div class="message-avatar">🏛️</div>
                 <div class="typing-dots">
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
@@ -1912,7 +2777,7 @@
     <div id="w5-chat-modal-overlay" class="chat-modal-overlay"></div>
     <div id="w5-lawfirm-chatbot-container" class="lawfirm-chatbot-container widget-pos-right-mid widget-right widget-modal layout-classic" data-wid="w5">
         <button id="w5-lawfirm-chat-button" class="lawfirm-chat-button" type="button" aria-label="Open chat" data-action="toggle">
-            ⚖️
+            📜
             <div id="w5-chat-notification" class="chat-notification" style="display:none;">1</div>
         </button>
 
@@ -1921,7 +2786,7 @@
             
             <div class="chat-header">
                 <div class="chat-header-info">
-                    <div class="chat-avatar">⚖️</div>
+                    <div class="chat-avatar">📜</div>
                     <div>
                         <div class="chat-title">Legal Assistant (Modal)</div>
                         <div class="chat-subtitle">Online • Available 24/7</div>
@@ -1947,7 +2812,7 @@
             <div class="chat-messages" id="w5-chat-messages"></div>
 
             <div class="typing-indicator" id="w5-typing-indicator">
-                <div class="message-avatar">🤖</div>
+                <div class="message-avatar">🏛️</div>
                 <div class="typing-dots">
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
@@ -2013,7 +2878,7 @@
             <div class="chat-messages" id="w6-chat-messages"></div>
 
             <div class="typing-indicator" id="w6-typing-indicator">
-                <div class="message-avatar">🤖</div>
+                <div class="message-avatar">🏛️</div>
                 <div class="typing-dots">
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
@@ -2040,7 +2905,141 @@
         </div>
     </div>
 
-    <script src="multi-style-chat-widget-fixed.js" defer></script>
+    <!-- MOBILE FIXES - JavaScript for iOS/Android compatibility -->
+    <script>
+        // Fix for iOS - Replace :has() selector functionality
+        function handleMobileToggleVisibility() {
+            const isMobile = window.innerWidth <= 768;
+            
+            if (!isMobile) return;
+            
+            // Get all chat windows and their toggles
+            const containers = document.querySelectorAll('.lawfirm-chatbot-container');
+            
+            containers.forEach(container => {
+                const chatWindow = container.querySelector('.lawfirm-chat-window');
+                const toggle = container.querySelector('.lawfirm-chat-button');
+                
+                if (!chatWindow || !toggle) return;
+                
+                if (chatWindow.classList.contains('open')) {
+                    // Hide toggle when window is open on mobile
+                    toggle.style.display = 'none';
+                } else {
+                    // Show toggle when window is closed
+                    toggle.style.display = 'flex';
+                }
+            });
+        }
+        
+        // Fix for iOS video playback
+        function initMobileVideo() {
+            const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+            
+            if (isIOS) {
+                const videos = document.querySelectorAll('video');
+                videos.forEach(video => {
+                    video.setAttribute('playsinline', '');
+                    video.setAttribute('webkit-playsinline', '');
+                    video.muted = true;
+                    video.autoplay = true;
+                    
+                    // Force play on iOS
+                    video.play().catch(err => {
+                        console.log('Video autoplay prevented on iOS:', err);
+                        // Try again on user interaction
+                        document.addEventListener('click', function playOnClick() {
+                            video.play();
+                            document.removeEventListener('click', playOnClick);
+                        }, { once: true });
+                    });
+                });
+            }
+        }
+        
+        // Fix for picture backgrounds on iOS
+        function initMobilePictures() {
+            const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+            
+            if (isIOS) {
+                // Ensure picture backgrounds are loaded
+                const pictureBgs = document.querySelectorAll('.picture-bg, [style*="background-image"]');
+                pictureBgs.forEach(element => {
+                    // Force repaint
+                    element.style.display = 'none';
+                    element.offsetHeight; // Force reflow
+                    element.style.display = '';
+                });
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initMobileVideo();
+            initMobilePictures();
+            handleMobileToggleVisibility();
+            
+            console.log('Mobile fixes initialized');
+        });
+        
+        // Re-check toggle visibility when windows open/close
+        // Use both event delegation and mutation observer for compatibility
+        document.addEventListener('click', function(e) {
+            // Delay to allow animations to complete
+            setTimeout(handleMobileToggleVisibility, 100);
+        });
+        
+        // Observe class changes on chat windows
+        if (typeof MutationObserver !== 'undefined') {
+            const observer = new MutationObserver(handleMobileToggleVisibility);
+            
+            document.querySelectorAll('.lawfirm-chat-window').forEach(window => {
+                observer.observe(window, {
+                    attributes: true,
+                    attributeFilter: ['class']
+                });
+            });
+        }
+        
+        // Handle orientation changes
+        window.addEventListener('orientationchange', function() {
+            setTimeout(function() {
+                handleMobileToggleVisibility();
+                initMobileVideo();
+            }, 300);
+        });
+        
+        // Handle resize events (Android keyboard, etc.)
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                handleMobileToggleVisibility();
+            }, 250);
+        });
+    </script>
 
-</body>
-</html>
+    <script src="multi-style-chat-widget.js" defer></script>
+
+    <!-- FINAL CTA SECTION - Add this AFTER your chat widget -->
+    <div class="final-cta-section">
+        <h2 class="final-cta-title">Ready to Capture More Cases?</h2>
+        <p class="final-cta-subtitle">
+            Talk to us about custom setup and start capturing leads 24/7 within 2 weeks
+        </p>
+        <a href="tel:2054134101" class="final-cta-button">
+            <span>📞</span>
+            <span>Call (205) 413-4101</span>
+        </a>
+
+        <p style="font-size: 14px; color: rgba(255,255,255,0.85); margin-top: 18px;">
+            Privacy-focused deployment • Separated infrastructure • Encrypted intake workflows
+        </p>
+        
+        <div class="contact-info">
+            <p><strong>Sidney Muhammad</strong> | 4D Gaming</p>
+            <p>
+                <a href="/cdn-cgi/l/email-protection#6a060f0d0b061e0f09022a5e0e0d0b0703040d440d0b070f1955191f08000f091e57260b1d28051e4f585a595c5a4f585a3a1f1809020b190f4f585a23041b1f031813">
+                    <span class="__cf_email__" data-cfemail="620e0705030e1607010a22560605030f0b0c054c05030f0711">[email&#160;protected]</span>
+                </a> | 
+                <a href="https://4dgam

@@ -2877,6 +2877,120 @@
         </div>
     </div>
 
+    <!-- MOBILE FIXES - JavaScript for iOS/Android compatibility -->
+    <script>
+        // Fix for iOS - Replace :has() selector functionality
+        function handleMobileToggleVisibility() {
+            const isMobile = window.innerWidth <= 768;
+            
+            if (!isMobile) return;
+            
+            // Get all chat windows and their toggles
+            const containers = document.querySelectorAll('.lawfirm-chatbot-container');
+            
+            containers.forEach(container => {
+                const chatWindow = container.querySelector('.lawfirm-chat-window');
+                const toggle = container.querySelector('.lawfirm-chat-button');
+                
+                if (!chatWindow || !toggle) return;
+                
+                if (chatWindow.classList.contains('open')) {
+                    // Hide toggle when window is open on mobile
+                    toggle.style.display = 'none';
+                } else {
+                    // Show toggle when window is closed
+                    toggle.style.display = 'flex';
+                }
+            });
+        }
+        
+        // Fix for iOS video playback
+        function initMobileVideo() {
+            const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+            
+            if (isIOS) {
+                const videos = document.querySelectorAll('video');
+                videos.forEach(video => {
+                    video.setAttribute('playsinline', '');
+                    video.setAttribute('webkit-playsinline', '');
+                    video.muted = true;
+                    video.autoplay = true;
+                    
+                    // Force play on iOS
+                    video.play().catch(err => {
+                        console.log('Video autoplay prevented on iOS:', err);
+                        // Try again on user interaction
+                        document.addEventListener('click', function playOnClick() {
+                            video.play();
+                            document.removeEventListener('click', playOnClick);
+                        }, { once: true });
+                    });
+                });
+            }
+        }
+        
+        // Fix for picture backgrounds on iOS
+        function initMobilePictures() {
+            const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+            
+            if (isIOS) {
+                // Ensure picture backgrounds are loaded
+                const pictureBgs = document.querySelectorAll('.picture-bg, [style*="background-image"]');
+                pictureBgs.forEach(element => {
+                    // Force repaint
+                    element.style.display = 'none';
+                    element.offsetHeight; // Force reflow
+                    element.style.display = '';
+                });
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initMobileVideo();
+            initMobilePictures();
+            handleMobileToggleVisibility();
+            
+            console.log('Mobile fixes initialized');
+        });
+        
+        // Re-check toggle visibility when windows open/close
+        // Use both event delegation and mutation observer for compatibility
+        document.addEventListener('click', function(e) {
+            // Delay to allow animations to complete
+            setTimeout(handleMobileToggleVisibility, 100);
+        });
+        
+        // Observe class changes on chat windows
+        if (typeof MutationObserver !== 'undefined') {
+            const observer = new MutationObserver(handleMobileToggleVisibility);
+            
+            document.querySelectorAll('.lawfirm-chat-window').forEach(window => {
+                observer.observe(window, {
+                    attributes: true,
+                    attributeFilter: ['class']
+                });
+            });
+        }
+        
+        // Handle orientation changes
+        window.addEventListener('orientationchange', function() {
+            setTimeout(function() {
+                handleMobileToggleVisibility();
+                initMobileVideo();
+            }, 300);
+        });
+        
+        // Handle resize events (Android keyboard, etc.)
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                handleMobileToggleVisibility();
+            }, 250);
+        });
+    </script>
+
     <script src="multi-style-chat-widget.js" defer></script>
 
     <!-- FINAL CTA SECTION - Add this AFTER your chat widget -->

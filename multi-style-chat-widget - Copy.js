@@ -2023,9 +2023,6 @@ function openWidget(wid) {
     }
     const input = getElFor(wid, "chat-input");
     if (input) input.focus();
-    
-    // Mobile: Update toggle visibility
-    updateMobileToggleVisibility();
     return;
   }
 
@@ -2040,9 +2037,6 @@ function openWidget(wid) {
 
   const input = getElFor(wid, "chat-input");
   if (input) input.focus();
-
-// Mobile: Update toggle visibility after opening
-  updateMobileToggleVisibility();
 }
 
 function closeWidget(wid) {
@@ -2268,51 +2262,6 @@ async function handlePaymentReturn() {
   }
 }
 
-// =====================================================
-// MOBILE TOGGLE VISIBILITY HANDLER
-// Works with HTML's handleMobileToggleVisibility for iOS compatibility
-// =====================================================
-function updateMobileToggleVisibility() {
-  // Check if we're on mobile
-  const isMobile = window.innerWidth <= 768;
-  
-  if (!isMobile) {
-    // On desktop, always show all toggles
-    WIDGET_IDS.forEach(wid => {
-      const toggle = document.getElementById(`${wid}-lawfirm-chat-button`);
-      if (toggle) toggle.style.display = 'flex';
-    });
-    return;
-  }
-  
-  // On mobile, hide toggles when their windows are open
-  WIDGET_IDS.forEach(wid => {
-    const chatWindow = document.getElementById(`${wid}-lawfirm-chat-window`);
-    const toggle = document.getElementById(`${wid}-lawfirm-chat-button`);
-    const overlay = document.getElementById(`${wid}-chat-modal-overlay`);
-    
-    if (!toggle) return;
-    
-    // Check if window or overlay is open
-    const windowOpen = chatWindow && chatWindow.classList.contains('open');
-    const overlayOpen = overlay && overlay.classList.contains('open');
-    const isOpen = windowOpen || overlayOpen;
-    
-    if (isOpen) {
-      // Hide toggle when window is open on mobile
-      toggle.style.display = 'none';
-    } else {
-      // Show toggle when window is closed
-      toggle.style.display = 'flex';
-    }
-  });
-}
-
-// Also call from global scope if HTML code calls it
-if (typeof window !== 'undefined') {
-  window.updateMobileToggleVisibility = updateMobileToggleVisibility;
-}
-
 document.addEventListener("DOMContentLoaded", async () => {
   bindWidgetEvents();
 
@@ -2329,24 +2278,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   await handlePaymentReturn();
-
-// Mobile: Initialize toggle visibility
-  updateMobileToggleVisibility();
-  
-  // Mobile: Re-check on window resize (handles orientation changes, keyboard, etc.)
-  let resizeTimer;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(updateMobileToggleVisibility, 250);
-  });
-  
-  // Mobile: Handle orientation changes
-  window.addEventListener('orientationchange', () => {
-    setTimeout(updateMobileToggleVisibility, 300);
-  });
-  
-  console.log("✅ Mobile compatibility initialized");
 });
+
 
 
 

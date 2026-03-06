@@ -1,4 +1,3 @@
-
 /* =====================================================
    MULTI-STYLE CHAT WIDGET (CSP-friendly)
    - No inline scripts or inline event handlers
@@ -2040,8 +2039,8 @@ function openWidget(wid) {
 
   const input = getElFor(wid, "chat-input");
   if (input) input.focus();
-
-// Mobile: Update toggle visibility after opening
+  
+  // Mobile: Update toggle visibility after opening
   updateMobileToggleVisibility();
 }
 
@@ -2057,6 +2056,9 @@ function closeWidget(wid) {
     const win = getElFor(wid, "lawfirm-chat-window");
     if (overlay) overlay.classList.remove("open");
     if (win) win.classList.remove("open");
+    
+    // Mobile: Update toggle visibility
+    updateMobileToggleVisibility();
     return;
   }
 
@@ -2065,7 +2067,9 @@ function closeWidget(wid) {
 
   const c = document.getElementById(`${wid}-lawfirm-chatbot-container`);
   if (c) c.classList.remove("is-front");
-
+  
+  // Mobile: Update toggle visibility after closing
+  updateMobileToggleVisibility();
 }
 
 function toggleWidget(wid) {
@@ -2329,8 +2333,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   await handlePaymentReturn();
-
-// Mobile: Initialize toggle visibility
+  
+  // Mobile: Initialize toggle visibility
   updateMobileToggleVisibility();
   
   // Mobile: Re-check on window resize (handles orientation changes, keyboard, etc.)
@@ -2347,115 +2351,3 @@ document.addEventListener("DOMContentLoaded", async () => {
   
   console.log("✅ Mobile compatibility initialized");
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
