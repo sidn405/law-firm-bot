@@ -2188,28 +2188,6 @@
             }
         }
 
-        /* ========================================
-           iOS FIX: Picture & Video Toggle Backgrounds
-           ======================================== */
-
-        /* Picture Toggle (w1) - Show image */
-        #w1-lawfirm-chat-button {
-            background-image: url('graphics/image.jpg') !important;
-            background-size: cover !important;
-            background-position: center !important;
-            background-repeat: no-repeat !important;
-            -webkit-background-size: cover !important;
-        }
-
-        /* Video Toggle (w4) - Show video preview image */
-        #w4-lawfirm-chat-button video {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: cover !important;
-            border-radius: 50% !important;
-            -webkit-border-radius: 50% !important;
-        }
-
     </style>
 </head>
 <body>
@@ -2946,90 +2924,7 @@
             </p>
         </div>
     </div>
-
-<script>
-// ========================================
-// iOS COMPATIBILITY - iPhone 13 Pro Fix
-// ========================================
-
-document.addEventListener('DOMContentLoaded', function() {
-    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
     
-    // ===== FIX 1: TOUCH EVENTS FOR ALL TOGGLES =====
-    const toggleButtons = document.querySelectorAll('.lawfirm-chat-button');
-    
-    toggleButtons.forEach(button => {
-        // Add touchstart event for iOS
-        button.addEventListener('touchstart', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // Trigger click after short delay
-            setTimeout(() => {
-                this.click();
-            }, 10);
-        }, { passive: false });
-        
-        // Ensure clickable
-        button.style.cursor = 'pointer';
-        button.style.webkitTapHighlightColor = 'transparent';
-        button.style.touchAction = 'manipulation';
-    });
-    
-    // ===== FIX 2: VIDEO PLAYBACK ON iOS =====
-    const videos = document.querySelectorAll('video');
-    
-    videos.forEach(video => {
-        // iOS-specific attributes
-        video.setAttribute('playsinline', '');
-        video.setAttribute('webkit-playsinline', '');
-        video.setAttribute('muted', '');
-        video.muted = true;
-        video.autoplay = true;
-        video.loop = true;
-        
-        // Force play
-        const playVideo = () => {
-            video.play().catch(err => {
-                console.log('Video autoplay prevented, will play on interaction');
-            });
-        };
-        
-        // Try to play immediately
-        playVideo();
-        
-        // Retry on first user interaction
-        if (isIOS) {
-            const playOnTouch = () => {
-                playVideo();
-                document.removeEventListener('touchstart', playOnTouch);
-            };
-            document.addEventListener('touchstart', playOnTouch, { once: true });
-        }
-    });
-    
-    // ===== FIX 3: BACKGROUND IMAGES ON iOS =====
-    if (isIOS) {
-        // Force picture toggle background
-        const pictureToggle = document.getElementById('w1-lawfirm-chat-button');
-        if (pictureToggle) {
-            pictureToggle.style.backgroundImage = "url('graphics/image.jpg')";
-            pictureToggle.style.backgroundSize = 'cover';
-            pictureToggle.style.backgroundPosition = 'center';
-        }
-        
-        // Force video toggle background
-        const videoToggle = document.getElementById('w4-lawfirm-chat-button');
-        if (videoToggle) {
-            videoToggle.style.backgroundImage = "url('graphics/image.jpg')";
-            videoToggle.style.backgroundSize = 'cover';
-            videoToggle.style.backgroundPosition = 'center';
-        }
-    }
-    
-    console.log('✅ iOS compatibility loaded (iPhone 13 Pro)');
-});
-</script>
 
 </body>
 </html>
