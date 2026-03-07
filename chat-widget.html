@@ -2168,7 +2168,20 @@
           background: none;
         }
 
+        /* CLASSIC WIDGET FIX - Screens 480px and smaller */
+        @media (max-width: 480px) {
+            .lawfirm-chat-window {
+                position: fixed !important;        /* Viewport-relative, not container-relative */
+                width: calc(100vw - 24px) !important;
+                height: calc(100vh - 90px) !important;
+                max-height: calc(100vh - 90px) !important;
+                bottom: 80px !important;           /* Space for toggle below */
+                left: 12px !important;             /* From viewport left edge */
+                right: auto !important;            /* Don't set right - prevents off-screen issue */
+                border-radius: 16px 16px 0 0 !important;
+            }
 
+        }
 
     </style>
 </head>
