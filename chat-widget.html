@@ -711,6 +711,12 @@
             /*pointer-events: none; /* allow only button/window to receive events */
         }
 
+        @supports (-webkit-touch-callout: none) {
+          .lawfirm-chatbot-container {
+            pointer-events: auto !important;
+          }
+        }
+
         .lawfirm-chatbot-container .lawfirm-chat-button,
         .lawfirm-chatbot-container .lawfirm-chat-window,
         .lawfirm-chatbot-container .chat-modal-overlay {
